@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jumaniwu - WhatsApp AI Agent</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">W</div>
+      <span>Jumaniwu AI</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Menu</div>
+        <div class="nav-item" data-page="overview">
+          <span class="nav-icon">📊</span> Overview
+        </div>
+        <div class="nav-item" data-page="sessions">
+          <span class="nav-icon">📱</span> Sessions
+        </div>
+        <div class="nav-item" data-page="conversations">
+          <span class="nav-icon">💬</span> Percakapan
+          <span class="nav-badge hidden" id="nav-unread-badge">0</span>
+        </div>
+        <div class="nav-item" data-page="contacts">
+          <span class="nav-icon">👥</span> Kontak
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">AI Settings</div>
+        <div class="nav-item" data-page="knowledge">
+          <span class="nav-icon">🧠</span> Knowledge Base
+        </div>
+        <div class="nav-item" data-page="broadcast">
+          <span class="nav-icon">📢</span> Broadcast
+        </div>
+      </div>
+    </nav>
+    <div style="padding: 12px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);">
+      <div id="connection-status" style="display:flex;align-items:center;gap:6px;">
+        <span style="width:8px;height:8px;background:var(--wa-green);border-radius:50%;display:inline-block;"></span>
+        Server online
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="page-title" id="page-title">Overview</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+    <div class="content" id="page-content">
+      <!-- Page content rendered here by JS -->
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal container -->
+<div id="modal-container"></div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/pages/sessions.js"></script>
+<script src="/js/pages/conversations.js"></script>
+<script src="/js/pages/contacts.js"></script>
+<script src="/js/pages/knowledge.js"></script>
+<script src="/js/pages/broadcast.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
