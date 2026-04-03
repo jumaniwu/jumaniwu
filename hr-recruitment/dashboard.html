@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HR Dashboard — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">RF</div>
+      <span class="brand-name">RecruitFit</span>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section">Main</span>
+      <a href="dashboard.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="jobs.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        Job Postings
+      </a>
+      <a href="results.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Test Results
+      </a>
+      <span class="nav-section">Candidate</span>
+      <a href="apply.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Apply Form
+      </a>
+      <a href="index.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Landing Page
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">HR</div>
+        <div>
+          <div class="user-name">HR Manager</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="page-title">
+        <h1>Dashboard</h1>
+        <p>Welcome back! Here's what's happening today.</p>
+      </div>
+      <div style="display:flex;gap:0.75rem;align-items:center;">
+        <a href="apply.html" class="btn btn-outline">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Copy Test Link
+        </a>
+        <a href="jobs.html" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Post New Job
+        </a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div>
+          <div class="stat-value" id="totalApplicants">0</div>
+          <div class="stat-label">Total Applicants</div>
+          <div class="stat-change up" id="applicantChange">Loading...</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon cyan">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        </div>
+        <div>
+          <div class="stat-value" id="openJobs">0</div>
+          <div class="stat-label">Open Positions</div>
+          <div class="stat-change" id="jobChange">Active listings</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon yellow">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="stat-value" id="testsCompleted">0</div>
+          <div class="stat-label">Tests Completed</div>
+          <div class="stat-change" id="testChange">Awaiting review</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+          <div class="stat-value" id="passRate">0%</div>
+          <div class="stat-label">Pass Rate</div>
+          <div class="stat-change" id="passChange">≥60% threshold</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid: Recent Applicants + Recent Jobs -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+
+      <!-- Recent Applicants -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Applicants</h2>
+          <a href="results.html" class="btn btn-outline" style="font-size:0.8rem;">View All</a>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Position</th>
+                <th>Score</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentApplicantsBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--gray);padding:2rem;">No applicants yet. Share the <a href="apply.html" style="color:var(--primary);">apply link</a> with candidates.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Open Jobs -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Open Positions</h2>
+          <a href="jobs.html" class="btn btn-outline" style="font-size:0.8rem;">Manage</a>
+        </div>
+        <div id="openJobsList">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+            <h3>No open jobs</h3>
+            <p><a href="jobs.html" style="color:var(--primary);">Post your first job</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="margin-top:0;">
+      <div class="card-header">
+        <h2 class="card-title">Quick Actions</h2>
+      </div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <a href="jobs.html" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Post New Job
+        </a>
+        <a href="results.html" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          View All Results
+        </a>
+        <a href="apply.html" target="_blank" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Open Candidate Form
+        </a>
+        <button class="btn btn-secondary" onclick="clearAllData()">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Clear Demo Data
+        </button>
+        <button class="btn btn-success" onclick="loadDemoData()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Load Demo Data
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  initDashboard();
+</script>
+</body>
+</html>

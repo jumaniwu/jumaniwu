@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Job Postings — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">RF</div>
+      <span class="brand-name">RecruitFit</span>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section">Main</span>
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="jobs.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        Job Postings
+      </a>
+      <a href="results.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Test Results
+      </a>
+      <span class="nav-section">Candidate</span>
+      <a href="apply.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Apply Form
+      </a>
+      <a href="index.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Landing Page
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">HR</div>
+        <div>
+          <div class="user-name">HR Manager</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="page-title">
+        <h1>Job Postings</h1>
+        <p>Manage open positions and track applicants per role.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openJobModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Post New Job
+      </button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="form-control" id="searchJobs" placeholder="Search jobs..." oninput="renderJobs()"/>
+      </div>
+      <select class="form-control" id="filterDept" onchange="renderJobs()">
+        <option value="">All Departments</option>
+        <option value="Technology">Technology</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Finance">Finance</option>
+        <option value="Operations">Operations</option>
+        <option value="HR">Human Resources</option>
+        <option value="Sales">Sales</option>
+        <option value="Design">Design</option>
+        <option value="Other">Other</option>
+      </select>
+      <select class="form-control" id="filterStatus" onchange="renderJobs()">
+        <option value="">All Status</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+        <option value="draft">Draft</option>
+      </select>
+    </div>
+
+    <!-- Jobs Grid -->
+    <div class="jobs-grid" id="jobsGrid"></div>
+  </main>
+</div>
+
+<!-- Post Job Modal -->
+<div class="modal-overlay" id="jobModal">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Post New Job</h3>
+      <button class="modal-close" onclick="closeJobModal()">&times;</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Job Title <span class="required">*</span></label>
+        <input type="text" class="form-control" id="jobTitle" placeholder="e.g. Frontend Developer"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department <span class="required">*</span></label>
+        <select class="form-control" id="jobDept">
+          <option value="">Select Department</option>
+          <option value="Technology">Technology</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Finance">Finance</option>
+          <option value="Operations">Operations</option>
+          <option value="HR">Human Resources</option>
+          <option value="Sales">Sales</option>
+          <option value="Design">Design</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Location <span class="required">*</span></label>
+        <input type="text" class="form-control" id="jobLocation" placeholder="e.g. Jakarta, Remote"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Job Type</label>
+        <select class="form-control" id="jobType">
+          <option value="Full-time">Full-time</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Contract">Contract</option>
+          <option value="Internship">Internship</option>
+          <option value="Remote">Remote</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Salary Range</label>
+        <input type="text" class="form-control" id="jobSalary" placeholder="e.g. Rp 8M - 15M"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Application Deadline</label>
+        <input type="date" class="form-control" id="jobDeadline"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Job Description</label>
+      <textarea class="form-control" id="jobDesc" rows="3" placeholder="Describe the role, responsibilities, and requirements..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Vacancies</label>
+        <input type="number" class="form-control" id="jobVacancies" min="1" value="1"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="jobStatus">
+          <option value="open">Open</option>
+          <option value="draft">Draft</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeJobModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  renderJobs();
+</script>
+</body>
+</html>
