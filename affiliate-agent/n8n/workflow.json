@@ -1,0 +1,395 @@
+{
+  "name": "AI Affiliate Agent — Shopee to TikTok Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Cron — 2x Daily (8AM & 8PM WIB)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "notes": "Triggers the full pipeline twice daily at 8AM and 8PM Jakarta time (WIB). Adjust cron expressions as needed."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/run/research",
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "http-research",
+      "name": "HTTP — Run Product Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "notes": "Calls ShopeeResearcher to scrape trending Home & Living products. Returns count of qualifying products."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-products-found",
+      "name": "IF — Products Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "notes": "Only continue if the researcher found at least 1 qualifying product."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/run/content",
+        "options": {
+          "timeout": 300000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "http-content",
+      "name": "HTTP — Generate Scripts & Images",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 220],
+      "notes": "Calls ContentEngine: Gemini 1.5 Flash for PAS scripts + Pollinations.ai for UGC images."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/run/approve",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"content_index\": 0\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-telegram-approve",
+      "name": "HTTP — Send to Telegram for Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 220],
+      "notes": "Sends script preview + image + affiliate link to Telegram with Approve/Reject buttons. Returns approval_id."
+    },
+    {
+      "parameters": {
+        "amount": 3600,
+        "unit": "seconds",
+        "resume": "webhook",
+        "webhookSuffix": "approval"
+      },
+      "id": "wait-approval",
+      "name": "Wait — Human Approval (1hr max)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 220],
+      "webhookId": "affiliate-approval",
+      "notes": "Pauses the workflow for up to 1 hour waiting for Telegram approval. The agent service handles the actual Redis pub/sub wait internally."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body?.approved || $json.approved }}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-approved",
+      "name": "IF — Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 220],
+      "notes": "Check if human approved the content package."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/run/upload",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"approval_id\": \"{{ $node['HTTP — Send to Telegram for Approval'].json.approval_id }}\",\n  \"dry_run\": false\n}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "http-tiktok-upload",
+      "name": "HTTP — Upload to TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 140],
+      "notes": "Calls TikTokUploader with the approval_id. Handles jitter delay, metadata scrubbing, and Content Posting API upload."
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "name"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tiktok_posts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "publish_id": "={{ $json.tiktok_result?.publish_id }}",
+            "status": "={{ $json.tiktok_result?.status || 'unknown' }}",
+            "posted_at": "={{ $now }}",
+            "created_at": "={{ $now }}"
+          }
+        }
+      },
+      "id": "postgres-log-success",
+      "name": "PostgreSQL — Log Success",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [2000, 140],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-affiliate",
+          "name": "Affiliate DB"
+        }
+      },
+      "notes": "Log the successful TikTok post to PostgreSQL for tracking."
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "name"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tiktok_posts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "rejected",
+            "created_at": "={{ $now }}"
+          }
+        }
+      },
+      "id": "postgres-log-rejection",
+      "name": "PostgreSQL — Log Rejection",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1780, 340],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-affiliate",
+          "name": "Affiliate DB"
+        }
+      },
+      "notes": "Log the rejected/timed-out content package."
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "name"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tiktok_posts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "no_products",
+            "created_at": "={{ $now }}"
+          }
+        }
+      },
+      "id": "postgres-log-no-products",
+      "name": "PostgreSQL — Log No Products",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [900, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-affiliate",
+          "name": "Affiliate DB"
+        }
+      },
+      "notes": "Log when no qualifying products were found in this cycle."
+    }
+  ],
+  "connections": {
+    "Cron — 2x Daily (8AM & 8PM WIB)": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Run Product Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Run Product Research": {
+      "main": [
+        [
+          {
+            "node": "IF — Products Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Products Found?": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Generate Scripts & Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PostgreSQL — Log No Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Generate Scripts & Images": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Send to Telegram for Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Send to Telegram for Approval": {
+      "main": [
+        [
+          {
+            "node": "Wait — Human Approval (1hr max)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait — Human Approval (1hr max)": {
+      "main": [
+        [
+          {
+            "node": "IF — Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Approved?": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Upload to TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PostgreSQL — Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Upload to TikTok": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL — Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "affiliate-agent-workflow-v1"
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 1,
+  "tags": [
+    {
+      "createdAt": "2026-04-03T00:00:00.000Z",
+      "updatedAt": "2026-04-03T00:00:00.000Z",
+      "id": "affiliate-tag",
+      "name": "affiliate-automation"
+    }
+  ]
+}

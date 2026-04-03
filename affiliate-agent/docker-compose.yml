@@ -1,0 +1,144 @@
+version: "3.8"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Affiliate Automation Agent — Docker Compose
+# Services: n8n (orchestrator) + PostgreSQL (database) + Redis (queue/pub-sub)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: affiliate_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-affiliate_db}
+      POSTGRES_USER: ${DB_USER:-affiliate_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - affiliate-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-affiliate_user} -d ${DB_NAME:-affiliate_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: affiliate_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - affiliate-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── n8n Orchestrator ────────────────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: affiliate_n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5678:5678"
+    environment:
+      # Database (PostgreSQL)
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${DB_NAME:-affiliate_db}
+      DB_POSTGRESDB_USER: ${DB_USER:-affiliate_user}
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD:-changeme_secure_password}
+      # Queue (Redis)
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      EXECUTIONS_MODE: queue
+      # n8n General
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:-changeme_n8n_password}
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678}
+      GENERIC_TIMEZONE: Asia/Jakarta
+      TZ: Asia/Jakarta
+      # Encryption key for credentials
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-changeme_32char_encryption_key_here}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/home/node/.n8n/custom-workflows:ro
+      - ./src:/opt/affiliate-agent/src:ro
+      - ./data:/opt/affiliate-agent/data
+    networks:
+      - affiliate-net
+
+  # ─── Python Agent Service ────────────────────────────────────────────────────
+  # Exposes a lightweight FastAPI server so n8n can trigger Python modules via HTTP
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: affiliate_agent
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
+      TIKTOK_ACCESS_TOKEN: ${TIKTOK_ACCESS_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      APIFY_TOKEN: ${APIFY_TOKEN}
+      MAGIC_HOUR_API_KEY: ${MAGIC_HOUR_API_KEY}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-affiliate_db}
+      DB_USER: ${DB_USER:-affiliate_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_secure_password}
+      REDIS_URL: redis://redis:6379
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    networks:
+      - affiliate-net
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  affiliate-net:
+    driver: bridge
