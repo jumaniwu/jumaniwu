@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Start Free Trial — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body { background: linear-gradient(135deg,#EEF2FF 0%,#E8F4FD 100%); min-height:100vh; }
+    .plan-card { border:2px solid var(--border); border-radius:14px; padding:1.25rem; cursor:pointer; transition:all 0.2s; text-align:center; }
+    .plan-card:hover { border-color:var(--primary); }
+    .plan-card.selected { border-color:var(--primary); background:var(--primary-light); }
+    .plan-card .plan-price { font-size:1.5rem; font-weight:800; color:var(--primary); }
+    .plan-card .plan-name { font-size:0.875rem; font-weight:700; margin-bottom:0.25rem; }
+    .plan-card .plan-desc { font-size:0.75rem; color:var(--gray); }
+    .success-screen { text-align:center; padding:2rem 0; }
+  </style>
+</head>
+<body class="apply-page">
+  <div class="apply-container" style="max-width:600px;">
+    <div class="apply-header">
+      <a href="index.html" class="logo"><div class="logo-icon">RF</div><span>RecruitFit</span></a>
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:0.25rem;">Start Your Free Trial</h2>
+      <p style="color:var(--gray);font-size:0.9rem;">14 days free. No credit card required.</p>
+    </div>
+
+    <div class="step-wizard">
+      <div class="wizard-step active" id="si1"><div class="wizard-step-num">1</div><span class="wizard-step-label">Company</span></div>
+      <div class="wizard-step" id="si2"><div class="wizard-step-num">2</div><span class="wizard-step-label">Account</span></div>
+      <div class="wizard-step" id="si3"><div class="wizard-step-num">3</div><span class="wizard-step-label">Plan</span></div>
+      <div class="wizard-step" id="si4"><div class="wizard-step-num">4</div><span class="wizard-step-label">Done</span></div>
+    </div>
+
+    <!-- Step 1: Company -->
+    <div id="rs1" class="card">
+      <h3 style="font-weight:700;margin-bottom:1.5rem;">Step 1 — Company Information</h3>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Company Name <span class="required">*</span></label><input type="text" class="form-control" id="regCompany" placeholder="PT. Example Indonesia"/></div>
+        <div class="form-group"><label class="form-label">Industry <span class="required">*</span></label>
+          <select class="form-control" id="regIndustry">
+            <option value="">Select Industry</option>
+            <option>Technology</option><option>Finance & Banking</option><option>Manufacturing</option>
+            <option>Retail & FMCG</option><option>Healthcare</option><option>Education</option>
+            <option>Logistics</option><option>Consulting</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Company Size</label>
+          <select class="form-control" id="regSize">
+            <option value="1-10">1–10 employees</option><option value="11-50">11–50 employees</option>
+            <option value="51-200">51–200 employees</option><option value="201-1000">201–1,000 employees</option>
+            <option value="1000+">1,000+ employees</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Website</label><input type="url" class="form-control" id="regWebsite" placeholder="https://company.com"/></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;"><button class="btn btn-primary btn-lg" onclick="regStep(2)">Next <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+    </div>
+
+    <!-- Step 2: Account -->
+    <div id="rs2" class="card" style="display:none;">
+      <h3 style="font-weight:700;margin-bottom:1.5rem;">Step 2 — Create Your Account</h3>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input type="text" class="form-control" id="regName" placeholder="Your full name"/></div>
+        <div class="form-group"><label class="form-label">Job Title</label><input type="text" class="form-control" id="regTitle" placeholder="e.g. HR Manager"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Work Email <span class="required">*</span></label><input type="email" class="form-control" id="regEmail" placeholder="you@company.com"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Password <span class="required">*</span></label><input type="password" class="form-control" id="regPassword" placeholder="Min. 8 characters"/></div>
+        <div class="form-group"><label class="form-label">Confirm Password <span class="required">*</span></label><input type="password" class="form-control" id="regConfirm" placeholder="Repeat password"/></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;"><button class="btn btn-secondary btn-lg" onclick="regStep(1)">← Back</button><button class="btn btn-primary btn-lg" onclick="regStep(3)">Next →</button></div>
+    </div>
+
+    <!-- Step 3: Plan -->
+    <div id="rs3" class="card" style="display:none;">
+      <h3 style="font-weight:700;margin-bottom:1.5rem;">Step 3 — Choose Your Plan</h3>
+      <p style="color:var(--gray);font-size:0.875rem;margin-bottom:1.5rem;">All plans include a 14-day free trial. Cancel anytime.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;" id="planGrid">
+        <div class="plan-card selected" onclick="selectPlan(this,'basic')">
+          <div class="plan-name">Basic</div>
+          <div class="plan-price">$29<span style="font-size:0.875rem;font-weight:500;color:var(--gray);">/mo</span></div>
+          <div class="plan-desc">3 jobs · 50 candidates/mo</div>
+        </div>
+        <div class="plan-card" onclick="selectPlan(this,'pro')" style="position:relative;">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.65rem;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap;">MOST POPULAR</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">$79<span style="font-size:0.875rem;font-weight:500;color:var(--gray);">/mo</span></div>
+          <div class="plan-desc">Unlimited jobs · 500 candidates</div>
+        </div>
+        <div class="plan-card" onclick="selectPlan(this,'enterprise')">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price" style="font-size:1.1rem;">Custom</div>
+          <div class="plan-desc">Unlimited everything</div>
+        </div>
+      </div>
+      <input type="hidden" id="selectedPlan" value="basic"/>
+      <div style="display:flex;justify-content:space-between;"><button class="btn btn-secondary btn-lg" onclick="regStep(2)">← Back</button><button class="btn btn-primary btn-lg" onclick="submitReg()">Start Free Trial 🚀</button></div>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div id="rs4" class="card" style="display:none;">
+      <div class="success-screen">
+        <div style="font-size:4rem;margin-bottom:1rem;">🎉</div>
+        <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:0.5rem;">Welcome to RecruitFit!</h2>
+        <p style="color:var(--gray);max-width:400px;margin:0 auto 2rem;">Your account has been created. Your 14-day free trial has started.</p>
+        <a href="dashboard.html" class="btn btn-primary btn-lg">Go to HR Dashboard →</a>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-size:0.875rem;color:var(--gray);margin-top:1rem;">Already have an account? <a href="login.html" style="color:var(--primary);font-weight:600;">Sign in</a></p>
+  </div>
+  <script>
+    function setWiz(step) {
+      for(let i=1;i<=4;i++){const el=document.getElementById('si'+i);if(!el)continue;el.classList.remove('active','completed');if(i<step)el.classList.add('completed');else if(i===step)el.classList.add('active');}
+      for(let i=1;i<=4;i++){const el=document.getElementById('rs'+i);if(el)el.style.display=i===step?'':'none';}
+      window.scrollTo(0,0);
+    }
+    function regStep(step) {
+      if(step===2){if(!document.getElementById('regCompany').value.trim()){alert('Please enter your company name.');return;}if(!document.getElementById('regIndustry').value){alert('Please select your industry.');return;}}
+      if(step===3){const n=document.getElementById('regName').value.trim(),e=document.getElementById('regEmail').value.trim(),p=document.getElementById('regPassword').value,c=document.getElementById('regConfirm').value;if(!n){alert('Please enter your name.');return;}if(!e||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){alert('Please enter a valid email.');return;}if(p.length<8){alert('Password must be at least 8 characters.');return;}if(p!==c){alert('Passwords do not match.');return;}}
+      setWiz(step);
+    }
+    function selectPlan(el,plan){document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');document.getElementById('selectedPlan').value=plan;}
+    function submitReg() {
+      const data={company:document.getElementById('regCompany').value,industry:document.getElementById('regIndustry').value,size:document.getElementById('regSize').value,website:document.getElementById('regWebsite').value,name:document.getElementById('regName').value,jobTitle:document.getElementById('regTitle').value,email:document.getElementById('regEmail').value,password:document.getElementById('regPassword').value,plan:document.getElementById('selectedPlan').value};
+      fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+        .then(r=>r.json()).then(d=>{if(d.token){localStorage.setItem('rf_token',d.token);localStorage.setItem('rf_user',JSON.stringify(d.user));}setWiz(4);})
+        .catch(()=>setWiz(4));
+    }
+  </script>
+</body>
+</html>

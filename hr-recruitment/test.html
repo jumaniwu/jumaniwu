@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recruitment Test — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="test-page">
+
+  <!-- Anti-cheat Warning Toast -->
+  <div class="cheat-warning" id="cheatWarning">
+    ⚠️ Warning: Tab switching detected! (<span id="warningCount">1</span>/3 violations)
+  </div>
+
+  <!-- Test Header -->
+  <header class="test-header">
+    <div class="test-brand">
+      <div style="width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;">RF</div>
+      <span style="font-size:0.95rem;">RecruitFit Assessment</span>
+    </div>
+    <div class="test-info">
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Candidate: <span id="candidateName" style="color:white;font-weight:600;">Loading...</span></div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Question: <span id="questionCounter" style="color:white;font-weight:600;">1 / 15</span></div>
+      <div class="test-timer" id="timer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="timerDisplay">30:00</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div class="test-progress-bar">
+    <div class="test-progress-fill" id="progressFill" style="width:6.67%;"></div>
+  </div>
+
+  <!-- Test Body -->
+  <div class="test-body">
+    <div id="questionWrap">
+      <div class="question-counter" id="qCounter">Question 1 of 15</div>
+      <div class="question-category logic" id="qCategory">Logical Reasoning</div>
+      <div class="question-text" id="qText">Loading question...</div>
+      <div class="options-list" id="optionsList"></div>
+      <div class="test-nav">
+        <div class="question-dots" id="questionDots"></div>
+        <div style="display:flex;gap:0.75rem;">
+          <button class="btn btn-secondary" id="prevBtn" onclick="prevQuestion()" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.15);">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </button>
+          <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">
+            Next
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="resultScreen" style="display:none;">
+      <div class="card" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;text-align:center;padding:3rem;">
+        <div id="resultIcon" style="font-size:4rem;margin-bottom:1rem;"></div>
+        <h2 id="resultTitle" style="font-size:2rem;font-weight:800;margin-bottom:0.5rem;"></h2>
+        <p id="resultSubtitle" style="font-size:1rem;color:rgba(255,255,255,0.65);margin-bottom:2rem;"></p>
+
+        <div style="display:inline-block;background:rgba(255,255,255,0.08);border-radius:16px;padding:2rem 3rem;margin-bottom:2rem;">
+          <div style="font-size:3.5rem;font-weight:800;" id="finalScore"></div>
+          <div style="font-size:0.9rem;color:rgba(255,255,255,0.5);margin-top:0.25rem;">Final Score</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:500px;margin:0 auto 2rem;" id="categoryScores"></div>
+
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:1.25rem;max-width:500px;margin:0 auto 2rem;text-align:left;" id="resultDetail"></div>
+
+        <a href="index.html" class="btn btn-primary btn-lg">Return to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Switch Warning Overlay -->
+  <div class="warning-overlay" id="warningOverlay">
+    <div class="warning-box">
+      <div class="warning-icon">🚨</div>
+      <h2>Tab Switching Detected!</h2>
+      <p>You have switched away from the test window. This is violation <strong id="violationNum">1</strong> of 3. If you accumulate 3 violations, your test will be submitted automatically.</p>
+      <p style="margin-top:0.5rem;font-size:0.8rem;color:rgba(255,255,255,0.4);">Return to the test and answer honestly. All activity is monitored.</p>
+      <button class="btn btn-primary btn-lg" onclick="dismissWarning()" style="margin-top:0.5rem;width:100%;">I Understand — Continue Test</button>
+    </div>
+  </div>
+
+<script src="js/app.js"></script>
+<script>
+  initTest();
+</script>
+</body>
+</html>
