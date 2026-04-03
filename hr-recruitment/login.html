@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body { background: linear-gradient(135deg, #EEF2FF 0%, #E8F4FD 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .auth-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(79,70,229,0.12); border: 1px solid var(--border); }
+    .auth-logo { display: flex; align-items: center; gap: 0.75rem; justify-content: center; margin-bottom: 2rem; }
+    .auth-logo .logo-icon { width: 44px; height: 44px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 0.9rem; }
+    .auth-logo span { font-weight: 800; font-size: 1.25rem; color: var(--dark); }
+    .auth-title { font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 0.375rem; }
+    .auth-sub { color: var(--gray); text-align: center; font-size: 0.875rem; margin-bottom: 2rem; }
+    .auth-error { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.875rem; margin-bottom: 1rem; display: none; }
+    .auth-divider { text-align: center; color: var(--gray); font-size: 0.8rem; margin: 1.25rem 0; position: relative; }
+    .auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: var(--border); }
+    .auth-divider::before { left: 0; } .auth-divider::after { right: 0; }
+    .auth-footer { text-align: center; font-size: 0.875rem; color: var(--gray); margin-top: 1.5rem; }
+    .auth-footer a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .show-pw { position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--gray); font-size: 0.8rem; }
+    .pw-wrap { position: relative; }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">RF</div>
+      <span>RecruitFit</span>
+    </div>
+    <h1 class="auth-title">Welcome Back</h1>
+    <p class="auth-sub">Sign in to your HR dashboard</p>
+    <div class="auth-error" id="loginError"></div>
+    <div class="form-group">
+      <label class="form-label">Email Address <span class="required">*</span></label>
+      <input type="email" class="form-control" id="loginEmail" placeholder="hr@company.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password <span class="required">*</span></label>
+      <div class="pw-wrap">
+        <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"/>
+        <button class="show-pw" type="button" onclick="togglePw('loginPassword', this)">Show</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;cursor:pointer;">
+        <input type="checkbox" id="rememberMe" style="accent-color:var(--primary);width:15px;height:15px;"/>
+        Remember me
+      </label>
+      <a href="#" style="font-size:0.875rem;color:var(--primary);text-decoration:none;font-weight:500;">Forgot password?</a>
+    </div>
+    <button class="btn btn-primary btn-lg" style="width:100%;" onclick="doLogin()" id="loginBtn">
+      Sign In to Dashboard
+    </button>
+    <div class="auth-divider">or</div>
+    <a href="dashboard.html" class="btn btn-secondary btn-lg" style="width:100%;justify-content:center;">
+      Continue as Demo (No Login)
+    </a>
+    <div class="auth-footer">
+      Don't have an account? <a href="register.html">Start Free Trial</a><br/>
+      <a href="marketing/index.html" style="margin-top:0.5rem;display:inline-block;color:var(--gray);">← Back to Homepage</a>
+    </div>
+  </div>
+  <script>
+    function togglePw(id, btn) {
+      const el = document.getElementById(id);
+      if (el.type === 'password') { el.type = 'text'; btn.textContent = 'Hide'; }
+      else { el.type = 'password'; btn.textContent = 'Show'; }
+    }
+    function doLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pw = document.getElementById('loginPassword').value;
+      const err = document.getElementById('loginError');
+      err.style.display = 'none';
+      if (!email || !pw) { err.textContent = 'Please enter your email and password.'; err.style.display = 'block'; return; }
+      const btn = document.getElementById('loginBtn');
+      btn.textContent = 'Signing in...'; btn.disabled = true;
+      setTimeout(() => {
+        fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password: pw}) })
+          .then(r => r.json())
+          .then(data => {
+            if (data.token) { localStorage.setItem('rf_token', data.token); localStorage.setItem('rf_user', JSON.stringify(data.user)); window.location.href = 'dashboard.html'; }
+            else { err.textContent = data.message || 'Invalid email or password.'; err.style.display = 'block'; btn.textContent = 'Sign In to Dashboard'; btn.disabled = false; }
+          })
+          .catch(() => { err.textContent = 'Backend not running. Use Demo mode below.'; err.style.display = 'block'; btn.textContent = 'Sign In to Dashboard'; btn.disabled = false; });
+      }, 300);
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>

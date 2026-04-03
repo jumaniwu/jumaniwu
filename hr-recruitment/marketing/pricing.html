@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pricing — RecruitFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/marketing.css"/>
+</head>
+<body>
+<nav class="m-nav">
+  <a href="index.html" class="m-logo"><div class="m-logo-icon">RF</div><span>RecruitFit</span></a>
+  <div class="m-nav-links"><a href="index.html#features">Features</a><a href="index.html#how">How It Works</a><a href="pricing.html" style="color:var(--mp-primary);font-weight:700;">Pricing</a><a href="../login.html">Login</a><a href="../register.html" class="m-btn-primary">Start Free Trial</a></div>
+</nav>
+
+<section style="padding:4rem 5% 2rem;text-align:center;background:linear-gradient(145deg,#F0F0FF,#EAF4FD);">
+  <div class="m-section-label">Transparent Pricing</div>
+  <h1 style="font-size:2.5rem;font-weight:900;margin-bottom:0.75rem;">Simple, Honest Pricing</h1>
+  <p style="color:#64748B;max-width:480px;margin:0 auto 2rem;">Start free, scale as you grow. All plans include full platform access for 14 days, no credit card needed.</p>
+  <div class="m-toggle-wrap">
+    <span id="tMonthly" class="m-toggle-opt active" onclick="setBilling('monthly')">Monthly</span>
+    <div class="m-toggle-track" onclick="toggleBilling()"><div class="m-toggle-thumb" id="toggleThumb"></div></div>
+    <span id="tAnnual" class="m-toggle-opt" onclick="setBilling('annual')">Annual <span class="m-save-badge">Save 20%</span></span>
+  </div>
+</section>
+
+<section style="padding:3rem 5%;max-width:1100px;margin:0 auto;">
+  <div class="m-pricing-grid">
+
+    <!-- Basic -->
+    <div class="m-plan-card">
+      <div class="m-plan-name">Basic</div>
+      <div class="m-plan-price-wrap">
+        <div class="m-plan-price"><span class="m-price-val" data-monthly="29" data-annual="23">$29</span><span class="m-price-period">/month</span></div>
+        <div class="m-price-annual-note" id="noteBasic" style="display:none;">Billed $276/year (save $72)</div>
+      </div>
+      <p class="m-plan-desc">Perfect for small businesses and startups just getting started with structured hiring.</p>
+      <a href="../register.html" class="m-plan-cta">Start Free Trial</a>
+      <ul class="m-plan-features">
+        <li><span class="m-check">&#10003;</span> 3 active job postings</li>
+        <li><span class="m-check">&#10003;</span> 50 candidates/month</li>
+        <li><span class="m-check">&#10003;</span> Logical reasoning test</li>
+        <li><span class="m-check">&#10003;</span> Anti-cheat system</li>
+        <li><span class="m-check">&#10003;</span> CSV export</li>
+        <li><span class="m-check">&#10003;</span> Email support</li>
+        <li><span class="m-x">&#10007;</span> Personality & situational tests</li>
+        <li><span class="m-x">&#10007;</span> API access</li>
+        <li><span class="m-x">&#10007;</span> White-label branding</li>
+      </ul>
+    </div>
+
+    <!-- Pro (featured) -->
+    <div class="m-plan-card m-plan-featured">
+      <div class="m-plan-popular">Most Popular</div>
+      <div class="m-plan-name">Pro</div>
+      <div class="m-plan-price-wrap">
+        <div class="m-plan-price"><span class="m-price-val" data-monthly="79" data-annual="63">$79</span><span class="m-price-period">/month</span></div>
+        <div class="m-price-annual-note" id="notePro" style="display:none;">Billed $756/year (save $192)</div>
+      </div>
+      <p class="m-plan-desc">For growing HR teams that need unlimited testing and full psychometric assessments.</p>
+      <a href="../register.html" class="m-plan-cta m-plan-cta-featured">Start Free Trial</a>
+      <ul class="m-plan-features">
+        <li><span class="m-check">&#10003;</span> Unlimited job postings</li>
+        <li><span class="m-check">&#10003;</span> 500 candidates/month</li>
+        <li><span class="m-check">&#10003;</span> All 3 test categories</li>
+        <li><span class="m-check">&#10003;</span> Anti-cheat system</li>
+        <li><span class="m-check">&#10003;</span> CSV export & reporting</li>
+        <li><span class="m-check">&#10003;</span> Priority support</li>
+        <li><span class="m-check">&#10003;</span> API access</li>
+        <li><span class="m-check">&#10003;</span> AI report generation</li>
+        <li><span class="m-x">&#10007;</span> White-label branding</li>
+      </ul>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="m-plan-card">
+      <div class="m-plan-name">Enterprise</div>
+      <div class="m-plan-price-wrap">
+        <div class="m-plan-price"><span style="font-size:1.75rem;font-weight:800;color:#1E293B;">Custom</span></div>
+        <div style="font-size:0.8rem;color:#64748B;margin-top:0.25rem;">Contact us for pricing</div>
+      </div>
+      <p class="m-plan-desc">For large organizations needing unlimited scale, white-label, and dedicated support.</p>
+      <a href="#contact" class="m-plan-cta">Contact Sales</a>
+      <ul class="m-plan-features">
+        <li><span class="m-check">&#10003;</span> Unlimited everything</li>
+        <li><span class="m-check">&#10003;</span> Unlimited candidates</li>
+        <li><span class="m-check">&#10003;</span> Custom test questions</li>
+        <li><span class="m-check">&#10003;</span> Anti-cheat system</li>
+        <li><span class="m-check">&#10003;</span> Advanced analytics</li>
+        <li><span class="m-check">&#10003;</span> Dedicated support manager</li>
+        <li><span class="m-check">&#10003;</span> Full API access</li>
+        <li><span class="m-check">&#10003;</span> White-label branding</li>
+        <li><span class="m-check">&#10003;</span> SSO & enterprise security</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="padding:3rem 5%;max-width:700px;margin:0 auto;" id="faq">
+  <h2 style="text-align:center;font-size:1.75rem;font-weight:800;margin-bottom:2rem;">Frequently Asked Questions</h2>
+  <div class="m-faq-list">
+    <div class="m-faq-item"><div class="m-faq-q" onclick="toggleFaq(this)">Is there really no credit card required?<span class="m-faq-icon">+</span></div><div class="m-faq-a">Absolutely. Your 14-day free trial requires no credit card. You only enter payment details when you choose to upgrade after the trial.</div></div>
+    <div class="m-faq-item"><div class="m-faq-q" onclick="toggleFaq(this)">Can I cancel anytime?<span class="m-faq-icon">+</span></div><div class="m-faq-a">Yes. Cancel your subscription at any time from your account settings with no penalties or cancellation fees.</div></div>
+    <div class="m-faq-item"><div class="m-faq-q" onclick="toggleFaq(this)">How accurate are the psychometric tests?<span class="m-faq-icon">+</span></div><div class="m-faq-a">Our test framework is developed based on professional psychology standards. The questions cover logical reasoning, personality assessment, and situational judgment — giving a well-rounded view of candidates.</div></div>
+    <div class="m-faq-item"><div class="m-faq-q" onclick="toggleFaq(this)">Does it work in Bahasa Indonesia?<span class="m-faq-icon">+</span></div><div class="m-faq-a">The platform is designed for the Indonesian market. The candidate experience and test questions are fully available in Bahasa Indonesia on the Pro and Enterprise plans.</div></div>
+    <div class="m-faq-item"><div class="m-faq-q" onclick="toggleFaq(this)">Can candidates take the test on mobile?<span class="m-faq-icon">+</span></div><div class="m-faq-a">Yes. The test interface is fully responsive and works on any device — smartphone, tablet, or desktop. The anti-cheat system works on all platforms.</div></div>
+  </div>
+</section>
+
+<!-- Enterprise Contact -->
+<section id="contact" style="padding:3rem 5%;max-width:600px;margin:0 auto;">
+  <div class="m-contact-card">
+    <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem;">Talk to Sales</h2>
+    <p style="color:#64748B;margin-bottom:1.5rem;">Interested in Enterprise? We'll create a custom plan for your team.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div><label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Your Name</label><input type="text" style="width:100%;padding:0.6rem 0.875rem;border:1.5px solid #E2E8F0;border-radius:8px;font-family:Inter,sans-serif;font-size:0.875rem;" placeholder="Full name"/></div>
+      <div><label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Work Email</label><input type="email" style="width:100%;padding:0.6rem 0.875rem;border:1.5px solid #E2E8F0;border-radius:8px;font-family:Inter,sans-serif;font-size:0.875rem;" placeholder="you@company.com"/></div>
+    </div>
+    <div style="margin-top:1rem;"><label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Company & Team Size</label><input type="text" style="width:100%;padding:0.6rem 0.875rem;border:1.5px solid #E2E8F0;border-radius:8px;font-family:Inter,sans-serif;font-size:0.875rem;" placeholder="e.g. PT Maju Bersama — 500 employees"/></div>
+    <button onclick="alert('Thank you! Our sales team will contact you within 1 business day.')" style="margin-top:1.25rem;width:100%;padding:0.75rem;background:#4F46E5;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;">Contact Enterprise Sales</button>
+  </div>
+</section>
+
+<section class="m-cta">
+  <h2>Start Hiring Smarter Today</h2>
+  <p>Join 500+ companies. 14-day free trial, no credit card required.</p>
+  <a href="../register.html" class="m-btn-white m-btn-xl">Start Free Trial Now</a>
+</section>
+
+<footer class="m-footer">
+  <div class="m-footer-inner">
+    <div class="m-footer-brand"><div class="m-logo" style="margin-bottom:0.75rem;"><div class="m-logo-icon">RF</div><span style="color:white;">RecruitFit</span></div><p>The smart HR recruitment & testing platform.</p></div>
+    <div class="m-footer-links"><div><h4>Product</h4><a href="index.html#features">Features</a><a href="pricing.html">Pricing</a></div><div><h4>Account</h4><a href="../login.html">Login</a><a href="../register.html">Free Trial</a></div></div>
+  </div>
+  <div class="m-footer-bottom">&copy; 2026 RecruitFit. All rights reserved.</div>
+</footer>
+
+<script>
+  let billing = 'monthly';
+  function setBilling(b) {
+    billing = b;
+    document.getElementById('tMonthly').classList.toggle('active', b==='monthly');
+    document.getElementById('tAnnual').classList.toggle('active', b==='annual');
+    document.getElementById('toggleThumb').style.transform = b==='annual' ? 'translateX(24px)' : 'translateX(0)';
+    document.querySelectorAll('.m-price-val').forEach(el => {
+      el.textContent = '$' + (b==='annual' ? el.dataset.annual : el.dataset.monthly);
+    });
+    ['Basic','Pro'].forEach(p => {
+      const note = document.getElementById('note'+p);
+      if (note) note.style.display = b==='annual' ? '' : 'none';
+    });
+  }
+  function toggleBilling() { setBilling(billing==='monthly' ? 'annual' : 'monthly'); }
+  function toggleFaq(el) {
+    const ans = el.nextElementSibling;
+    const icon = el.querySelector('.m-faq-icon');
+    const open = ans.style.display === 'block';
+    ans.style.display = open ? 'none' : 'block';
+    icon.textContent = open ? '+' : '−';
+  }
+</script>
+</body>
+</html>
