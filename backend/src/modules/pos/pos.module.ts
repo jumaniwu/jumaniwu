@@ -12,11 +12,9 @@ import { PosTransactionService } from './application/pos-transaction.service';
 import { RouteToRoomService } from './application/route-to-room.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([PosOutlet, CaptainOrder, PosTransaction]),
-  ],
+  imports: [TypeOrmModule.forFeature([PosOutlet, CaptainOrder, PosTransaction])],
   controllers: [PosOutletController, CaptainOrderController, PosTransactionController],
   providers: [PosOutletService, CaptainOrderService, PosTransactionService, RouteToRoomService],
-  exports: [PosTransactionService],
+  exports: [PosTransactionService, RouteToRoomService],
 })
 export class PosModule {}
