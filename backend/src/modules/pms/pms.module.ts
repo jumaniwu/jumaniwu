@@ -22,6 +22,7 @@ import { FolioService } from './application/folio.service';
 import { NightAuditService } from './application/night-audit.service';
 import { CheckInService } from './application/check-in.service';
 import { CheckOutService } from './application/check-out.service';
+import { PosChargeEventHandler } from './infrastructure/pos-charge.event-handler';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { CheckOutService } from './application/check-out.service';
     HotelService, RoomService, GuestService,
     ReservationService, FolioService,
     NightAuditService, CheckInService, CheckOutService,
+    PosChargeEventHandler,
   ],
   exports: [FolioService, ReservationService],
 })

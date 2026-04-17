@@ -29,6 +29,9 @@ export class LedgerAccount extends TenantEntity {
   @Column({ name: 'account_subtype', length: 50, nullable: true })
   accountSubtype: string;
 
+  @Column({ type: 'int', default: 4 })
+  level: number;
+
   @Column({ name: 'normal_balance', length: 10, default: 'DEBIT' })
   normalBalance: string;
 

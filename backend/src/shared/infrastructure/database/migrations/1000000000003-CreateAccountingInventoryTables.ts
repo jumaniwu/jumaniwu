@@ -17,6 +17,7 @@ export class CreateAccountingInventoryTables1000000000003 implements MigrationIn
         account_name      VARCHAR(200) NOT NULL,
         account_type      account_type_enum NOT NULL,
         account_subtype   VARCHAR(50),
+        level             INT NOT NULL DEFAULT 4,
         normal_balance    VARCHAR(10) NOT NULL DEFAULT 'DEBIT',
         is_posting_account BOOLEAN NOT NULL DEFAULT true,
         is_active         BOOLEAN NOT NULL DEFAULT true,
@@ -92,16 +93,17 @@ export class CreateAccountingInventoryTables1000000000003 implements MigrationIn
     // ── journal_rules (Rule Engine) ────────────────────────
     await queryRunner.query(`
       CREATE TABLE journal_rules (
-        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        hotel_id          UUID NOT NULL REFERENCES hotels(id),
-        source_event      VARCHAR(100) NOT NULL,
-        line_number       INT NOT NULL,
-        entry_type        VARCHAR(10) NOT NULL,
-        ledger_account_id UUID NOT NULL REFERENCES ledger_accounts(id),
-        amount_field      VARCHAR(100) NOT NULL,
-        is_active         BOOLEAN NOT NULL DEFAULT true,
-        created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        hotel_id              UUID NOT NULL REFERENCES hotels(id),
+        event_name            VARCHAR(100) NOT NULL,
+        description           VARCHAR(200) NOT NULL DEFAULT '',
+        debit_account_code    VARCHAR(20) NOT NULL,
+        credit_account_code   VARCHAR(20) NOT NULL,
+        priority              INT NOT NULL DEFAULT 1,
+        sub_department_required BOOLEAN NOT NULL DEFAULT false,
+        is_active             BOOLEAN NOT NULL DEFAULT true,
+        created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
 
