@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #F8F9FA; margin: 0; }
+
+.sidebar-item { @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer transition-all; }
+.sidebar-item:hover { background: rgba(255,255,255,0.08); }
+.sidebar-item.active { background: #F5A623; color: white; font-weight: 600; }
+.sidebar-item:not(.active) { color: #94a3b8; }
+
+.stat-card { @apply rounded-xl p-5 shadow-sm; }
+.btn-primary { @apply bg-primary text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-primary-dark transition-all; }
+.btn-outline { @apply border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-50 transition-all; }
+.btn-danger { @apply bg-danger text-white px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-all; }
+.input-field { @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary; }
+.card { @apply bg-white rounded-xl shadow-sm border border-gray-100 p-5; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
