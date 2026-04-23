@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String?
+  walletAddress String?   @unique
+  profileImage  String?
+  name          String?
+  phoneNumber   String?
+  dateOfBirth   DateTime?
+  referralCode  String    @unique
+  referredById  String?
+  isVerified    Boolean   @default(false)
+  kycStatus     String    @default("pending")
+  balanceIdr    Float     @default(0)
+  language      String    @default("en")
+  hideBalance   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  referredBy      User?          @relation("Referrals", fields: [referredById], references: [id])
+  referrals       User[]         @relation("Referrals")
+  tokenHoldings   TokenHolding[]
+  transactions    Transaction[]
+  yieldReceipts   YieldReceipt[]
+  bankAccounts    BankAccount[]
+  withdrawals     Withdrawal[]
+  rewards         UserReward[]
+  refreshTokens   RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Property {
+  id              String    @id @default(cuid())
+  name            String
+  location        String
+  city            String
+  description     String
+  totalTokens     Int
+  tokensAvailable Int
+  tokenPriceIdr   Float
+  currentValueIdr Float
+  propertyType    String
+  bedrooms        Int
+  bathrooms       Int
+  areaSqm         Int
+  eryAnnual       Float
+  ecaAnnual       Float
+  aryAnnual       Float?
+  status          String    @default("available")
+  contractAddress String?
+  tokenId         Int?
+  images          String[]
+  airbnbUrl       String?
+  isFeatured      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tokenHoldings      TokenHolding[]
+  transactions       Transaction[]
+  yieldDistributions YieldDistribution[]
+  documents          PropertyDocument[]
+  timeline           PropertyTimeline[]
+}
+
+model TokenHolding {
+  id           String   @id @default(cuid())
+  userId       String
+  propertyId   String
+  tokenAmount  Int
+  lockedTokens Int      @default(0)
+  avgCostIdr   Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([userId, propertyId])
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  userId           String
+  propertyId       String
+  type             String
+  tokenAmount      Int
+  pricePerToken    Float
+  totalAmountIdr   Float
+  blockchainTxHash String?
+  status           String   @default("pending")
+  createdAt        DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+model YieldDistribution {
+  id             String   @id @default(cuid())
+  propertyId     String
+  month          Int
+  year           Int
+  totalAmountIdr Float
+  amountPerToken Float
+  distributedAt  DateTime @default(now())
+
+  property Property       @relation(fields: [propertyId], references: [id])
+  receipts YieldReceipt[]
+
+  @@unique([propertyId, month, year])
+}
+
+model YieldReceipt {
+  id                  String            @id @default(cuid())
+  userId              String
+  yieldDistributionId String
+  amountIdr           Float
+  transactionId       String            @unique @default(cuid())
+  receivedAt          DateTime          @default(now())
+
+  user              User              @relation(fields: [userId], references: [id])
+  yieldDistribution YieldDistribution @relation(fields: [yieldDistributionId], references: [id])
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  bankName      String
+  accountNumber String
+  accountHolder String
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id])
+  withdrawals Withdrawal[]
+}
+
+model Withdrawal {
+  id            String      @id @default(cuid())
+  userId        String
+  bankAccountId String
+  amountIdr     Float
+  status        String      @default("pending")
+  createdAt     DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
+}
+
+model PropertyDocument {
+  id         String   @id @default(cuid())
+  propertyId String
+  name       String
+  url        String
+  type       String
+
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+model PropertyTimeline {
+  id          String   @id @default(cuid())
+  propertyId  String
+  date        DateTime
+  title       String
+  description String
+  order       Int
+
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+model UserReward {
+  id        String   @id @default(cuid())
+  userId    String
+  points    Int
+  reason    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
