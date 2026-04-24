@@ -3,6 +3,8 @@ client/node_modules/
 server/node_modules/
 client/dist/
 server/db/bangunpro.db
+server/db/bangunpro.db-shm
+server/db/bangunpro.db-wal
 uploads/
 exports/
 .env
