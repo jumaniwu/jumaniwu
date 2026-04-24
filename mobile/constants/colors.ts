@@ -1,0 +1,66 @@
+export const Colors = {
+  primary: '#1B6B6B',
+  primaryLight: '#E8F5F5',
+  primaryDark: '#134F4F',
+  primaryMedium: '#2A8E8E',
+  background: '#FFFFFF',
+  surface: '#F8FAFB',
+  surfaceAlt: '#F0F4F4',
+  textPrimary: '#1A1A2E',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  textWhite: '#FFFFFF',
+  success: '#10B981',
+  successLight: '#D1FAE5',
+  successText: '#065F46',
+  warning: '#F59E0B',
+  warningLight: '#FEF3C7',
+  error: '#EF4444',
+  errorLight: '#FEE2E2',
+  gold: '#F59E0B',
+  goldLight: '#FDE68A',
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  shadow: 'rgba(0,0,0,0.08)',
+  shadowMedium: 'rgba(0,0,0,0.15)',
+  overlay: 'rgba(0,0,0,0.5)',
+  cardBg: '#FFFFFF',
+  inputBg: '#F9FAFB',
+  divider: '#F3F4F6',
+  polygon: '#8247E5',
+};
+
+export const Fonts = {
+  regular: 'System',
+  medium: 'System',
+  bold: 'System',
+  sizes: {
+    xs: 11,
+    sm: 13,
+    base: 15,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+    xxxl: 30,
+  },
+};
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
+};
+
+export const Radius = {
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 20,
+  full: 9999,
+};
