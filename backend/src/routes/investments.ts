@@ -90,7 +90,7 @@ router.post('/swap', async (req: AuthRequest, res: Response) => {
   if (toProperty.tokensAvailable < tokenAmount) { res.status(400).json({ success: false, message: 'Target property has insufficient tokens' }); return; }
 
   const holding = await prisma.tokenHolding.findUnique({ where: { userId_propertyId: { userId: req.userId!, propertyId: fromPropertyId } } });
-  if (!holding || holding.tokenAmount < tokenAmount) { res.status(400).json({ success: false, message: 'Insufficient tokens to swap' }); return; }
+  if (!holding || holding.tokenAmount - holding.lockedTokens < tokenAmount) { res.status(400).json({ success: false, message: 'Insufficient tokens to swap' }); return; }
 
   await prisma.$transaction([
     prisma.tokenHolding.update({ where: { userId_propertyId: { userId: req.userId!, propertyId: fromPropertyId } }, data: { tokenAmount: { decrement: tokenAmount } } }),

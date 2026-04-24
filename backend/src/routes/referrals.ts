@@ -36,26 +36,32 @@ router.get('/my-stats', async (req: AuthRequest, res: Response) => {
 router.get('/leaderboard', async (req: AuthRequest, res: Response) => {
   const { period = 'all-time' } = req.query as { period: string };
 
-  let dateFilter: Date | undefined;
-  if (period === 'weekly') dateFilter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  else if (period === 'monthly') dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  let sinceDate: Date | undefined;
+  if (period === 'weekly') sinceDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  else if (period === 'monthly') sinceDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const referrers = await prisma.user.findMany({
-    select: { id: true, username: true, profileImage: true, isVerified: true, _count: { select: { referrals: true } } },
-    orderBy: { referrals: { _count: 'desc' } },
-    take: 50,
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, username: true, profileImage: true, isVerified: true },
+    where: { referrals: { some: {} } },
+    take: 200,
   });
 
-  const data = referrers.map((u, i) => ({
-    rank: i + 1,
-    userId: u.id,
-    username: u.username,
-    profileImage: u.profileImage,
-    isVerified: u.isVerified,
-    invitedUsers: u._count.referrals,
-  }));
+  const counts = await Promise.all(
+    allUsers.map(async (u) => {
+      const count = await prisma.user.count({
+        where: { referredById: u.id, ...(sinceDate ? { createdAt: { gte: sinceDate } } : {}) },
+      });
+      return { ...u, invitedUsers: count };
+    })
+  );
 
-  res.json({ success: true, data });
+  const sorted = counts
+    .filter((u) => u.invitedUsers > 0)
+    .sort((a, b) => b.invitedUsers - a.invitedUsers)
+    .slice(0, 50)
+    .map((u, i) => ({ rank: i + 1, userId: u.id, username: u.username, profileImage: u.profileImage, isVerified: u.isVerified, invitedUsers: u.invitedUsers }));
+
+  res.json({ success: true, data: sorted });
 });
 
 export default router;

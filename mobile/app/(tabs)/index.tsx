@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   FlatList, Dimensions, RefreshControl, SafeAreaView,
@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Colors, Fonts, Spacing, Radius } from '../../constants/colors';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi, investmentsApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { usePortfolioStore } from '../../store/portfolioStore';
 import { Property } from '../../types';
@@ -112,6 +112,7 @@ function PropertyCard({ property }: { property: Property }) {
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
+  const { setHoldings } = usePortfolioStore();
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: runningOut, refetch: refetchRunning } = useQuery({
@@ -124,11 +125,20 @@ export default function HomeScreen() {
     queryFn: () => propertiesApi.getFeatured().then((r) => r.data.data),
   });
 
+  const { data: portfolio, refetch: refetchPortfolio } = useQuery({
+    queryKey: ['portfolio'],
+    queryFn: () => investmentsApi.getPortfolio().then((r) => r.data.data),
+  });
+
+  useEffect(() => {
+    if (portfolio) setHoldings(portfolio);
+  }, [portfolio, setHoldings]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchRunning(), refetchFeatured()]);
+    await Promise.all([refetchRunning(), refetchFeatured(), refetchPortfolio()]);
     setRefreshing(false);
-  }, [refetchRunning, refetchFeatured]);
+  }, [refetchRunning, refetchFeatured, refetchPortfolio]);
 
   return (
     <SafeAreaView style={styles.safe}>
