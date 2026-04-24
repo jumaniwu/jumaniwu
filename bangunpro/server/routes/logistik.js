@@ -15,38 +15,46 @@ router.get('/:projectId', (req, res) => {
   const tenagaMap = {};
 
   for (const item of items) {
-    const source = analisa.find(a => a.nama === item.uraian.split('(')[0].trim() || item.analisa_source === 'ahsp_sni');
-    if (!source || !source.koefisien_json) continue;
+    // Match analisa by: exact name, or item uraian contains analisa name, or analisa name in item uraian
+    const src = analisa.find(a => {
+      const aName = a.nama.toLowerCase();
+      const iName = item.uraian.toLowerCase();
+      return iName === aName || iName.includes(aName) || aName.includes(iName.split('(')[0].trim());
+    });
+
+    if (!src || !src.koefisien_json) continue;
 
     let koef;
-    try { koef = JSON.parse(source.koefisien_json); } catch { continue; }
+    try { koef = JSON.parse(src.koefisien_json); } catch { continue; }
 
     if (koef.material) {
       for (const m of koef.material) {
         const vol = item.volume * m.koef;
-        const mh = masterHarga.find(h => h.nama === m.nama);
+        const mh = masterHarga.find(h => h.nama.toLowerCase() === m.nama.toLowerCase());
         const harga = mh ? mh.harga : 0;
-        if (!materialMap[m.nama]) materialMap[m.nama] = { nama: m.nama, satuan: m.satuan, volume: 0, biaya: 0 };
-        materialMap[m.nama].volume += vol;
-        materialMap[m.nama].biaya += vol * harga;
+        const key = m.nama;
+        if (!materialMap[key]) materialMap[key] = { nama: m.nama, satuan: m.satuan, volume: 0, biaya: 0 };
+        materialMap[key].volume += vol;
+        materialMap[key].biaya += vol * harga;
       }
     }
 
     if (koef.tenaga) {
       for (const t of koef.tenaga) {
         const vol = item.volume * t.koef;
-        const mh = masterHarga.find(h => h.nama === t.posisi);
+        const mh = masterHarga.find(h => h.nama.toLowerCase() === t.posisi.toLowerCase());
         const harga = mh ? mh.harga : 0;
-        if (!tenagaMap[t.posisi]) tenagaMap[t.posisi] = { posisi: t.posisi, volume: 0, satuan: t.satuan, jumlah: 0 };
-        tenagaMap[t.posisi].volume += vol;
-        tenagaMap[t.posisi].jumlah += vol * harga;
+        const key = t.posisi;
+        if (!tenagaMap[key]) tenagaMap[key] = { posisi: t.posisi, volume: 0, satuan: t.satuan, jumlah: 0 };
+        tenagaMap[key].volume += vol;
+        tenagaMap[key].jumlah += vol * harga;
       }
     }
   }
 
   res.json({
-    material: Object.values(materialMap),
-    tenaga: Object.values(tenagaMap),
+    material: Object.values(materialMap).sort((a, b) => b.biaya - a.biaya),
+    tenaga: Object.values(tenagaMap).sort((a, b) => b.jumlah - a.jumlah),
   });
 });
 

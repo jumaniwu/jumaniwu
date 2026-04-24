@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Printer } from 'lucide-react';
+import { Printer, Package, Users } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
-import { Button, Badge, EmptyState } from '../../components/ui';
-import { formatRupiah } from '../../lib/rupiah';
+import { Button, Badge, EmptyState, PageHeader, SectionCard } from '../../components/ui';
+import { formatRupiah, formatRupiahShort } from '../../lib/rupiah';
 import api from '../../lib/api';
 import { useProject } from '../../context/ProjectContext';
 
@@ -14,10 +14,7 @@ export default function Logistik() {
   useEffect(() => {
     if (!activeProject) return;
     setLoading(true);
-    api.get(`/logistik/${activeProject.id}`)
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    api.get(`/logistik/${activeProject.id}`).then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
   }, [activeProject]);
 
   const totalMaterial = data.material.reduce((s, m) => s + m.biaya, 0);
@@ -25,92 +22,92 @@ export default function Logistik() {
 
   if (!activeProject) return <Layout title="Logistik"><EmptyState icon="📦" title="Pilih proyek aktif" /></Layout>;
 
+  const TableSection = ({ title, icon: Icon, badge, rows, emptyText, totalLabel, total, cols }) => (
+    <SectionCard title={<span className="flex items-center gap-2"><Icon className="w-4 h-4 text-primary" />{title}</span>}
+      action={<Badge color="blue">{badge}</Badge>}>
+      <div className="overflow-x-auto">
+        <table className="tbl">
+          <thead>
+            <tr>
+              {cols.map(c => <th key={c.key} className={c.right ? 'text-right' : ''}>{c.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={cols.length} className="text-center py-10 text-gray-400">Memuat data...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={cols.length} className="text-center py-10 text-gray-400 text-sm">{emptyText}</td></tr>
+            ) : rows.map((row, i) => (
+              <tr key={i}>
+                {cols.map(c => (
+                  <td key={c.key} className={c.right ? 'text-right font-semibold' : c.bold ? 'font-semibold text-[#1A1A2E]' : 'text-gray-600'}>
+                    {c.render ? c.render(row) : row[c.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          {rows.length > 0 && (
+            <tfoot>
+              <tr className="bg-amber-50">
+                <td colSpan={cols.length - 1} className="px-4 py-2.5 text-sm font-bold text-[#1A1A2E]">{totalLabel}</td>
+                <td className="px-4 py-2.5 text-sm font-black text-right text-primary">{formatRupiah(total)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </SectionCard>
+  );
+
   return (
-    <Layout title="Logistik & Kebutuhan Material">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h2 className="font-bold text-navy">Logistik & Kebutuhan Material</h2>
-          <p className="text-xs text-gray-500">Total Anggaran Lapangan (RAP): <strong>{formatRupiah(totalMaterial + totalTenaga)}</strong></p>
+    <Layout title="Logistik & Material">
+      <PageHeader title="Logistik & Kebutuhan Material"
+        sub={`Total Anggaran Lapangan: ${formatRupiahShort(totalMaterial + totalTenaga)}`}
+        actions={<Button variant="outline" size="sm"><Printer className="w-4 h-4" /><span className="hidden sm:inline">Cetak PDF</span></Button>}
+      />
+
+      {/* Overview cards */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Package className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase">Total Material</p>
+            <p className="font-black text-[#1A1A2E]">{formatRupiahShort(totalMaterial)}</p>
+          </div>
         </div>
-        <Button variant="outline" size="sm"><Printer className="w-4 h-4" /> CETAK PDF</Button>
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Users className="w-5 h-5 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase">Total Upah</p>
+            <p className="font-black text-[#1A1A2E]">{formatRupiahShort(totalTenaga)}</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-        {/* Material */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3 border-b">
-            <h3 className="font-bold text-navy text-sm">Kebutuhan Material</h3>
-            <Badge color="blue">GLOBAL</Badge>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">NAMA BARANG</th>
-                <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500">VOLUME</th>
-                <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500">ESTIMASI BIAYA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="3" className="text-center py-8 text-gray-400">Memuat...</td></tr>
-              ) : data.material.length === 0 ? (
-                <tr><td colSpan="3" className="text-center py-8 text-gray-400 text-sm">Data dihitung dari AHSP di RAB</td></tr>
-              ) : data.material.map((m, i) => (
-                <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2.5 text-sm">{m.nama}</td>
-                  <td className="px-4 py-2.5 text-sm text-right text-gray-600">{m.volume.toFixed(2)} {m.satuan}</td>
-                  <td className="px-4 py-2.5 text-sm font-semibold text-right">{formatRupiah(m.biaya)}</td>
-                </tr>
-              ))}
-            </tbody>
-            {data.material.length > 0 && (
-              <tfoot>
-                <tr className="bg-yellow-50">
-                  <td colSpan="2" className="px-4 py-2.5 text-sm font-bold">TOTAL MATERIAL</td>
-                  <td className="px-4 py-2.5 text-sm font-bold text-right">{formatRupiah(totalMaterial)}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-
-        {/* Tenaga */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3 border-b">
-            <h3 className="font-bold text-navy text-sm">Tenaga Kerja</h3>
-            <Badge color="orange">HOK</Badge>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">POSISI</th>
-                <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500">VOL</th>
-                <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500">JUMLAH</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="3" className="text-center py-8 text-gray-400">Memuat...</td></tr>
-              ) : data.tenaga.length === 0 ? (
-                <tr><td colSpan="3" className="text-center py-8 text-gray-400 text-sm">Data dihitung dari AHSP di RAB</td></tr>
-              ) : data.tenaga.map((t, i) => (
-                <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2.5 text-sm">{t.posisi}</td>
-                  <td className="px-4 py-2.5 text-sm text-right text-gray-600">{t.volume.toFixed(2)} {t.satuan}</td>
-                  <td className="px-4 py-2.5 text-sm font-semibold text-right">{formatRupiah(t.jumlah)}</td>
-                </tr>
-              ))}
-            </tbody>
-            {data.tenaga.length > 0 && (
-              <tfoot>
-                <tr className="bg-yellow-50">
-                  <td colSpan="2" className="px-4 py-2.5 text-sm font-bold">TOTAL UPAH</td>
-                  <td className="px-4 py-2.5 text-sm font-bold text-right">{formatRupiah(totalTenaga)}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TableSection title="Kebutuhan Material" icon={Package} badge="GLOBAL" rows={data.material}
+          emptyText="Data dihitung otomatis dari koefisien AHSP di RAB"
+          totalLabel="TOTAL MATERIAL" total={totalMaterial}
+          cols={[
+            { key: 'nama', label: 'Nama Barang', bold: true },
+            { key: 'volume', label: 'Volume', right: false, render: r => `${r.volume.toFixed(2)} ${r.satuan}` },
+            { key: 'biaya', label: 'Est. Biaya', right: true, render: r => formatRupiah(r.biaya) },
+          ]}
+        />
+        <TableSection title="Tenaga Kerja" icon={Users} badge="HOK" rows={data.tenaga}
+          emptyText="Data dihitung otomatis dari koefisien AHSP di RAB"
+          totalLabel="TOTAL UPAH" total={totalTenaga}
+          cols={[
+            { key: 'posisi', label: 'Posisi', bold: true },
+            { key: 'volume', label: 'Vol', right: false, render: r => `${r.volume.toFixed(2)} ${r.satuan}` },
+            { key: 'jumlah', label: 'Jumlah', right: true, render: r => formatRupiah(r.jumlah) },
+          ]}
+        />
       </div>
     </Layout>
   );

@@ -10,6 +10,11 @@ router.get('/status', (req, res) => {
   const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(req.tenantId);
   if (!tenant) return res.status(404).json({ error: 'Tenant tidak ditemukan' });
 
+  // Demo accounts never expire
+  if (req.user.is_demo === 1) {
+    return res.json({ plan: 'trial', expired: false, hours_remaining: 8, is_demo: true, expires_at: null });
+  }
+
   const now = new Date();
   let expired = false;
   let hoursRemaining = 8;
@@ -24,7 +29,7 @@ router.get('/status', (req, res) => {
     plan: tenant.plan,
     expired,
     hours_remaining: hoursRemaining,
-    is_demo: req.user.is_demo === 1,
+    is_demo: false,
     expires_at: tenant.expires_at,
   });
 });
