@@ -924,6 +924,176 @@ body {
   to   { transform: translateX(120%); opacity: 0; }
 }
 
+/* ============ AI AGENT DASHBOARD ============ */
+
+.agent-offline-hint {
+  background: rgba(255, 77, 106, 0.08);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: .85rem;
+  color: var(--text-secondary);
+}
+.agent-offline-hint code {
+  display: block;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.agent-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.agent-status-badge {
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.agent-status-badge.running {
+  background: rgba(0, 214, 143, 0.12);
+  border-color: var(--green);
+  color: var(--green);
+}
+.agent-status-badge.halted {
+  background: rgba(255, 77, 106, 0.12);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.ws-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background .3s;
+  flex-shrink: 0;
+}
+.ws-indicator.connected {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: #5a52d5; }
+.btn-primary:disabled { background: var(--bg-elevated); color: var(--text-muted); }
+
+.agent-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.metric-label {
+  font-size: .72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 6px;
+}
+.metric-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.agent-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+.agent-panel h3 {
+  font-size: .95rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text-secondary);
+}
+
+.panel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel-header-row h3 { margin-bottom: 0; }
+
+.decision-entry {
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--bg-elevated);
+}
+.decision-entry.buy  { border-left-color: var(--green); }
+.decision-entry.sell { border-left-color: var(--red); }
+.decision-entry.hold { border-left-color: var(--yellow); }
+.decision-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.decision-reasoning {
+  font-size: .82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.confidence-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+
+.position-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.position-row:last-child { border-bottom: none; }
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .header-inner { padding: 0 12px; }
@@ -935,6 +1105,9 @@ body {
   .signal-card { flex-direction: column; gap: 12px; }
   .chart-controls { flex-direction: column; align-items: flex-start; }
   .stats-bar-inner { gap: 18px; }
+  .agent-grid { grid-template-columns: 1fr; }
+  .agent-controls { gap: 8px; }
+  .position-row { grid-template-columns: auto 1fr auto; }
 }
 
 @media (max-width: 480px) {

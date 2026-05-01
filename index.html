@@ -21,6 +21,7 @@
       <nav class="nav">
         <a href="#" class="nav-link active" data-page="markets">Markets</a>
         <a href="#" class="nav-link" data-page="watchlist">Watchlist</a>
+        <a href="#" class="nav-link" data-page="agent">&#129302; AI Agent</a>
       </nav>
       <div class="header-right">
         <div class="search-box">
@@ -140,6 +141,105 @@
       </div>
     </section>
 
+    <!-- AI Agent Page -->
+    <section id="agentPage" class="page">
+      <div class="page-header">
+        <h1 class="page-title">&#129302; AI Trading Agent</h1>
+        <p class="page-subtitle">Powered by Claude — autonomous crypto trading with risk management</p>
+      </div>
+
+      <!-- Offline hint -->
+      <div id="agentOfflineHint" class="agent-offline-hint" style="display:none">
+        <p>&#9888; Backend offline. Start the server:</p>
+        <code>cd backend &amp;&amp; pip install -r requirements.txt &amp;&amp; cp .env.example .env<br>
+        # Fill in your ANTHROPIC_API_KEY in .env, then:<br>
+        uvicorn main:app --reload</code>
+      </div>
+
+      <!-- Control Bar -->
+      <div class="agent-controls">
+        <div class="agent-status-badge" id="agentStatusBadge">STOPPED</div>
+        <select id="agentModeSelect" class="select">
+          <option value="paper">Paper Trading (Safe)</option>
+          <option value="live">Live Trading (Real Money)</option>
+        </select>
+        <button id="agentStartBtn" class="btn btn-primary">&#9654; Start Agent</button>
+        <button id="agentStopBtn" class="btn" disabled>&#9632; Stop Agent</button>
+        <div class="ws-indicator" id="wsIndicator" title="WebSocket: disconnected"></div>
+        <span style="font-size:.75rem;color:var(--text-muted)" id="wsLabel">WS</span>
+      </div>
+
+      <!-- Portfolio Metrics Row -->
+      <div class="agent-metrics-row" id="agentMetrics">
+        <div class="metric-card">
+          <div class="metric-label">Portfolio Value</div>
+          <div class="metric-value" id="portfolioValue">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Available Balance</div>
+          <div class="metric-value" id="availableBalance">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Today's PnL</div>
+          <div class="metric-value" id="dailyPnl">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Open Positions</div>
+          <div class="metric-value" id="openPositions">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Win Rate</div>
+          <div class="metric-value" id="winRate">—</div>
+        </div>
+      </div>
+
+      <!-- Two-column: Positions + AI Decision Feed -->
+      <div class="agent-grid">
+        <div class="agent-panel">
+          <h3>&#128200; Open Positions</h3>
+          <div id="positionsContent">
+            <p class="text-muted" style="text-align:center;padding:20px">No open positions</p>
+          </div>
+        </div>
+        <div class="agent-panel">
+          <h3>&#129302; AI Decision Feed</h3>
+          <div id="decisionsContent">
+            <p class="text-muted" style="text-align:center;padding:20px">Waiting for first agent tick…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trade History + Backtest -->
+      <div class="agent-panel" style="margin-top:16px">
+        <div class="panel-header-row">
+          <h3>&#128203; Trade History</h3>
+          <button id="backtestBtn" class="btn">&#9654; Run Backtest</button>
+        </div>
+        <div id="tradesContent">
+          <p class="text-muted" style="text-align:center;padding:20px">No trades yet</p>
+        </div>
+      </div>
+
+      <!-- Backtest Results (hidden until run) -->
+      <div id="backtestResults" class="agent-panel hidden" style="margin-top:16px">
+        <h3>&#128202; Backtest Results</h3>
+        <div id="backtestContent"></div>
+      </div>
+
+      <!-- Risk Info -->
+      <div class="agent-panel" style="margin-top:16px;font-size:.82rem;color:var(--text-secondary)">
+        <h3 style="margin-bottom:10px">&#128737; Risk Parameters (configurable in backend/config.yaml)</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+          <div>&#128312; Max position size: <strong>2%</strong> of portfolio</div>
+          <div>&#128312; Stop-loss: <strong>2%</strong> below entry</div>
+          <div>&#128312; Take-profit: <strong>4%</strong> above entry (2:1 R/R)</div>
+          <div>&#128312; Daily loss limit: <strong>5%</strong> halts trading</div>
+          <div>&#128312; Max concurrent positions: <strong>3</strong></div>
+          <div>&#128312; AI model: <strong>claude-sonnet-4-6</strong></div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- Coin Detail Modal -->
@@ -244,6 +344,7 @@
   <script src="js/api.js"></script>
   <script src="js/technicalAnalysis.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/agent_dashboard.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

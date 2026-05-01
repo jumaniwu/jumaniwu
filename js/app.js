@@ -95,6 +95,7 @@ const app = (() => {
     if (linkEl) linkEl.classList.add('active');
 
     if (page === 'watchlist') renderWatchlist();
+    if (page === 'agent') AgentDashboard.init();
   }
 
   /* ------------------------------------------------------------------ */

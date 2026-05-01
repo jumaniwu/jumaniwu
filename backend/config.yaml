@@ -1,0 +1,45 @@
+agent:
+  enabled: false          # set true to auto-start on server launch
+  mode: paper             # "paper" | "live"
+  loop_interval_minutes: 5
+  pairs:
+    - BTC/USDT
+    - ETH/USDT
+    - SOL/USDT
+  max_concurrent_positions: 3
+
+exchange:
+  id: binance             # any ccxt exchange id (binance, bybit, okx, kraken, ...)
+  sandbox: true           # use exchange testnet/sandbox endpoint
+
+risk:
+  max_position_pct: 0.02      # 2% of portfolio per trade
+  stop_loss_pct: 0.02         # 2% stop-loss below entry
+  take_profit_pct: 0.04       # 4% take-profit above entry (2:1 R/R)
+  daily_loss_limit_pct: 0.05  # 5% daily drawdown halts all trading
+
+paper:
+  initial_balance: 10000.0    # starting USDT for paper trading
+  fee_rate: 0.001             # simulated 0.1% fee
+
+data:
+  ohlcv_timeframe: 1h         # ccxt timeframe string: 1m, 5m, 15m, 1h, 4h, 1d
+  ohlcv_limit: 200            # number of candles to fetch
+  cache_ttl_seconds: 60       # how long to cache OHLCV before re-fetching
+
+ai:
+  model: claude-sonnet-4-6
+  max_tokens: 1024
+  temperature: 0              # deterministic decisions
+
+database:
+  path: ./data/trading.db
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+    - "http://localhost"
+    - "http://127.0.0.1"
+    - "http://localhost:8000"
+    - "null"                  # allows file:// origin for direct browser opening
