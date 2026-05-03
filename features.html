@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitur Unggulan — propfs.id | Platform Manajemen Properti</title>
+  <meta name="description" content="Kelola seluruh operasional properti Anda dalam satu platform: listing, proyek, agen, laporan, chat, dan lebih banyak lagi." />
+  <meta property="og:title" content="Fitur Unggulan propfs.id" />
+  <meta property="og:description" content="Platform manajemen properti terpadu berbasis cloud untuk developer dan agen properti Indonesia." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://propfs.id/features" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/features.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="f-header">
+    <div class="f-header-inner">
+      <a href="https://propfs.id" class="f-logo">
+        <div class="f-logo-mark">P</div>
+        <span class="f-logo-text">props<span>fs</span>.id</span>
+      </a>
+      <button class="f-hamburger" id="hamburgerBtn" aria-label="Buka menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <!-- Mobile nav menu -->
+    <nav class="f-nav-menu" id="navMenu">
+      <div class="f-nav-section-title">
+        Fitur
+        <button onclick="closeMenu()" aria-label="Tutup">&#10005;</button>
+      </div>
+      <ul class="f-nav-links">
+        <li><a href="#manajemen-listing"   onclick="closeMenu()">Manajemen Listing</a></li>
+        <li><a href="#manajemen-proyek"    onclick="closeMenu()">Manajemen Proyek</a></li>
+        <li><a href="#manajemen-agen"      onclick="closeMenu()">Manajemen Agen</a></li>
+        <li><a href="#dashboard-perusahaan" onclick="closeMenu()">Dashboard Perusahaan</a></li>
+        <li><a href="#analitik-laporan"    onclick="closeMenu()">Analitik & Laporan</a></li>
+        <li><a href="#foto-dokumen"        onclick="closeMenu()">Foto & Dokumen</a></li>
+        <li><a href="#laporan-foto"        onclick="closeMenu()">Laporan Foto</a></li>
+        <li><a href="#chat-komunikasi"     onclick="closeMenu()">Chat & Komunikasi</a></li>
+        <li><a href="#kalender-jadwal"     onclick="closeMenu()">Kalender Jadwal</a></li>
+        <li><a href="#alur-persetujuan"    onclick="closeMenu()">Alur Persetujuan</a></li>
+        <li><a href="#papan-pengumuman"    onclick="closeMenu()">Papan Pengumuman</a></li>
+        <li><a href="#keamanan-akses"      onclick="closeMenu()">Keamanan & Akses</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ============================================================
+       HERO BANNER
+       ============================================================ -->
+  <section class="f-hero">
+    <div class="f-breadcrumb">
+      <a href="https://propfs.id">Beranda</a>
+      <span>&#8250;</span>
+      <span class="current">Fitur</span>
+    </div>
+    <h1 class="f-hero-title">
+      <span>Fitur Unggulan</span> propfs.id
+    </h1>
+    <p class="f-hero-desc">
+      propfs.id adalah sistem manajemen properti terpadu berbasis cloud.
+      Sesuaikan fitur yang Anda butuhkan untuk meningkatkan efisiensi operasional
+      developer, kontraktor, dan agen properti Anda.
+    </p>
+  </section>
+
+  <!-- ============================================================
+       PILLS NAVIGATION
+       ============================================================ -->
+  <section class="f-pills-section">
+    <h2>Fitur</h2>
+    <div class="f-pills-grid">
+      <a href="#manajemen-listing"    class="f-pill">Manajemen Listing <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#manajemen-proyek"     class="f-pill">Manajemen Proyek <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#manajemen-agen"       class="f-pill">Manajemen Agen <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#dashboard-perusahaan" class="f-pill">Dashboard Perusahaan <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#analitik-laporan"     class="f-pill">Analitik & Laporan <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#foto-dokumen"         class="f-pill">Foto & Dokumen <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#laporan-foto"         class="f-pill">Laporan Foto <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#chat-komunikasi"      class="f-pill">Chat & Komunikasi <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#kalender-jadwal"      class="f-pill">Kalender Jadwal <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#alur-persetujuan"     class="f-pill">Alur Persetujuan <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#papan-pengumuman"     class="f-pill">Papan Pengumuman <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+      <a href="#keamanan-akses"       class="f-pill">Keamanan & Akses <svg viewBox="0 0 16 16"><path d="M8 11L3 6h10z"/></svg></a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 1: Manajemen Listing
+       ============================================================ -->
+  <section class="f-section" id="manajemen-listing">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 01</span>
+      <h2 class="f-section-title">Manajemen Listing</h2>
+      <p class="f-section-desc">
+        Kelola seluruh portofolio properti Anda dari satu tempat. Tambahkan listing rumah,
+        apartemen, kavling, ruko, dan properti komersial dengan mudah. Lengkap dengan foto,
+        spesifikasi, harga, dan status ketersediaan real-time.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block med"></div>
+                <div class="f-mockup-badge"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block med"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block med"></div>
+                <div class="f-mockup-badge red"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block med"></div>
+                <div class="f-mockup-badge"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/listing" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 2: Manajemen Proyek
+       ============================================================ -->
+  <section class="f-section" id="manajemen-proyek">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 02</span>
+      <h2 class="f-section-title">Manajemen Proyek</h2>
+      <p class="f-section-desc">
+        Pantau progres setiap proyek konstruksi dan pengembangan properti secara terpusat.
+        Kelola anggota tim, tahapan pekerjaan, biaya aktual vs rencana, dan progres
+        keseluruhan—semuanya dalam satu dashboard yang mudah dipahami.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+              <div class="f-mockup-row" style="gap:4px">
+                <div class="f-mockup-block" style="width:30%;height:8px;background:rgba(27,42,74,0.25)"></div>
+                <div class="f-mockup-block" style="width:45%;height:8px;background:rgba(201,162,39,0.4)"></div>
+                <div class="f-mockup-block" style="width:25%;height:8px;background:rgba(27,42,74,0.1)"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+                <div class="f-mockup-badge"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+                <div class="f-mockup-badge red"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/project" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- CTA mid -->
+  <section class="f-cta-section">
+    <p class="f-cta-label">Mulai sekarang</p>
+    <h2 class="f-cta-title">Anda bisa mulai dalam 1 menit!</h2>
+    <p class="f-cta-sub">Tidak perlu kartu kredit</p>
+    <a href="https://propfs.id/register" class="f-cta-btn">&#9654;&nbsp; Coba Gratis Sekarang</a>
+    <p class="f-cta-note">Tidak perlu kartu kredit &bull; Gratis 14 hari</p>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 3: Manajemen Agen
+       ============================================================ -->
+  <section class="f-section" id="manajemen-agen">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 03</span>
+      <h2 class="f-section-title">Manajemen Agen</h2>
+      <p class="f-section-desc">
+        Koordinasi seluruh tim agen properti Anda secara real-time. Pantau performa,
+        target penjualan, komisi, dan penugasan listing untuk setiap agen.
+        Tingkatkan produktivitas tim dengan data yang akurat dan transparan.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div class="f-mockup-row" style="gap:8px;margin:4px 0">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(27,42,74,0.2);flex-shrink:0"></div>
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+              <div class="f-mockup-row" style="gap:8px;margin:4px 0">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(27,42,74,0.15);flex-shrink:0"></div>
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge"></div>
+              </div>
+              <div class="f-mockup-row" style="gap:8px;margin:4px 0">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(27,42,74,0.12);flex-shrink:0"></div>
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/agent" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 4: Dashboard Perusahaan
+       ============================================================ -->
+  <section class="f-section" id="dashboard-perusahaan">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 04</span>
+      <h2 class="f-section-title">Dashboard Perusahaan</h2>
+      <p class="f-section-desc">
+        Satu dashboard yang menyatukan semua data proyek, listing, dan agen Anda.
+        Lihat gambaran besar performa perusahaan, realisasi anggaran, dan status
+        seluruh portofolio properti dalam sekejap—tanpa perlu hitung manual di Excel.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row" style="gap:6px">
+                <div style="flex:1;height:48px;background:rgba(27,42,74,0.08);border-radius:6px;border:1px solid rgba(27,42,74,0.12)"></div>
+                <div style="flex:1;height:48px;background:rgba(201,162,39,0.12);border-radius:6px;border:1px solid rgba(201,162,39,0.25)"></div>
+                <div style="flex:1;height:48px;background:rgba(27,42,74,0.08);border-radius:6px;border:1px solid rgba(27,42,74,0.12)"></div>
+                <div style="flex:1;height:48px;background:rgba(0,180,100,0.08);border-radius:6px;border:1px solid rgba(0,180,100,0.2)"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <div style="flex:1;height:80px;background:rgba(27,42,74,0.06);border-radius:6px;padding:8px;display:flex;align-items:flex-end;gap:4px">
+                  <div style="flex:1;background:rgba(27,42,74,0.25);border-radius:2px;height:40%"></div>
+                  <div style="flex:1;background:rgba(201,162,39,0.6);border-radius:2px;height:70%"></div>
+                  <div style="flex:1;background:rgba(27,42,74,0.25);border-radius:2px;height:55%"></div>
+                  <div style="flex:1;background:rgba(201,162,39,0.6);border-radius:2px;height:85%"></div>
+                  <div style="flex:1;background:rgba(27,42,74,0.25);border-radius:2px;height:50%"></div>
+                </div>
+                <div style="width:70px;height:80px;background:rgba(27,42,74,0.06);border-radius:6px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+            <div style="height:50px;background:rgba(27,42,74,0.08);border-radius:6px;margin:4px 0"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/dashboard" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 5: Analitik & Laporan
+       ============================================================ -->
+  <section class="f-section" id="analitik-laporan">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 05</span>
+      <h2 class="f-section-title">Analitik & Laporan</h2>
+      <p class="f-section-desc">
+        Buat laporan progres, biaya, dan penjualan secara otomatis tanpa menunggu
+        data dikirim dari lapangan. Template laporan kustom yang bisa dikonfigurasi
+        sesuai kebutuhan perusahaan Anda dan langsung diekspor ke PDF atau Excel.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <div style="flex:2;background:rgba(27,42,74,0.05);border-radius:6px;padding:8px">
+                  <div style="display:flex;align-items:flex-end;gap:3px;height:70px">
+                    <div style="flex:1;background:rgba(27,42,74,0.2);border-radius:2px;height:60%"></div>
+                    <div style="flex:1;background:rgba(201,162,39,0.5);border-radius:2px;height:80%"></div>
+                    <div style="flex:1;background:rgba(27,42,74,0.2);border-radius:2px;height:45%"></div>
+                    <div style="flex:1;background:rgba(201,162,39,0.5);border-radius:2px;height:95%"></div>
+                    <div style="flex:1;background:rgba(27,42,74,0.2);border-radius:2px;height:70%"></div>
+                    <div style="flex:1;background:rgba(201,162,39,0.5);border-radius:2px;height:65%"></div>
+                  </div>
+                </div>
+                <div style="flex:1;background:rgba(27,42,74,0.05);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:5px">
+                  <div class="f-mockup-block" style="width:100%;height:10px"></div>
+                  <div class="f-mockup-block" style="width:80%;height:10px"></div>
+                  <div class="f-mockup-block" style="width:90%;height:10px"></div>
+                  <div class="f-mockup-block" style="width:70%;height:10px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div style="height:60px;background:rgba(201,162,39,0.1);border-radius:6px;margin:4px 0"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/analytics" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 6: Foto & Dokumen
+       ============================================================ -->
+  <section class="f-section" id="foto-dokumen">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 06</span>
+      <h2 class="f-section-title">Foto & Dokumen</h2>
+      <p class="f-section-desc">
+        Pindahkan foto lapangan dari perangkat pribadi ke cloud terpusat yang bisa
+        diakses seluruh tim kapan saja. Manajemen folder, version control dokumen,
+        dan berbagi file antar kontraktor atau supplier—tanpa melalui WhatsApp.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">
+                <div style="aspect-ratio:1;background:rgba(27,42,74,0.12);border-radius:6px"></div>
+                <div style="aspect-ratio:1;background:rgba(201,162,39,0.15);border-radius:6px"></div>
+                <div style="aspect-ratio:1;background:rgba(27,42,74,0.08);border-radius:6px"></div>
+                <div style="aspect-ratio:1;background:rgba(27,42,74,0.12);border-radius:6px"></div>
+              </div>
+              <div class="f-mockup-table-row" style="margin-top:8px">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block sm"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px 0">
+              <div style="height:36px;background:rgba(27,42,74,0.12);border-radius:4px"></div>
+              <div style="height:36px;background:rgba(201,162,39,0.15);border-radius:4px"></div>
+              <div style="height:36px;background:rgba(27,42,74,0.08);border-radius:4px"></div>
+              <div style="height:36px;background:rgba(27,42,74,0.12);border-radius:4px"></div>
+            </div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/files" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 7: Laporan Foto
+       ============================================================ -->
+  <section class="f-section" id="laporan-foto">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 07</span>
+      <h2 class="f-section-title">Laporan Foto</h2>
+      <p class="f-section-desc">
+        Buat laporan foto formal dengan cepat langsung dari lapangan.
+        Pilih foto, tambahkan keterangan dan lokasi, lalu hasilkan laporan PDF
+        berformat profesional dalam hitungan detik—tanpa perlu kembali ke kantor.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <div style="flex:1;background:rgba(27,42,74,0.05);border-radius:4px;padding:6px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+                    <div style="height:40px;background:rgba(27,42,74,0.12);border-radius:3px"></div>
+                    <div style="height:40px;background:rgba(27,42,74,0.08);border-radius:3px"></div>
+                    <div style="height:40px;background:rgba(201,162,39,0.15);border-radius:3px"></div>
+                    <div style="height:40px;background:rgba(27,42,74,0.10);border-radius:3px"></div>
+                  </div>
+                </div>
+                <div style="flex:1;background:rgba(27,42,74,0.05);border-radius:4px;padding:6px;display:flex;flex-direction:column;gap:5px">
+                  <div class="f-mockup-block" style="width:100%"></div>
+                  <div style="height:50px;background:rgba(27,42,74,0.06);border-radius:3px"></div>
+                  <div class="f-mockup-block" style="width:80%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div style="height:50px;background:rgba(27,42,74,0.08);border-radius:6px;margin:4px 0"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/photo-report" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 8: Chat & Komunikasi
+       ============================================================ -->
+  <section class="f-section" id="chat-komunikasi">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 08</span>
+      <h2 class="f-section-title">Chat & Komunikasi</h2>
+      <p class="f-section-desc">
+        Ganti email berantai dan grup WhatsApp yang kacau dengan satu saluran komunikasi
+        terstruktur. Chat per proyek, per tugas, atau per grup tim—termasuk dengan
+        kontraktor dan supplier eksternal secara aman.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div style="display:flex;gap:8px;height:120px">
+                <div style="width:110px;background:rgba(27,42,74,0.05);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px">
+                  <div style="height:16px;background:rgba(27,42,74,0.12);border-radius:3px;width:80%"></div>
+                  <div style="height:14px;background:rgba(27,42,74,0.08);border-radius:3px"></div>
+                  <div style="height:14px;background:rgba(201,162,39,0.2);border-radius:3px"></div>
+                  <div style="height:14px;background:rgba(27,42,74,0.08);border-radius:3px"></div>
+                </div>
+                <div style="flex:1;background:rgba(27,42,74,0.03);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
+                  <div style="display:flex;gap:5px;justify-content:flex-start">
+                    <div style="width:20px;height:20px;border-radius:50%;background:rgba(27,42,74,0.2);flex-shrink:0"></div>
+                    <div style="background:rgba(27,42,74,0.08);border-radius:8px 8px 8px 0;padding:4px 8px;font-size:0;height:16px;width:60%"></div>
+                  </div>
+                  <div style="display:flex;gap:5px;justify-content:flex-end">
+                    <div style="background:rgba(201,162,39,0.2);border-radius:8px 8px 0 8px;padding:4px 8px;font-size:0;height:16px;width:45%"></div>
+                  </div>
+                  <div style="display:flex;gap:5px;justify-content:flex-start">
+                    <div style="width:20px;height:20px;border-radius:50%;background:rgba(27,42,74,0.15);flex-shrink:0"></div>
+                    <div style="background:rgba(27,42,74,0.08);border-radius:8px 8px 8px 0;padding:4px 8px;font-size:0;height:16px;width:55%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div style="background:rgba(201,162,39,0.15);border-radius:8px 8px 0 8px;height:20px;width:70%;margin-left:auto;margin-bottom:4px"></div>
+            <div style="background:rgba(27,42,74,0.08);border-radius:8px 8px 8px 0;height:20px;width:70%;margin-bottom:4px"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/chat" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 9: Kalender Jadwal
+       ============================================================ -->
+  <section class="f-section" id="kalender-jadwal">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 09</span>
+      <h2 class="f-section-title">Kalender Jadwal</h2>
+      <p class="f-section-desc">
+        Optimalkan penjadwalan sumber daya dengan kalender personal dan proyek terintegrasi.
+        Lihat semua jadwal kunjungan lapangan, tenggat waktu, dan rapat dalam satu tampilan
+        yang bisa diakses dari mana saja.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row" style="margin-bottom:6px">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+                <div style="height:20px;background:rgba(27,42,74,0.08);border-radius:3px;grid-column:span 7;margin-bottom:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(201,162,39,0.3);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.15);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(201,162,39,0.2);border-radius:2px;grid-column:span 2"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.15);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(201,162,39,0.25);border-radius:2px;grid-column:span 3"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+                <div style="height:16px;background:rgba(27,42,74,0.06);border-radius:2px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:4px 0">
+              <div style="height:14px;background:rgba(27,42,74,0.08);border-radius:2px"></div>
+              <div style="height:14px;background:rgba(201,162,39,0.3);border-radius:2px"></div>
+              <div style="height:14px;background:rgba(27,42,74,0.08);border-radius:2px"></div>
+              <div style="height:14px;background:rgba(27,42,74,0.12);border-radius:2px"></div>
+              <div style="height:14px;background:rgba(27,42,74,0.08);border-radius:2px"></div>
+            </div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/calendar" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 10: Alur Persetujuan
+       ============================================================ -->
+  <section class="f-section" id="alur-persetujuan">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 10</span>
+      <h2 class="f-section-title">Alur Persetujuan</h2>
+      <p class="f-section-desc">
+        Ganti proses persetujuan berbasis kertas atau pesan verbal dengan alur digital
+        yang terstruktur. Ajukan permintaan, tandai persetuju, dan lacak status—
+        langsung dari smartphone maupun PC—kapan saja dan di mana saja.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;margin:8px 0">
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(27,42,74,0.15);flex-shrink:0"></div>
+                <div style="width:24px;height:2px;background:rgba(27,42,74,0.2)"></div>
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,162,39,0.4);flex-shrink:0"></div>
+                <div style="width:24px;height:2px;background:rgba(27,42,74,0.2)"></div>
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(27,42,74,0.08);flex-shrink:0"></div>
+                <div style="width:24px;height:2px;background:rgba(27,42,74,0.1)"></div>
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(27,42,74,0.06);flex-shrink:0"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge green"></div>
+              </div>
+              <div class="f-mockup-table-row">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-badge red"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/approval" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 11: Papan Pengumuman
+       ============================================================ -->
+  <section class="f-section" id="papan-pengumuman">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 11</span>
+      <h2 class="f-section-title">Papan Pengumuman</h2>
+      <p class="f-section-desc">
+        Pastikan seluruh tim mendapatkan informasi terkini secara bersamaan.
+        Pin pengumuman penting, atur prioritas, tambahkan lampiran dokumen, dan
+        lacak siapa saja yang sudah membaca—tanpa pengumuman tenggelam di grup chat.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.3);border-radius:6px;padding:8px;margin-top:6px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:8px;height:8px;border-radius:50%;background:rgba(201,162,39,0.8);flex-shrink:0"></div>
+                  <div class="f-mockup-block wide"></div>
+                </div>
+                <div class="f-mockup-block" style="width:90%"></div>
+                <div class="f-mockup-block" style="width:70%"></div>
+              </div>
+              <div style="background:rgba(27,42,74,0.04);border-radius:6px;padding:8px;margin-top:6px;display:flex;flex-direction:column;gap:4px">
+                <div class="f-mockup-block wide"></div>
+                <div class="f-mockup-block" style="width:80%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div style="background:rgba(201,162,39,0.12);border-radius:6px;padding:6px;margin:4px 0;display:flex;flex-direction:column;gap:4px">
+              <div class="f-mockup-phone-block w1"></div>
+              <div class="f-mockup-phone-block w2"></div>
+            </div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/bulletin" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE 12: Keamanan & Akses
+       ============================================================ -->
+  <section class="f-section" id="keamanan-akses">
+    <div class="f-section-inner">
+      <span class="f-section-tag">Fitur 12</span>
+      <h2 class="f-section-title">Keamanan & Akses</h2>
+      <p class="f-section-desc">
+        Kendalikan siapa yang bisa melihat dan mengubah data apa. Kontrol akses granular
+        per proyek, per listing, atau per tim. Semua aktivitas tercatat di audit log
+        sehingga Anda selalu tahu siapa melakukan apa dan kapan.
+      </p>
+      <div class="f-mockup-wrap">
+        <div class="f-mockup-desktop">
+          <div class="f-mockup-bar">
+            <div class="f-mockup-dots"><span></span><span></span><span></span></div>
+            <div class="f-mockup-url"></div>
+          </div>
+          <div class="f-mockup-body">
+            <div class="f-mockup-sidebar">
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+              <div class="f-mockup-sidebar-icon"></div>
+            </div>
+            <div class="f-mockup-content">
+              <div class="f-mockup-row">
+                <div class="f-mockup-block navy"></div>
+                <div class="f-mockup-block gold"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+                <div style="padding:6px;background:rgba(27,42,74,0.05);border-radius:4px;display:flex;flex-direction:column;gap:3px">
+                  <div class="f-mockup-block" style="width:80%"></div>
+                  <div class="f-mockup-badge green"></div>
+                </div>
+                <div style="padding:6px;background:rgba(27,42,74,0.05);border-radius:4px;display:flex;flex-direction:column;gap:3px">
+                  <div class="f-mockup-block" style="width:80%"></div>
+                  <div class="f-mockup-badge"></div>
+                </div>
+                <div style="padding:6px;background:rgba(27,42,74,0.05);border-radius:4px;display:flex;flex-direction:column;gap:3px">
+                  <div class="f-mockup-block" style="width:80%"></div>
+                  <div class="f-mockup-badge"></div>
+                </div>
+                <div style="padding:6px;background:rgba(27,42,74,0.05);border-radius:4px;display:flex;flex-direction:column;gap:3px">
+                  <div class="f-mockup-block" style="width:80%"></div>
+                  <div class="f-mockup-badge green"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f-mockup-phone">
+          <div class="f-mockup-phone-screen">
+            <div class="f-mockup-phone-header"></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w1"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block gold"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w3"></div></div>
+            <div class="f-mockup-phone-row"><div class="f-mockup-phone-block w2"></div></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://propfs.id/features/security" class="f-section-btn">Selengkapnya</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CTA FINAL
+       ============================================================ -->
+  <section class="f-cta-section">
+    <p class="f-cta-label">Mulai sekarang</p>
+    <h2 class="f-cta-title">Anda bisa mulai dalam 1 menit!</h2>
+    <p class="f-cta-sub">Platform manajemen properti terpadu untuk developer dan agen Indonesia</p>
+    <a href="https://propfs.id/register" class="f-cta-btn">&#9654;&nbsp; Coba Gratis Sekarang</a>
+    <p class="f-cta-note">Tidak perlu kartu kredit &bull; Gratis 14 hari &bull; Batalkan kapan saja</p>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="f-footer">
+    &copy; 2025 <a href="https://propfs.id">propfs.id</a> &bull; Platform Manajemen Properti Indonesia
+  </footer>
+
+  <!-- ============================================================
+       FLOATING: Hubungi Kami
+       ============================================================ -->
+  <a href="https://propfs.id/contact" class="f-float-contact" title="Hubungi Kami">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+    </svg>
+    Hubungi Kami
+  </a>
+
+  <!-- ============================================================
+       FLOATING: WhatsApp
+       ============================================================ -->
+  <a href="https://wa.me/628XXXXXXXXXX?text=Halo%20propfs.id%2C%20saya%20ingin%20tahu%20lebih%20lanjut" class="f-float-wa" target="_blank" rel="noopener" title="Chat WhatsApp">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    <div class="f-float-wa-dot"></div>
+  </a>
+
+  <!-- ============================================================
+       JAVASCRIPT
+       ============================================================ -->
+  <script>
+    // Hamburger toggle
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMenu      = document.getElementById('navMenu');
+
+    hamburgerBtn.addEventListener('click', () => {
+      hamburgerBtn.classList.toggle('open');
+      navMenu.classList.toggle('open');
+    });
+
+    function closeMenu() {
+      hamburgerBtn.classList.remove('open');
+      navMenu.classList.remove('open');
+    }
+
+    // Close menu on outside click
+    document.addEventListener('click', e => {
+      if (!hamburgerBtn.contains(e.target) && !navMenu.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    // Smooth scroll + active pill highlight via IntersectionObserver
+    const pills    = document.querySelectorAll('.f-pill');
+    const sections = document.querySelectorAll('.f-section[id]');
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          pills.forEach(p => {
+            const href = p.getAttribute('href').replace('#', '');
+            p.style.background    = href === id ? 'var(--navy)' : '';
+            p.style.color         = href === id ? 'var(--gold)' : '';
+            p.style.borderColor   = href === id ? 'var(--navy)' : '';
+          });
+        }
+      });
+    }, { threshold: 0.4 });
+
+    sections.forEach(s => observer.observe(s));
+
+    // Preserve UTM / fbclid params on all propfs.id outbound links
+    const params = new URLSearchParams(window.location.search);
+    const trackKeys = ['fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+    const hasTracking = trackKeys.some(k => params.has(k));
+
+    if (hasTracking) {
+      document.querySelectorAll('a[href^="https://propfs.id"]').forEach(a => {
+        const url = new URL(a.href);
+        trackKeys.forEach(k => { if (params.has(k)) url.searchParams.set(k, params.get(k)); });
+        a.href = url.toString();
+      });
+    }
+  </script>
+
+</body>
+</html>
