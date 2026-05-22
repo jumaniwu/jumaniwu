@@ -18,6 +18,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import Config
+from client_factory import ClientFactory, TradingClients
+from execution_manager import ExecutionManager
 from mock_data import (
     PriceSimulator,
     PolymarketSimulator,
@@ -125,10 +127,19 @@ async def tick_loop() -> None:
 
 
 # ── App lifecycle ─────────────────────────────────────────────────────────────
+
+# These are populated during lifespan startup
+clients:  TradingClients | None = None
+executor: ExecutionManager | None = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global clients, executor
+    clients  = await ClientFactory.create(cfg)
+    executor = ExecutionManager(cfg, clients)
     task = asyncio.create_task(tick_loop())
-    log.info("HFT tick loop started")
+    log.info("HFT tick loop started — mode=%s", TRADING_MODE_STR)
     yield
     task.cancel()
     log.info("HFT tick loop stopped")
@@ -147,12 +158,38 @@ app.add_middleware(
 # ── REST health endpoint ──────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
+    paper_fills = len(executor.get_paper_fills()) if executor and cfg.is_paper else None
     return {
-        "status": "ok",
-        "mode": TRADING_MODE_STR,
-        "clients": len(connected_clients),
-        "btc_price": round(btc_sim.price, 2),
-        "eth_price": round(eth_sim.price, 2),
+        "status":       "ok",
+        "mode":         TRADING_MODE_STR,
+        "clients":      len(connected_clients),
+        "btc_price":    round(btc_sim.price, 2),
+        "eth_price":    round(eth_sim.price, 2),
+        **({"paper_fills": paper_fills} if paper_fills is not None else {}),
+    }
+
+
+@app.get("/orders")
+async def get_orders():
+    if not executor:
+        return {"orders": []}
+    orders = executor.get_all_orders()
+    return {
+        "mode":   TRADING_MODE_STR,
+        "count":  len(orders),
+        "orders": [
+            {
+                "order_id":   o.order_id,
+                "exchange":   o.exchange,
+                "symbol":     o.symbol,
+                "side":       o.side,
+                "qty":        o.qty,
+                "price":      o.price,
+                "status":     o.status,
+                "fill_price": o.fill_price,
+            }
+            for o in orders
+        ],
     }
 
 
