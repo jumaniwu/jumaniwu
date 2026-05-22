@@ -20,6 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import Config
 from client_factory import ClientFactory, TradingClients
 from execution_manager import ExecutionManager
+from risk_manager import RiskManager
+from strategy_engine import StrategyEngine
 from mock_data import (
     PriceSimulator,
     PolymarketSimulator,
@@ -93,11 +95,46 @@ async def tick_loop() -> None:
         if tick_n % 20 == 0:
             analytics = analytics_sim.tick()
 
-        # Log entries — every 2-5 ticks randomly
+        # Strategy signal — evaluated every tick against current hedge data
+        strategy_log = None
+        if strategy and hedge:
+            wallet_dd  = wallet_sim.drawdown if hasattr(wallet_sim, "drawdown") else 0.0
+            upnl_total = sum(p.get("unrealized_pnl", 0.0) for p in poly_positions)
+            result = await strategy.on_tick(
+                hedge,
+                wallet_drawdown=wallet_dd,
+                unrealised_pnl=upnl_total,
+            )
+            if result and not result.vetoed:
+                strategy_log = {
+                    "timestamp": time.strftime("%H:%M:%S"),
+                    "tag":       f"{result.signal.signal[:3]}",
+                    "label":     f"±{result.signal.spread_pct:.2f}%",
+                    "message":   (
+                        f"BYB {result.bybit_fill.side}@{result.bybit_fill.fill_price:.2f}  "
+                        f"POLY {result.poly_fill.side}@{result.poly_fill.fill_price:.4f}  "
+                        f"[{result.elapsed_ms:.1f}ms]"
+                    ),
+                    "color": "green" if result.signal.signal == "ARBIT" else "cyan",
+                }
+            elif result and result.vetoed:
+                # Occasionally surface veto reasons as warnings (1-in-5 chance)
+                if tick_n % 5 == 0:
+                    strategy_log = {
+                        "timestamp": time.strftime("%H:%M:%S"),
+                        "tag":       "RISK",
+                        "label":     "VETO",
+                        "message":   result.veto_reason or "risk check failed",
+                        "color":     "orange",
+                    }
+
+        # Simulated log entries — every 3 ticks when no strategy log fires
         log_counter += 1
-        log_entry = None
-        if log_counter >= 3:
+        log_entry = strategy_log
+        if log_entry is None and log_counter >= 3:
             log_entry = generate_log_entry()
+            log_counter = 0
+        elif log_entry is not None:
             log_counter = 0
 
         # Ping latency simulation
@@ -131,13 +168,17 @@ async def tick_loop() -> None:
 # These are populated during lifespan startup
 clients:  TradingClients | None = None
 executor: ExecutionManager | None = None
+risk:     RiskManager | None = None
+strategy: StrategyEngine | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global clients, executor
+    global clients, executor, risk, strategy
     clients  = await ClientFactory.create(cfg)
     executor = ExecutionManager(cfg, clients)
+    risk     = RiskManager()
+    strategy = StrategyEngine(executor, risk, symbol="BTCUSDT")
     task = asyncio.create_task(tick_loop())
     log.info("HFT tick loop started — mode=%s", TRADING_MODE_STR)
     yield
@@ -159,13 +200,36 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     paper_fills = len(executor.get_paper_fills()) if executor and cfg.is_paper else None
+    circuit_open = risk.state.circuit_open if risk else False
     return {
-        "status":       "ok",
-        "mode":         TRADING_MODE_STR,
-        "clients":      len(connected_clients),
-        "btc_price":    round(btc_sim.price, 2),
-        "eth_price":    round(eth_sim.price, 2),
+        "status":        "ok",
+        "mode":          TRADING_MODE_STR,
+        "clients":       len(connected_clients),
+        "btc_price":     round(btc_sim.price, 2),
+        "eth_price":     round(eth_sim.price, 2),
+        "circuit_open":  circuit_open,
         **({"paper_fills": paper_fills} if paper_fills is not None else {}),
+    }
+
+
+@app.get("/risk")
+async def get_risk():
+    if not risk:
+        return {"error": "risk manager not initialised"}
+    s = risk.state
+    return {
+        "mode":             TRADING_MODE_STR,
+        "circuit_open":     s.circuit_open,
+        "daily_loss":       round(s.daily_loss, 4),
+        "open_order_count": s.open_order_count,
+        "symbol_notional":  {k: round(v, 4) for k, v in s.symbol_notional.items()},
+        "limits": {
+            "max_drawdown_pct":    15.0,
+            "max_open_orders":     10,
+            "cooldown_seconds":    5.0,
+            "max_symbol_notional": 300.0,
+            "max_daily_loss":      250.0,
+        },
     }
 
 
