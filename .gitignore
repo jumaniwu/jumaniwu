@@ -4,10 +4,13 @@ dashboard/.next/
 dashboard/.env.local
 
 # Python
-backend/__pycache__/
-backend/*.pyc
+**/__pycache__/
+**/*.pyc
 backend/.venv/
 *.egg-info/
+
+# TypeScript build cache
+dashboard/tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
