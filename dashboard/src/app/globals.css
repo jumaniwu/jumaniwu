@@ -1,0 +1,285 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS custom properties (mirrors Tailwind tokens) ────────────────────── */
+:root {
+  --c-bg:           #0D0D0D;
+  --c-panel:        #111211;
+  --c-border:       #222322;
+  --c-border-hi:    #383838;
+  --c-green:        #00FF41;
+  --c-green-dim:    #00C832;
+  --c-red:          #FF2B4A;
+  --c-yellow:       #FFD200;
+  --c-orange:       #FF8C00;
+  --c-cyan:         #00E5FF;
+  --c-magenta:      #FF00FF;
+  --c-white:        #E8E8E0;
+  --c-muted:        #5A5A5A;
+  --sb-w:           4px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-bg);
+  color: var(--c-white);
+  font-family: 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  animation: crt-flicker 8s linear infinite;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: var(--sb-w); height: var(--sb-w); }
+::-webkit-scrollbar-track        { background: var(--c-bg); }
+::-webkit-scrollbar-thumb        { background: var(--c-border); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover  { background: var(--c-border-hi); }
+
+/* ── Dashboard grid ──────────────────────────────────────────────────────── */
+/* Outer container uses CSS Grid for exact row proportions */
+.dashboard {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  gap: 1px;
+  background: var(--c-bg);     /* the 1-px gaps appear as near-black separators */
+  grid-template-rows: 32px 38vh 17vh 1fr;
+}
+
+.dashboard-top-row {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 200px 1fr 280px 244px;
+  min-height: 0;
+}
+
+.dashboard-bottom-row {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 1fr 296px 240px;
+  min-height: 0;
+}
+
+/* ── Panel base ──────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--c-panel);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Subtle phosphor-glow ambient behind the whole surface */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,255,65,0.025) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scanline overlay */
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.055) 3px,
+    rgba(0, 0, 0, 0.055) 4px
+  );
+  z-index: 2;
+}
+
+/* Panel children sit above the glow & scanlines */
+.panel > * { position: relative; z-index: 3; }
+
+/* ── Panel header bar ────────────────────────────────────────────────────── */
+@layer components {
+  .ph {
+    @apply flex items-center justify-between
+           px-2 border-b border-term-border
+           text-2xs font-semibold tracking-[0.12em] uppercase text-term-muted
+           flex-none;
+    height: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%);
+  }
+
+  /* Panel footer — same height, border on top instead */
+  .pf {
+    @apply flex items-center justify-between
+           px-2 border-t border-term-border
+           text-2xs tracking-[0.1em] uppercase text-term-muted
+           flex-none;
+    height: 20px;
+  }
+
+  /* Scrollable panel body */
+  .pb {
+    @apply flex-1 overflow-y-auto min-h-0;
+  }
+
+  /* ── Numeric helpers ──────────────────────────────────────────────────── */
+  .n-pos  { @apply text-term-green tabular-nums; }
+  .n-neg  { @apply text-term-red   tabular-nums; }
+  .n-neu  { @apply text-term-white tabular-nums; }
+  .n-pos-glow { @apply text-term-green tabular-nums drop-shadow-[0_0_5px_rgba(0,255,65,0.55)]; }
+  .n-neg-glow { @apply text-term-red   tabular-nums drop-shadow-[0_0_5px_rgba(255,43,74,0.55)]; }
+
+  /* ── Badge ────────────────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center justify-center
+           text-3xs font-bold tracking-wider
+           px-1 py-px;
+    border-width: 1px;
+    border-style: solid;
+    line-height: 1;
+  }
+  .badge-yes  { @apply badge border-term-green   text-term-green; }
+  .badge-no   { @apply badge border-term-red     text-term-red; }
+  .badge-warn { @apply badge border-term-yellow  text-term-yellow; }
+  .badge-info { @apply badge border-term-cyan    text-term-cyan; }
+
+  /* ── Log line ─────────────────────────────────────────────────────────── */
+  .log-line {
+    @apply flex gap-1.5 text-2xs leading-[1.6] py-[1px] animate-slide-in-top;
+    border-left: 2px solid transparent;
+    padding-left: 6px;
+  }
+  .log-green   { border-left-color: var(--c-green);   }
+  .log-red     { border-left-color: var(--c-red);     }
+  .log-yellow  { border-left-color: var(--c-yellow);  }
+  .log-cyan    { border-left-color: var(--c-cyan);    }
+  .log-magenta { border-left-color: var(--c-magenta); }
+  .log-orange  { border-left-color: var(--c-orange);  }
+
+  /* ── Flash row backgrounds ────────────────────────────────────────────── */
+  .flash-bg-green { animation: flash-green 0.45s ease-out; }
+  .flash-bg-red   { animation: flash-red   0.45s ease-out; }
+}
+
+/* ── Ticker tape ─────────────────────────────────────────────────────────── */
+.ticker-wrap  { overflow: hidden; white-space: nowrap; }
+.ticker-inner { display: inline-block; animation: ticker-scroll 45s linear infinite; }
+
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ── React Flow overrides ────────────────────────────────────────────────── */
+.react-flow__renderer                { background: transparent !important; }
+.react-flow__background svg rect     { fill: var(--c-bg) !important; }
+.react-flow__edge-path               { stroke: var(--c-border-hi) !important; stroke-width: 1.5 !important; }
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke: var(--c-green) !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 4px rgba(0,255,65,0.55));
+}
+.react-flow__minimap  { display: none !important; }
+.react-flow__controls { display: none !important; }
+.react-flow__attribution { display: none !important; }
+.react-flow__handle   { display: none !important; }
+.react-flow__node     { padding: 0 !important; border: none !important; background: transparent !important; }
+.react-flow__node-default.selected { box-shadow: none !important; }
+
+/* ── Lightweight Charts container ────────────────────────────────────────── */
+.lc-wrap { flex: 1; min-height: 0; overflow: hidden; }
+
+/* ── Risk thermometer ────────────────────────────────────────────────────── */
+.risk-bar-track {
+  height: 5px;
+  background: var(--c-border);
+  position: relative;
+  overflow: hidden;
+}
+.risk-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+/* ── Histogram bars (centered / two-sided) ───────────────────────────────── */
+.hist-container {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.hist-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+.hist-bar-pos {
+  position: absolute;
+  bottom: 50%;
+  width: 100%;
+  background: rgba(0,255,65,0.65);
+  box-shadow: 0 0 3px rgba(0,255,65,0.25);
+  transition: height 0.12s linear;
+}
+.hist-bar-neg {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  background: rgba(255,43,74,0.65);
+  box-shadow: 0 0 3px rgba(255,43,74,0.25);
+  transition: height 0.12s linear;
+}
+
+/* ── Strategy tree node animations ──────────────────────────────────────── */
+@keyframes glow-sweep {
+  0%   { transform: translateX(-200%); opacity: 0; }
+  30%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
+}
+
+@keyframes node-sweep {
+  0%   { left: -35%; }
+  100% { left: 110%; }
+}
+
+@keyframes border-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,255,65,0.35), inset 0 0 6px rgba(0,255,65,0.04); }
+  50%       { box-shadow: 0 0 22px rgba(0,255,65,0.7),  inset 0 0 14px rgba(0,255,65,0.08); }
+}
+
+/* ── CRT flicker ─────────────────────────────────────────────────────────── */
+@keyframes crt-flicker {
+  0%, 94%, 100% { opacity: 1; }
+  95%           { opacity: 0.97; }
+  96.5%         { opacity: 0.99; }
+  98%           { opacity: 0.96; }
+}
+
+/* ── Flash keyframes ─────────────────────────────────────────────────────── */
+@keyframes flash-green {
+  0%   { background-color: rgba(0,255,65,0.18); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-red {
+  0%   { background-color: rgba(255,43,74,0.18); }
+  100% { background-color: transparent; }
+}

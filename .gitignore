@@ -1,0 +1,17 @@
+# Node
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.env.local
+
+# Python
+**/__pycache__/
+**/*.pyc
+backend/.venv/
+*.egg-info/
+
+# TypeScript build cache
+dashboard/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
