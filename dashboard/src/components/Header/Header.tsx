@@ -17,11 +17,14 @@ function useClock() {
 const SEP = <span className="text-term-muted-2 mx-3 select-none">║</span>;
 
 export default function Header() {
-  const connected = useTradingStore((s) => s.connected);
-  const btc       = useTradingStore((s) => s.btc);
-  const eth       = useTradingStore((s) => s.eth);
-  const pingMs    = useTradingStore((s) => s.pingMs);
-  const clock     = useClock();
+  const connected    = useTradingStore((s) => s.connected);
+  const btc          = useTradingStore((s) => s.btc);
+  const eth          = useTradingStore((s) => s.eth);
+  const pingMs       = useTradingStore((s) => s.pingMs);
+  const tradingMode  = useTradingStore((s) => s.tradingMode);
+  const clock        = useClock();
+
+  const isLive = tradingMode === "LIVE";
 
   const btcFmt = btc?.price?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? "---";
   const ethFmt = eth?.price?.toLocaleString("en-US", { minimumFractionDigits: 2 }) ?? "---";
@@ -63,9 +66,27 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ── Right: clock + status ───────────────────────────────────────── */}
+      {/* ── Right: mode badge + clock + status ─────────────────────────── */}
       <div className="flex-none flex items-center gap-3 px-3 h-full border-l border-term-border text-2xs">
-        <span className="text-term-cyan tabular-nums font-semibold tracking-widest">{clock}</span>
+
+        {/* Trading mode badge */}
+        {isLive ? (
+          <span
+            className="text-2xs font-bold tracking-widest px-1.5 py-px border border-term-red text-term-red animate-blink"
+            style={{ background: "rgba(255,43,74,0.12)", boxShadow: "0 0 6px rgba(255,43,74,0.4)" }}
+          >
+            ⚡ LIVE
+          </span>
+        ) : (
+          <span
+            className="text-2xs font-bold tracking-widest px-1.5 py-px border border-term-green text-term-green"
+            style={{ background: "rgba(0,255,65,0.07)" }}
+          >
+            ◎ PAPER
+          </span>
+        )}
+
+        <span className="text-term-cyan tabular-nums font-semibold tracking-widest border-l border-term-border pl-3">{clock}</span>
         <span className="border-l border-term-border pl-3 flex items-center gap-1.5">
           <span
             className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-term-green animate-pulse" : "bg-term-red"}`}

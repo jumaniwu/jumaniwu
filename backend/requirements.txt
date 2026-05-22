@@ -2,3 +2,9 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 websockets==12.0
 python-multipart==0.0.9
+httpx==0.27.0
+
+# ── LIVE mode only (install manually when TRADING_MODE=LIVE) ──────────────────
+# pybit==5.8.0
+# py-clob-client==0.22.0
+# eth-account==0.11.2

@@ -17,6 +17,7 @@ import type {
   AnalyticsData,
   LogEntry,
   Candle,
+  TradingMode,
 } from "@/types";
 
 const MAX_LOG_ENTRIES  = 200;
@@ -27,9 +28,10 @@ const MAX_PRICE_HIST   = 30;   // sparkline history depth per position
 
 interface TradingState {
   // Connection
-  connected: boolean;
-  pingMs:    number;
-  lastTs:    number;
+  connected:   boolean;
+  pingMs:      number;
+  lastTs:      number;
+  tradingMode: TradingMode;
 
   // Prices
   btc:        PriceTick | null;
@@ -63,9 +65,10 @@ interface TradingState {
 
 export const useTradingStore = create<TradingState>()(
   subscribeWithSelector((set) => ({
-    connected: false,
-    pingMs:    0,
-    lastTs:    0,
+    connected:   false,
+    pingMs:      0,
+    lastTs:      0,
+    tradingMode: "PAPER" as TradingMode,
 
     btc: null,
     eth: null,
@@ -96,6 +99,7 @@ export const useTradingStore = create<TradingState>()(
         const next: Partial<TradingState> = { lastTs: payload.ts };
 
         if (payload.ping_ms !== undefined) next.pingMs = payload.ping_ms;
+        if (payload.mode !== undefined)    next.tradingMode = payload.mode;
 
         // ── BTC candles ──────────────────────────────────────────────────
         if (payload.btc) {

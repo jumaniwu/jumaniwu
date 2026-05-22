@@ -3,7 +3,8 @@ HFT Trading Dashboard — FastAPI WebSocket Mock Server
 Broadcasts synthetic high-frequency trading data to all connected clients.
 
 Run with:
-    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    TRADING_MODE=PAPER uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    TRADING_MODE=LIVE  uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 """
 
 import asyncio
@@ -16,6 +17,7 @@ from typing import Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import Config
 from mock_data import (
     PriceSimulator,
     PolymarketSimulator,
@@ -28,6 +30,10 @@ from mock_data import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
+
+# ── Load trading mode config at startup ───────────────────────────────────────
+cfg = Config.from_env()
+TRADING_MODE_STR = cfg.mode.value  # "PAPER" | "LIVE" — embedded in every WS message
 
 # ── Global simulators (shared state across ticks) ─────────────────────────────
 btc_sim = PriceSimulator("BTC/USDT", start=67_420.0, sigma=0.0014)
@@ -98,6 +104,7 @@ async def tick_loop() -> None:
         payload: dict = {
             "ts": now_ms,
             "ping_ms": ping_ms,
+            "mode": TRADING_MODE_STR,
             "btc": btc,
             "eth": eth,
             "positions": poly_positions,
@@ -142,6 +149,7 @@ app.add_middleware(
 async def health():
     return {
         "status": "ok",
+        "mode": TRADING_MODE_STR,
         "clients": len(connected_clients),
         "btc_price": round(btc_sim.price, 2),
         "eth_price": round(eth_sim.price, 2),
@@ -160,6 +168,7 @@ async def websocket_endpoint(ws: WebSocket):
     init_payload = {
         "ts": int(time.time() * 1000),
         "type": "init",
+        "mode": TRADING_MODE_STR,
         "wallet": wallet_sim.tick(poly_sim.tick()),
         "analytics": analytics_sim.tick(),
     }

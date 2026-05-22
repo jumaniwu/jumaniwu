@@ -71,10 +71,13 @@ export interface LogEntry {
   color: "green" | "red" | "yellow" | "cyan" | "magenta" | "orange";
 }
 
+export type TradingMode = "PAPER" | "LIVE";
+
 export interface WsPayload {
   ts: number;
   type?: string;
   ping_ms?: number;
+  mode?: TradingMode;
   btc?: PriceTick;
   eth?: PriceTick;
   positions?: PolyPosition[];
