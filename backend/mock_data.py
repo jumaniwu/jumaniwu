@@ -145,10 +145,15 @@ STATE_TRANSITIONS = {
 
 
 class StateMachineSimulator:
+    _ALL_NODES = list(STATE_TRANSITIONS.keys())
+
     def __init__(self):
         self.current = "tick_feed"
         self.completed: set[str] = set()
         self._ticks_in_state = 0
+        self._node_entry_ts: float = time.time()
+        self._visit_counts: dict[str, int] = {n: 0 for n in self._ALL_NODES}
+        self._visit_counts["tick_feed"] = 1
 
     def tick(self) -> dict:
         self._ticks_in_state += 1
@@ -161,10 +166,15 @@ class StateMachineSimulator:
                 self.completed.clear()
             self.current = trans["next"]
             self._ticks_in_state = 0
+            self._node_entry_ts = time.time()
+            self._visit_counts[self.current] = self._visit_counts.get(self.current, 0) + 1
 
         return {
             "current_node": self.current,
             "completed_nodes": list(self.completed),
+            "node_entry_ts": round(self._node_entry_ts, 3),
+            "visit_counts": dict(self._visit_counts),
+            "ticks_in_state": self._ticks_in_state,
         }
 
 

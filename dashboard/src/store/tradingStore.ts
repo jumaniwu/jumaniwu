@@ -74,8 +74,11 @@ export const useTradingStore = create<TradingState>()(
     hedge: null,
 
     stateMachine: {
-      current_node: "tick_feed",
+      current_node:   "tick_feed",
       completed_nodes: [],
+      node_entry_ts:  Date.now() / 1000,
+      visit_counts:   { tick_feed: 1 },
+      ticks_in_state: 0,
     },
 
     wallet: null,

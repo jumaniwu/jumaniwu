@@ -37,6 +37,9 @@ export interface HedgeData {
 export interface StateMachineData {
   current_node: string;
   completed_nodes: string[];
+  node_entry_ts: number;                  // unix timestamp (seconds) when current node was entered
+  visit_counts: Record<string, number>;   // how many times each node has been visited
+  ticks_in_state: number;                 // raw tick counter for current node
 }
 
 export interface EquityPoint {

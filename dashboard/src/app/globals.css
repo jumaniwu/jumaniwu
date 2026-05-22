@@ -248,6 +248,24 @@ html, body {
   transition: height 0.12s linear;
 }
 
+/* ── Strategy tree node animations ──────────────────────────────────────── */
+@keyframes glow-sweep {
+  0%   { transform: translateX(-200%); opacity: 0; }
+  30%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
+}
+
+@keyframes node-sweep {
+  0%   { left: -35%; }
+  100% { left: 110%; }
+}
+
+@keyframes border-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,255,65,0.35), inset 0 0 6px rgba(0,255,65,0.04); }
+  50%       { box-shadow: 0 0 22px rgba(0,255,65,0.7),  inset 0 0 14px rgba(0,255,65,0.08); }
+}
+
 /* ── CRT flicker ─────────────────────────────────────────────────────────── */
 @keyframes crt-flicker {
   0%, 94%, 100% { opacity: 1; }
