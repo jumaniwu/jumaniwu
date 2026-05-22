@@ -29,7 +29,7 @@ function scheduleReconnect() {
 }
 
 export function connect() {
-  if (socket && socket.readyState === WebSocket.OPEN) return;
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
   intentionallyClosed = false;
 
   const { setConnected, applyTick } = useTradingStore.getState();

@@ -162,6 +162,10 @@ class StrategyEngine:
                 ),
             )
             self._risk.on_order_placed(self._symbol, bybit_notional)
+            # Paper fills are synthetic and instant — release exposure immediately
+            # so the risk ceiling doesn't accumulate and block future signals.
+            if bybit_fill.order_id.startswith("PAPER-"):
+                self._risk.on_order_closed(self._symbol, bybit_notional)
             log.info(
                 "SIGNAL %s  spread=%.2f%%  bybit=%s@%.2f  poly=%s@%.4f",
                 signal.signal, signal.spread_pct,
