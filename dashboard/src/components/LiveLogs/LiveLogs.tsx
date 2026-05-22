@@ -1,55 +1,57 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useTradingStore } from "@/store/tradingStore";
 import type { LogEntry } from "@/types";
 
-const COLOR_MAP: Record<LogEntry["color"], string> = {
-  green:   "text-term-green",
-  red:     "text-term-red",
-  yellow:  "text-term-yellow",
-  cyan:    "text-term-cyan",
-  magenta: "text-term-magenta",
-  orange:  "text-term-orange",
+const LOG_COLOR_CLASS: Record<LogEntry["color"], string> = {
+  green:   "log-green   text-term-green",
+  red:     "log-red     text-term-red",
+  yellow:  "log-yellow  text-term-yellow",
+  cyan:    "log-cyan    text-term-cyan",
+  magenta: "log-magenta text-term-magenta",
+  orange:  "log-orange  text-term-orange",
 };
 
+// Fixed-width tag column keeps the line visually stable
 function LogLine({ entry }: { entry: LogEntry }) {
-  const col = COLOR_MAP[entry.color] ?? "text-term-white";
+  const cls = LOG_COLOR_CLASS[entry.color] ?? "log-green text-term-green";
   return (
-    <div className={`flex gap-1.5 text-2xs leading-5 font-mono animate-fade-in-row ${col}`}>
-      <span className="text-term-muted flex-none">{entry.timestamp}</span>
-      <span className="flex-none font-bold">{entry.tag}</span>
-      <span className="text-term-muted flex-none">{entry.label}</span>
-      <span>{entry.message}</span>
+    <div className={`log-line ${cls}`}>
+      <span className="text-term-muted flex-none w-[52px]">{entry.timestamp}</span>
+      <span className="flex-none w-[44px] font-semibold tracking-tighter">{entry.tag}</span>
+      <span className="text-term-muted-2 flex-none mr-0.5">{entry.label}</span>
+      <span className="text-term-white/80">{entry.message}</span>
     </div>
   );
 }
 
 export default function LiveLogs() {
-  const logs    = useTradingStore((s) => s.logs);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const logs      = useTradingStore((s) => s.logs);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to top (newest entry is first)
+  // Scroll to top (newest entries prepended to logs array)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [logs.length]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="panel-header">
+    <>
+      <div className="ph">
         <span>EXECUTION LOG</span>
-        <span className="text-term-green text-2xs animate-blink">▌</span>
+        <span className="text-term-green animate-blink font-bold">▌</span>
       </div>
-      <div className="flex-1 overflow-y-auto px-2 py-1 flex flex-col-reverse">
-        <div ref={bottomRef} />
+
+      <div ref={scrollRef} className="pb px-0 py-0">
         {logs.map((entry, i) => (
           <LogLine key={`${entry.timestamp}-${i}`} entry={entry} />
         ))}
       </div>
-      <div className="panel-header border-t border-b-0">
-        <span className="text-term-muted">STREAM</span>
-        <span className="text-term-cyan text-2xs">{logs.length} ENTRIES</span>
+
+      <div className="pf">
+        <span className="text-term-muted">STREAM&nbsp;·&nbsp;LIVE</span>
+        <span className="text-term-cyan tabular-nums">{logs.length}&nbsp;ENTRIES</span>
       </div>
-    </div>
+    </>
   );
 }
