@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Root reset ──────────────────────────────────────────────────────────── */
+:root {
+  --scrollbar-width: 4px;
+  --scrollbar-track: #111;
+  --scrollbar-thumb: #2a2a2a;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: #0D0D0D;
+  color: #E8E6DF;
+  font-family: 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom scrollbars ───────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: var(--scrollbar-width); height: var(--scrollbar-width); }
+::-webkit-scrollbar-track        { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb        { background: var(--scrollbar-thumb); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: #3d3d3d; }
+
+/* ── Terminal panel base ─────────────────────────────────────────────────── */
+.panel {
+  @apply bg-term-panel border border-term-border overflow-hidden relative;
+}
+
+.panel-header {
+  @apply text-2xs font-mono font-semibold tracking-widest uppercase text-term-muted
+         border-b border-term-border px-2 py-1 flex items-center justify-between;
+}
+
+/* ── Numeric display helpers ─────────────────────────────────────────────── */
+.num-pos { @apply text-term-green; }
+.num-neg { @apply text-term-red; }
+.num-neu { @apply text-term-white; }
+
+.num-pos-glow { @apply text-term-green drop-shadow-[0_0_6px_rgba(0,255,65,0.6)]; }
+.num-neg-glow { @apply text-term-red   drop-shadow-[0_0_6px_rgba(255,43,74,0.6)]; }
+
+/* ── Scanline overlay ────────────────────────────────────────────────────── */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 4px
+  );
+  z-index: 10;
+}
+
+/* ── Blink cursor ────────────────────────────────────────────────────────── */
+.cursor::after {
+  content: '█';
+  @apply text-term-green animate-blink;
+}
+
+/* ── Ticker tape ─────────────────────────────────────────────────────────── */
+.ticker-wrap {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-inner {
+  display: inline-block;
+  animation: ticker-scroll 40s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ── React Flow node overrides ───────────────────────────────────────────── */
+.react-flow__background { background: #0D0D0D !important; }
+.react-flow__edge-path  { stroke: #2a2a2a !important; stroke-width: 1.5px; }
+.react-flow__edge-path.active-edge { stroke: #00FF41 !important; filter: drop-shadow(0 0 4px rgba(0,255,65,0.5)); }
+.react-flow__minimap    { display: none; }
+.react-flow__controls   { display: none; }
+
+/* ── Lightweight Charts container ────────────────────────────────────────── */
+.lc-container { width: 100%; height: 100%; }

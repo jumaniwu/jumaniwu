@@ -1,0 +1,14 @@
+# Node
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.env.local
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
