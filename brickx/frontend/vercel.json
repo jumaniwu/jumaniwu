@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "whitelist.domainanda.com" }],
+      "destination": "/whitelist-page.html"
+    },
+    { "source": "/", "destination": "/landing-page.html" }
+  ]
+}
