@@ -80,6 +80,7 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:9px;font-weight:600;transition:all .2s;font-family:var(--f);padding:9px 18px;font-size:12px}
 .btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .bp{background:var(--blue);color:#fff}.bp:hover{background:var(--blueL)}
 .bs{background:var(--green);color:#fff}.bs:hover{filter:brightness(1.1)}
 .br{background:var(--red);color:#fff}.br:hover{filter:brightness(1.1)}
@@ -144,8 +145,7 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
         <input id="pw" type="password" class="inp" placeholder="••••••••">
       </div>
       <div id="lerr" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--red);display:none"></div>
-      <button class="btn bp bfull" onclick="doLogin()" style="padding:12px;font-size:14px">SIGN IN →</button>
-      <p style="text-align:center;font-size:11px;color:var(--dim);margin-top:10px">Demo: any email + password "admin123"</p>
+      <button id="login-btn" class="btn bp bfull" onclick="doLogin()" style="padding:12px;font-size:14px">SIGN IN →</button>
     </div>
   </div>
 </div>
@@ -159,21 +159,21 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
     <button class="sb-btn" id="nav-analytics" onclick="nav('analytics')">📊 Analytics</button>
     <div class="sb-section">Users</div>
     <button class="sb-btn" id="nav-users" onclick="nav('users')">👥 All Users</button>
-    <button class="sb-btn" id="nav-kyc" onclick="nav('kyc')">🪪 KYC Queue <span class="sb-badge" id="kyc-ct">2</span></button>
+    <button class="sb-btn" id="nav-kyc" onclick="nav('kyc')">🪪 KYC Queue <span class="sb-badge" id="kyc-ct" style="display:none"></span></button>
     <button class="sb-btn" id="nav-wallets" onclick="nav('wallets')">🔑 Wallets</button>
     <div class="sb-section">ICO</div>
-    <button class="sb-btn" id="nav-orders" onclick="nav('orders')">💳 Orders <span class="sb-badge" id="ord-ct" style="background:var(--gold)">2</span></button>
+    <button class="sb-btn" id="nav-orders" onclick="nav('orders')">💳 Orders <span class="sb-badge" id="ord-ct" style="background:var(--gold);display:none"></span></button>
     <button class="sb-btn" id="nav-rounds" onclick="nav('rounds')">🚀 ICO Rounds</button>
     <button class="sb-btn" id="nav-distribute" onclick="nav('distribute')">✈️ Distribute BRX</button>
     <div class="sb-section">Properties</div>
     <button class="sb-btn" id="nav-properties" onclick="nav('properties')">🏠 Properties</button>
-    <button class="sb-btn" id="nav-yield" onclick="nav('yield')">💰 Yield Dist.</button>
+    <button class="sb-btn" id="nav-yield" onclick="nav('yield')">💰 Annual Dividend</button>
     <div class="sb-section">System</div>
     <button class="sb-btn" id="nav-settings" onclick="nav('settings')">⚙️ Settings</button>
     <button class="sb-btn" id="nav-audit" onclick="nav('audit')">📋 Audit Log</button>
   </nav>
   <div class="sb-foot">
-    <div class="sb-user"><div class="sb-av">A</div><div><div style="font-size:12px;font-weight:700;color:var(--white)">Admin</div><div style="font-size:9px;color:var(--muted)">Super Admin</div></div></div>
+    <div class="sb-user"><div class="sb-av" id="sb-av">A</div><div><div style="font-size:12px;font-weight:700;color:var(--white)" id="sb-name">Admin</div><div style="font-size:9px;color:var(--muted)" id="sb-email"></div></div></div>
     <button class="sb-btn" onclick="doLogout()" style="color:var(--red)">🚪 Logout</button>
   </div>
 </aside>
@@ -199,98 +199,125 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
 </div>
 
 <script>
-// ─── DATA ─────────────────────────────────────────────────────
-var U = [
-  {id:'u1',fn:'Ahmad',ln:'Fauzi',email:'ahmad@gmail.com',country:'Indonesia',kyc:'approved',wallet:'0x7f3a9c2b1e4d8f5a6b7c8d9e0f1a2b3c4d5e6f7a',brx:125000,joined:'2026-03-12'},
-  {id:'u2',fn:'Sarah',ln:'Lim',email:'sarah@outlook.sg',country:'Singapore',kyc:'pending',wallet:'0x4b2c8e1f9a3d6c7b5e8f2a4d7c9b1e3f5a7c9d1b',brx:0,joined:'2026-04-01'},
-  {id:'u3',fn:'Budi',ln:'Santoso',email:'budi@yahoo.com',country:'Indonesia',kyc:'not_started',wallet:'',brx:0,joined:'2026-04-05'},
-  {id:'u4',fn:'Mei',ln:'Chen',email:'mei@hotmail.com',country:'Malaysia',kyc:'approved',wallet:'0x3d8e5a2c9f6b3d8e5a2c9f6b3d8e5a2c9f6b3d8e',brx:62500,joined:'2026-03-20'},
-  {id:'u5',fn:'Raj',ln:'Kumar',email:'raj@gmail.com',country:'Singapore',kyc:'rejected',wallet:'',brx:0,joined:'2026-03-28'},
-  {id:'u6',fn:'Nadia',ln:'Putri',email:'nadia@gmail.com',country:'Indonesia',kyc:'pending',wallet:'0x6f9a3c6f9a3c6f9a3c6f9a3c6f9a3c6f9a3c6f9a',brx:0,joined:'2026-04-08'},
-  {id:'u7',fn:'James',ln:'Wong',email:'jwong@gmail.com',country:'Malaysia',kyc:'approved',wallet:'0x1a4d7b0e3f6a9c2d5e8f1a4d7b0e3f6a9c2d5e8f',brx:250000,joined:'2026-03-10'},
-];
-var O = [
-  {id:'ORD-001',uid:'u1',user:'Ahmad Fauzi',email:'ahmad@gmail.com',wallet:'0x7f3a...6f7a',usd:1000,brx:125000,crypto:'USDT/Polygon',tx:'0xabc123def456',status:'confirmed',date:'2026-03-15'},
-  {id:'ORD-002',uid:'u4',user:'Mei Chen',email:'mei@hotmail.com',wallet:'0x3d8e...3d8e',usd:500,brx:62500,crypto:'USDC/Polygon',tx:'0xdef789abc012',status:'confirmed',date:'2026-03-22'},
-  {id:'ORD-003',uid:'u2',user:'Sarah Lim',email:'sarah@outlook.sg',wallet:'0x4b2c...1b',usd:2000,brx:250000,crypto:'USDT/Polygon',tx:'',status:'pending_payment',date:'2026-04-02'},
-  {id:'ORD-004',uid:'u7',user:'James Wong',email:'jwong@gmail.com',wallet:'0x1a4d...8f',usd:2000,brx:250000,crypto:'ETH',tx:'0x789fed321cba',status:'confirmed',date:'2026-03-12'},
-  {id:'ORD-005',uid:'u7',user:'James Wong',email:'jwong@gmail.com',wallet:'0x1a4d...8f',usd:3000,brx:375000,crypto:'USDT/Polygon',tx:'',status:'pending_payment',date:'2026-04-10'},
-  {id:'ORD-006',uid:'u4',user:'Mei Chen',email:'mei@hotmail.com',wallet:'0x3d8e...3d8e',usd:1500,brx:187500,crypto:'BNB',tx:'0x111aaa222bbb',status:'distributed',date:'2026-03-25'},
-];
-var SETS = [
-  {k:'treasury_usdt',lbl:'Treasury USDT (Polygon)',v:'0x742d35Cc6634C0532925a3b8D4C9F3aF7b6e1234',desc:'Main USDT wallet on Polygon',grp:'Wallets'},
-  {k:'treasury_usdc',lbl:'Treasury USDC (Polygon)',v:'0x742d35Cc6634C0532925a3b8D4C9F3aF7b6e1234',desc:'Main USDC wallet on Polygon',grp:'Wallets'},
-  {k:'treasury_eth',lbl:'Treasury ETH',v:'0x8ba1f109551bD432803012645Ac136ddd64DBA72',desc:'ETH wallet on Ethereum',grp:'Wallets'},
-  {k:'treasury_bnb',lbl:'Treasury BNB',v:'0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF',desc:'BNB wallet on BNB Chain',grp:'Wallets'},
-  {k:'brx_contract',lbl:'BRX Token Contract',v:'',desc:'ERC-20 BRX on Polygon (after deploy)',grp:'Contracts'},
-  {k:'brick_contract',lbl:'BRICK Token Contract',v:'',desc:'ERC-1155 property tokens (after deploy)',grp:'Contracts'},
-  {k:'seed_price',lbl:'Seed Price (USD)',v:'0.008',desc:'Current price per BRX',grp:'ICO Config'},
-  {k:'seed_min',lbl:'Min Investment ($)',v:'100',desc:'Minimum per order',grp:'ICO Config'},
-  {k:'seed_max',lbl:'Max Investment ($)',v:'50000',desc:'Maximum per wallet',grp:'ICO Config'},
-  {k:'seed_cap',lbl:'Hard Cap ($)',v:'640000',desc:'Total seed round hard cap',grp:'ICO Config'},
-  {k:'kyc_required',lbl:'KYC Required',v:'true',desc:'Require KYC before purchase',grp:'Platform'},
-  {k:'platform_fee',lbl:'Platform Fee Rate',v:'0.005',desc:'Marketplace fee (0.5%)',grp:'Platform'},
-  {k:'tge_date',lbl:'TGE Date',v:'2026-09-15',desc:'Token Generation Event date',grp:'Platform'},
-  {k:'ref_bonus',lbl:'Referral Bonus BRX',v:'500',desc:'BRX bonus per referral',grp:'Platform'},
-  {k:'support_email',lbl:'Support Email',v:'support@brickxprotocol.io',desc:'Public support email',grp:'Contact'},
-  {k:'telegram_url',lbl:'Telegram URL',v:'https://t.me/brickxprotocol',desc:'Community Telegram',grp:'Contact'},
-];
-var PROPS = [
-  {id:'h1',name:'The Horizon Hotel Batam',loc:'Nagoya, Batam',type:'Hotel',emoji:'🏨',status:'ICO Funding',price:10.00,tokens:1200000,sold:310000,yld:12.5,holders:310},
-  {id:'s2',name:'Skyline Residences Jakarta',loc:'SCBD, Jakarta',type:'Residential',emoji:'🏙',status:'Live',price:2.40,tokens:1000000,sold:742000,yld:8.4,holders:742},
-  {id:'b3',name:'Green Valley Villa Bali',loc:'Ubud, Bali',type:'Hospitality',emoji:'🌴',status:'Live',price:1.75,tokens:1000000,sold:380000,yld:14.2,holders:380},
-  {id:'k4',name:'Marina Towers KL',loc:'KLCC, KL',type:'Commercial',emoji:'🏢',status:'Live',price:3.20,tokens:1000000,sold:890000,yld:7.8,holders:890},
-];
-var ROUNDS = [
-  {id:1,name:'Seed Sale',price:0.008,total:80000000,sold:30937500,target:640000,raised:247500,active:true,lock:12,vest:24,min:100},
-  {id:2,name:'ICO Round 1',price:0.015,total:100000000,sold:0,target:1500000,raised:0,active:false,lock:3,vest:12,min:50},
-  {id:3,name:'ICO Round 2',price:0.022,total:50000000,sold:0,target:1100000,raised:0,active:false,lock:3,vest:9,min:50},
-];
-var LOGS = [
-  {admin:'admin@brickxprotocol.io',action:'kyc_approved',target:'Ahmad Fauzi',detail:'KYC approved',time:'2026-04-10 09:15'},
-  {admin:'admin@brickxprotocol.io',action:'setting_updated',target:'seed_price',detail:'Changed to 0.008',time:'2026-04-08 14:30'},
-  {admin:'admin@brickxprotocol.io',action:'payment_confirmed',target:'ORD-001',detail:'Tx 0xabc123 confirmed',time:'2026-03-15 09:40'},
-  {admin:'admin@brickxprotocol.io',action:'kyc_rejected',target:'Raj Kumar',detail:'Document unclear',time:'2026-03-30 11:20'},
-  {admin:'admin@brickxprotocol.io',action:'brx_distributed',target:'ORD-006',detail:'187500 BRX sent',time:'2026-04-01 10:00'},
-];
+// ─── API CONFIG ───────────────────────────────────────────────
+const API = window.BRICKX_API_URL || 'https://brickx-api.railway.app';
+var TOKEN_KEY = 'brickx_admin_token';
+var ADMIN_KEY = 'brickx_admin_user';
 
 var PAGE = 'dashboard';
-var STAB = 'Wallets';
 var UFILT = 'all';
 var OFILT = 'all';
+var OPAGE = 1;
+var OLIMIT = 20;
+var USERS_CACHE = [];
+var SET_KEYS = [];
+
+// ─── API WRAPPER ──────────────────────────────────────────────
+function getToken() { return sessionStorage.getItem(TOKEN_KEY) || ''; }
+function clearAuth() { sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(ADMIN_KEY); }
+
+function api(path, opts) {
+  opts = opts || {};
+  var headers = {};
+  if (opts.headers) Object.keys(opts.headers).forEach(function(k) { headers[k] = opts.headers[k]; });
+  var token = getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  var body = opts.body;
+  if (body && typeof body !== 'string') body = JSON.stringify(body);
+  if (body) headers['Content-Type'] = 'application/json';
+  return fetch(API + path, { method: opts.method || 'GET', headers: headers, body: body })
+    .then(function(res) {
+      if (res.status === 401) {
+        clearAuth();
+        showLogin();
+        throw new Error('Session expired. Please sign in again.');
+      }
+      return res.json().catch(function() { return {}; }).then(function(data) {
+        if (!res.ok) throw new Error(data.error || data.message || ('Request failed (HTTP ' + res.status + ')'));
+        return data;
+      });
+    })
+    .catch(function(e) {
+      if (e instanceof TypeError) throw new Error('Network error — could not reach the BRICKX API.');
+      throw e;
+    });
+}
 
 // ─── AUTH ─────────────────────────────────────────────────────
 function doLogin() {
-  var e = document.getElementById('em').value;
+  var e = document.getElementById('em').value.trim();
   var p = document.getElementById('pw').value;
   var err = document.getElementById('lerr');
+  var btnEl = document.getElementById('login-btn');
+  err.style.display = 'none';
   if (!e || !p) { err.textContent = 'Enter email and password.'; err.style.display = 'block'; return; }
-  if (p !== 'admin123') { err.textContent = 'Wrong password. Demo: admin123'; err.style.display = 'block'; return; }
+  btnEl.disabled = true; btnEl.textContent = 'SIGNING IN…';
+  api('/api/auth/login', { method: 'POST', body: { email: e, password: p } })
+    .then(function(res) {
+      if (!res.token || !res.user) throw new Error('Unexpected response from server.');
+      if (!res.user.is_admin) throw new Error('Not an admin account');
+      sessionStorage.setItem(TOKEN_KEY, res.token);
+      sessionStorage.setItem(ADMIN_KEY, JSON.stringify({
+        first_name: res.user.first_name || 'Admin',
+        email: res.user.email || e
+      }));
+      document.getElementById('pw').value = '';
+      enterApp();
+      toast('Welcome to BRICKX Admin!', 'success');
+    })
+    .catch(function(ex) {
+      err.textContent = ex.message || 'Login failed.';
+      err.style.display = 'block';
+    })
+    .then(function() { btnEl.disabled = false; btnEl.textContent = 'SIGN IN →'; });
+}
+function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
+  var u = {};
+  try { u = JSON.parse(sessionStorage.getItem(ADMIN_KEY) || '{}'); } catch (e2) {}
+  document.getElementById('sb-name').textContent = u.first_name || 'Admin';
+  document.getElementById('sb-email').textContent = u.email || '';
+  document.getElementById('sb-av').textContent = (u.first_name || 'A').charAt(0).toUpperCase();
   startClock();
   nav('dashboard');
-  toast('Welcome to BRICKX Admin!', 'success');
+  refreshCounts();
 }
-function doLogout() {
+function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('sidebar').classList.remove('open');
+}
+function doLogout() {
+  clearAuth();
+  showLogin();
 }
 document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
 
 // ─── NAV ──────────────────────────────────────────────────────
-var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Yield Distribution',settings:'System Settings',audit:'Audit Log'};
+var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Annual Dividend',settings:'System Settings',audit:'Audit Log'};
 function nav(p) {
   PAGE = p;
   document.querySelectorAll('.sb-btn').forEach(function(b) { b.classList.remove('on'); });
   var nb = document.getElementById('nav-' + p);
   if (nb) nb.classList.add('on');
   document.getElementById('ptitle').textContent = TITLES[p] || p;
-  var pg = document.getElementById('pg');
-  pg.innerHTML = '';
-  pg.className = 'content fu';
+  var pgEl = document.getElementById('pg');
+  pgEl.innerHTML = '';
+  pgEl.className = 'content fu';
   var fn = {dashboard:pgDash,analytics:pgAnalytics,users:pgUsers,kyc:pgKYC,wallets:pgWallets,orders:pgOrders,rounds:pgRounds,distribute:pgDistribute,properties:pgProps,yield:pgYield,settings:pgSettings,audit:pgAudit}[p];
   if (fn) fn();
   if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+}
+function refreshCounts() {
+  api('/api/admin/dashboard').then(function(dx) {
+    setBadge('kyc-ct', dx.kycPending);
+    setBadge('ord-ct', dx.pendingOrders);
+  }).catch(function() {});
+}
+function setBadge(id, n) {
+  var e = document.getElementById(id);
+  if (!e) return;
+  if (n > 0) { e.textContent = n; e.style.display = ''; }
+  else e.style.display = 'none';
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
@@ -325,10 +352,11 @@ function sbdg(status) {
     approved:['✓ Approved','bg-green'],pending:['⏳ Pending','bg-gold'],
     not_started:['○ Unverified','bg-muted'],rejected:['✗ Rejected','bg-red'],
     confirmed:['✓ Confirmed','bg-green'],pending_payment:['⏳ Pending Pay','bg-gold'],
-    distributed:['✈ Distributed','bg-teal'],Live:['Live','bg-green'],
+    distributed:['✈ Distributed','bg-teal'],live:['Live','bg-green'],Live:['Live','bg-green'],
+    funding:['Funding','bg-gold'],ico_funding:['ICO Funding','bg-gold'],
     'ICO Funding':['ICO Funding','bg-gold'],'Coming Soon':['Coming Soon','bg-blue']
   };
-  var info = m[status] || [status, 'bg-muted'];
+  var info = m[status] || [status || '—', 'bg-muted'];
   return bdg(info[0], info[1]);
 }
 
@@ -340,8 +368,7 @@ function pb(pct, color, h) {
 }
 
 function kpi(lbl, val, sub, color) {
-  var c = mk('div', {cls:'kpi', css:'--c:'+color});
-  c.style.setProperty('--c', color);
+  var c = mk('div', {cls:'kpi'});
   c.style.setProperty('border-left', '3px solid ' + color);
   ap(c, t('div','font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px', lbl),
         t('div','font-size:24px;font-weight:800;color:var(--white);font-family:var(--mono);line-height:1', val),
@@ -349,10 +376,7 @@ function kpi(lbl, val, sub, color) {
   return c;
 }
 
-function btn(text, cls, fn) {
-  var b = mk('button', {cls:'btn bsm '+cls, txt:text, on:fn});
-  return b;
-}
+function btn(text, cls, fn) { return mk('button', {cls:'btn bsm '+cls, txt:text, on:fn}); }
 
 function secHdr(title, sub, btnTxt, btnFn) {
   var row = d('display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px');
@@ -393,7 +417,7 @@ function miniGrid(items) {
   items.forEach(function(item) {
     var c = d('background:var(--bg1);border-radius:9px;padding:11px;text-align:center');
     ap(c, t('div','font-size:9px;color:var(--muted);margin-bottom:3px',item[0]),
-          t('div','font-size:16px;font-weight:800;font-family:var(--mono);color:'+item[2],item[1]));
+          t('div','font-size:16px;font-weight:800;font-family:var(--mono);color:'+item[2],String(item[1])));
     ap(g, c);
   });
   return g;
@@ -404,20 +428,61 @@ function add() {
   var args = Array.prototype.slice.call(arguments);
   args.forEach(function(a) { pg().appendChild(a); });
 }
+function clearPg() { pg().innerHTML = ''; }
+
+function loadingCard(msg) {
+  var c = mk('div', {cls:'card', css:'text-align:center;padding:36px'});
+  ap(c, t('div','font-size:13px;color:var(--muted)', msg || 'Loading…'));
+  return c;
+}
+function errCard(msg, retryFn) {
+  var c = mk('div', {cls:'card', css:'border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)'});
+  ap(c, t('div','font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px','⚠ Failed to load data'),
+        t('div','font-size:12px;color:var(--off);margin-bottom:12px', msg || 'Unknown error.'));
+  if (retryFn) ap(c, btn('↻ Retry','bp', function() { clearPg(); retryFn(); }));
+  return c;
+}
+
+// Formatters — USD only.
+function usd(n) { if (n == null || isNaN(Number(n))) return '—'; return '$' + Number(n).toLocaleString('en-US', {maximumFractionDigits: 2}); }
+function num(n) { if (n == null || isNaN(Number(n))) return '—'; return Number(n).toLocaleString('en-US'); }
+function kfmt(n) {
+  if (n == null || isNaN(Number(n))) return '—';
+  n = Number(n);
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toLocaleString('en-US');
+}
+function dt(v) { return v ? String(v).slice(0, 10) : '—'; }
+function orderUserName(o) {
+  if (!o.users) return '—';
+  return (((o.users.first_name || '') + ' ' + (o.users.last_name || '')).trim()) || (o.users.email || '—');
+}
 
 // ─── PAGES ────────────────────────────────────────────────────
 function pgDash() {
-  var raised = O.filter(function(o){return o.status==='confirmed'||o.status==='distributed';}).reduce(function(s,o){return s+o.usd;},0);
-  var brxSold = O.filter(function(o){return o.status==='confirmed'||o.status==='distributed';}).reduce(function(s,o){return s+o.brx;},0);
-  var kpend = U.filter(function(u){return u.kyc==='pending';}).length;
-  var opend = O.filter(function(o){return o.status==='pending_payment';}).length;
+  add(loadingCard('Loading dashboard…'));
+  Promise.all([api('/api/admin/dashboard'), api('/api/admin/orders?page=1&limit=5')])
+    .then(function(res) {
+      if (PAGE !== 'dashboard') return;
+      clearPg();
+      renderDash(res[0] || {}, (res[1] && res[1].orders) || []);
+      setBadge('kyc-ct', res[0].kycPending);
+      setBadge('ord-ct', res[0].pendingOrders);
+    })
+    .catch(function(e) { if (PAGE !== 'dashboard') return; clearPg(); add(errCard(e.message, pgDash)); });
+}
+function renderDash(dx, orders) {
+  var seedTarget = dx.seedTarget != null ? Number(dx.seedTarget) : 640000;
+  var pct = dx.percentFilled != null ? Number(dx.percentFilled)
+          : (dx.totalRaised != null && seedTarget > 0 ? Number(dx.totalRaised) / seedTarget * 100 : null);
 
   var kpiRow = mk('div',{cls:'g4',css:'margin-bottom:18px'});
   ap(kpiRow,
-    kpi('TOTAL RAISED', '$'+(raised/1000).toFixed(1)+'K', 'of $640K · '+(raised/640000*100).toFixed(1)+'%', 'var(--gold)'),
-    kpi('TOTAL USERS', U.length, 'Registered accounts', 'var(--blueL)'),
-    kpi('KYC APPROVED', U.filter(function(u){return u.kyc==='approved';}).length, kpend+' pending review', 'var(--green)'),
-    kpi('BRX ALLOCATED', (brxSold/1e6).toFixed(2)+'M', 'of 80M seed supply', 'var(--purple)')
+    kpi('TOTAL RAISED', usd(dx.totalRaised), 'of ' + usd(seedTarget) + (pct != null ? ' · ' + pct.toFixed(1) + '%' : ''), 'var(--gold)'),
+    kpi('TOTAL USERS', num(dx.totalUsers), 'Registered accounts', 'var(--blueL)'),
+    kpi('KYC APPROVED', num(dx.kycApproved), num(dx.kycPending) + ' pending review', 'var(--green)'),
+    kpi('BRX SOLD', kfmt(dx.totalBrxSold), 'Allocated to investors', 'var(--purple)')
   );
   add(kpiRow);
 
@@ -427,141 +492,196 @@ function pgDash() {
   var pc = mk('div',{cls:'card glow'});
   var phdr = d('display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px');
   var pleft = d('');
-  ap(pleft, t('div','font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px','SEED ROUND PROGRESS'),
-             t('div','font-size:22px;font-weight:800;color:var(--white);font-family:var(--mono)','$'+(raised/1000).toFixed(1)+'K / $640K'));
+  var roundName = dx.activeRound ? String(dx.activeRound).replace(/_/g,' ').toUpperCase() : 'ACTIVE';
+  ap(pleft, t('div','font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px', roundName + ' ROUND PROGRESS'),
+             t('div','font-size:22px;font-weight:800;color:var(--white);font-family:var(--mono)', usd(dx.totalRaised) + ' / ' + usd(seedTarget)));
   var liveBdg = mk('span',{cls:'bdg bg-green'});
   var dot = mk('span',{cls:'blink',css:'width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px'});
   ap(liveBdg, dot, document.createTextNode('LIVE'));
   ap(phdr, pleft, liveBdg);
-  ap(pc, phdr, pb(raised/640000*100,'linear-gradient(90deg,var(--gold),#F97316)',10));
+  ap(pc, phdr, pb(pct || 0, 'linear-gradient(90deg,var(--gold),#F97316)', 10));
   ap(pc, miniGrid([
-    ['Confirmed',O.filter(function(o){return o.status==='confirmed'||o.status==='distributed';}).length,'var(--green)'],
-    ['Pending Pay',opend,'var(--gold)'],
-    ['Wallets',U.filter(function(u){return u.wallet;}).length,'var(--blueL)']
+    ['Confirmed', num(dx.confirmedOrders), 'var(--green)'],
+    ['Pending Pay', num(dx.pendingOrders), 'var(--gold)'],
+    ['Wallets', num(dx.walletsSet), 'var(--blueL)']
   ]));
 
   // Quick actions
   var qa = mk('div',{cls:'card'});
   ap(qa, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','⚡ Quick Actions'));
   [
-    ['🪪 KYC Queue ('+kpend+' pending)', 'bs bfull', function(){nav('kyc');}],
-    ['💳 Pending Orders ('+opend+')', 'bp bfull', function(){nav('orders');}],
+    ['🪪 KYC Queue (' + num(dx.kycPending) + ' pending)', 'bs bfull', function(){nav('kyc');}],
+    ['💳 Pending Orders (' + num(dx.pendingOrders) + ')', 'bp bfull', function(){nav('orders');}],
     ['✈️ Distribute BRX Tokens', 'bgold bfull', function(){nav('distribute');}],
     ['⚙️ System Settings', 'bo bfull', function(){nav('settings');}],
     ['🔑 Wallet Registry', 'bg bfull', function(){nav('wallets');}],
   ].forEach(function(a) {
-    var b = mk('button',{cls:'btn bsm '+a[1],css:'justify-content:flex-start;margin-bottom:8px;padding:10px 14px;font-size:12px',txt:a[0],on:a[2]});
-    ap(qa, b);
+    ap(qa, mk('button',{cls:'btn bsm '+a[1],css:'justify-content:flex-start;margin-bottom:8px;padding:10px 14px;font-size:12px',txt:a[0],on:a[2]}));
   });
 
   ap(row2, pc, qa);
   add(row2);
 
-  // Orders table
+  // Recent orders table
   var oc = mk('div',{cls:'card'});
   ap(oc, secHdr('Recent Orders','Latest ICO activity','View All →',function(){nav('orders');}));
-  var orows = O.slice(0,5).map(function(o) {
-    var ac = d('display:flex;gap:5px');
-    if (o.status==='pending_payment') ap(ac, btn('✓ Confirm','bs', function(id){return function(){confirmOrder(id);};}(o.id)));
-    else if (o.status==='confirmed') ap(ac, btn('✈ Send','bgold', function(id){return function(){distributeOrder(id);};}(o.id)));
-    else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
-    var uc = d(''); ap(uc, t('div','font-weight:600;color:var(--white)',o.user), t('div','font-size:10px;color:var(--muted)',o.email));
-    return [o.id, uc, '$'+o.usd.toLocaleString(), (o.brx/1000).toFixed(0)+'K', o.crypto, sbdg(o.status), o.date, ac];
-  });
-  ap(oc, mkTable(['Order','User','USD','BRX','Crypto','Status','Date','Action'], orows));
+  if (!orders.length) {
+    ap(oc, t('div','text-align:center;padding:20px;color:var(--muted)','No orders yet.'));
+  } else {
+    ap(oc, mkTable(['Order','User','USD','BRX','Crypto','Status','Date','Action'], orders.map(orderTableRow)));
+  }
   add(oc);
 }
 
+function orderTableRow(o) {
+  var uc = d('');
+  ap(uc, t('div','font-weight:600;color:var(--white)', orderUserName(o)),
+         t('div','font-size:10px;color:var(--muted)', (o.users && o.users.email) || ''));
+  var ac = d('display:flex;gap:5px;flex-wrap:wrap');
+  if (o.status === 'pending_payment') ap(ac, btn('✓ Confirm','bs', (function(id){return function(){confirmOrder(id);};})(o.order_id)));
+  else if (o.status === 'confirmed') ap(ac, btn('✈ Send','bgold', (function(id){return function(){distributeBatch([id]);};})(o.order_id)));
+  else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
+  return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), sbdg(o.status), dt(o.created_at), ac];
+}
+
 function pgAnalytics() {
+  add(loadingCard('Loading analytics…'));
+  Promise.all([api('/api/admin/dashboard'), api('/api/admin/users')])
+    .then(function(res) {
+      if (PAGE !== 'analytics') return;
+      clearPg();
+      renderAnalytics(res[0] || {}, (res[1] && res[1].users) || []);
+    })
+    .catch(function(e) { if (PAGE !== 'analytics') return; clearPg(); add(errCard(e.message, pgAnalytics)); });
+}
+function renderAnalytics(dx, users) {
+  var totalUsers = Number(dx.totalUsers) || 0;
+  var avgInv = (dx.totalRaised != null && Number(dx.confirmedOrders) > 0)
+    ? usd(Number(dx.totalRaised) / Number(dx.confirmedOrders)) : '—';
+  var conv = (totalUsers > 0 && dx.confirmedOrders != null)
+    ? (Number(dx.confirmedOrders) / totalUsers * 100).toFixed(1) + '%' : '—';
+  var kycRate = (totalUsers > 0 && dx.kycApproved != null)
+    ? (Number(dx.kycApproved) / totalUsers * 100).toFixed(1) + '%' : '—';
+
   var kpiRow = mk('div',{cls:'g4',css:'margin-bottom:18px'});
   ap(kpiRow,
-    kpi('DAILY SIGNUPS','12 today','','var(--blue)'),
-    kpi('AVG INVESTMENT','$1,240','per order','var(--gold)'),
-    kpi('CONVERSION','34.2%','register to buy','var(--green)'),
-    kpi('KYC PASS RATE','71.4%','approval rate','var(--teal)')
+    kpi('TOTAL USERS', num(dx.totalUsers), 'Registered accounts', 'var(--blue)'),
+    kpi('AVG INVESTMENT', avgInv, 'per confirmed order', 'var(--gold)'),
+    kpi('ORDER CONVERSION', conv, 'confirmed orders / users', 'var(--green)'),
+    kpi('KYC APPROVED', kycRate, 'of all registered users', 'var(--teal)')
   );
   add(kpiRow);
 
   var row2 = mk('div',{cls:'g2',css:'margin-bottom:16px'});
-  var cc = mk('div',{cls:'card'});
-  ap(cc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','📈 Seed Raise Progress'));
-  var bars = d('display:flex;align-items:flex-end;gap:4px;height:60px;margin-bottom:6px');
-  [18,32,45,67,89,124,158,205,247].forEach(function(v,i) {
-    var bar = d('flex:1;border-radius:3px 3px 0 0;min-width:8px');
-    bar.style.height = (v/247*100) + '%';
-    bar.style.background = i===8 ? 'var(--blueL)' : 'var(--blue)';
-    bar.style.opacity = i===8 ? '1' : '0.6';
-    ap(bars, bar);
-  });
-  ap(cc, bars, t('div','font-size:9px;color:var(--dim)','Apr 2 ──────────────────── Apr 10'));
 
+  // Raise progress
+  var cc = mk('div',{cls:'card'});
+  ap(cc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','📈 Raise Progress'));
+  var seedTarget = dx.seedTarget != null ? Number(dx.seedTarget) : 640000;
+  var totalTarget = dx.totalRaiseTarget != null ? Number(dx.totalRaiseTarget) : 2000000;
+  [['Seed round', dx.totalRaised, seedTarget, 'var(--gold)'],
+   ['Total ICO target', dx.totalRaised, totalTarget, 'var(--blueL)']].forEach(function(r) {
+    var raised = r[1] != null ? Number(r[1]) : null;
+    var pctR = (raised != null && r[2] > 0) ? raised / r[2] * 100 : 0;
+    var row = d('margin-bottom:14px');
+    var lbl = d('display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px');
+    ap(lbl, s('', r[0]), s('color:'+r[3]+';font-weight:700', usd(raised) + ' / ' + usd(r[2])));
+    ap(row, lbl, pb(pctR, r[3], 7));
+    ap(cc, row);
+  });
+
+  // Users by country (computed from real users data)
   var ctryCard = mk('div',{cls:'card'});
   ap(ctryCard, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','🌍 Users by Country'));
-  [['Indonesia',4,'var(--blue)',57],['Singapore',2,'var(--teal)',29],['Malaysia',1,'var(--gold)',14]].forEach(function(c) {
-    var row = d('margin-bottom:10px');
-    var lbl = d('display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px');
-    ap(lbl, s('',c[0]), s('color:'+c[2]+';font-weight:700',c[1]+' users ('+c[3]+'%)'));
-    ap(row, lbl, pb(c[3], c[2], 5));
-    ap(ctryCard, row);
-  });
+  if (!users.length) {
+    ap(ctryCard, t('div','font-size:12px;color:var(--muted)','—'));
+  } else {
+    var counts = {};
+    users.forEach(function(u) { var c = u.country || 'Unknown'; counts[c] = (counts[c] || 0) + 1; });
+    var colors = ['var(--blue)','var(--teal)','var(--gold)','var(--purple)','var(--green)','var(--accent)'];
+    Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,6).forEach(function(c, i) {
+      var pctC = counts[c] / users.length * 100;
+      var row = d('margin-bottom:10px');
+      var lbl = d('display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px');
+      ap(lbl, s('', c), s('color:'+colors[i % colors.length]+';font-weight:700', counts[c] + ' users (' + pctC.toFixed(0) + '%)'));
+      ap(row, lbl, pb(pctC, colors[i % colors.length], 5));
+      ap(ctryCard, row);
+    });
+  }
   ap(row2, cc, ctryCard);
   add(row2);
 }
 
 function pgUsers() {
-  add(secHdr('All Users', U.length+' registered · '+U.filter(function(u){return u.kyc==='approved';}).length+' approved'));
+  add(loadingCard('Loading users…'));
+  api('/api/admin/users')
+    .then(function(r) { if (PAGE !== 'users') return; USERS_CACHE = (r && r.users) || []; clearPg(); renderUsers(); })
+    .catch(function(e) { if (PAGE !== 'users') return; clearPg(); add(errCard(e.message, pgUsers)); });
+}
+function renderUsers() {
+  var U2 = USERS_CACHE;
+  add(secHdr('All Users', U2.length + ' registered · ' + U2.filter(function(u){return u.kyc_status==='approved';}).length + ' approved'));
 
   var fw = d('display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap');
   [['all','All'],['approved','Approved'],['pending','Pending'],['not_started','Unverified'],['rejected','Rejected']].forEach(function(v) {
-    var active = UFILT===v[0];
-    var b = mk('button',{
+    var active = UFILT === v[0];
+    ap(fw, mk('button',{
       cls:'btn bsm',
       css:'background:'+(active?'var(--blue)':'rgba(255,255,255,.05)')+';color:'+(active?'#fff':'var(--muted)')+';border:1px solid '+(active?'var(--blue)':'rgba(255,255,255,.08)'),
       txt:v[1],
-      on: (function(fv){return function(){UFILT=fv;nav('users');};})(v[0])
-    });
-    ap(fw, b);
+      on:(function(fv){return function(){UFILT=fv;clearPg();renderUsers();};})(v[0])
+    }));
   });
   add(fw);
 
-  var filtered = UFILT==='all' ? U : U.filter(function(u){return u.kyc===UFILT;});
+  var filtered = UFILT === 'all' ? U2 : U2.filter(function(u){return u.kyc_status===UFILT;});
+  if (!filtered.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No users match this filter.'})); return; }
   var rows = filtered.map(function(u) {
-    var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)',u.fn+' '+u.ln), t('div','font-size:10px;color:var(--muted)',u.email));
-    var wc = s('font-family:var(--mono);font-size:10px;color:'+(u.wallet?'var(--blueL)':'var(--muted)'), u.wallet?u.wallet.slice(0,12)+'...':'-');
+    var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || '—';
+    var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)', name), t('div','font-size:10px;color:var(--muted)', u.email || ''));
+    var wc = s('font-family:var(--mono);font-size:10px;color:'+(u.wallet_address?'var(--blueL)':'var(--muted)'), u.wallet_address ? u.wallet_address.slice(0,12)+'...' : '-');
     var ac = d('display:flex;gap:5px');
     ap(ac, btn('View','bg',(function(id){return function(){viewUser(id);};})(u.id)));
-    if (u.kyc==='pending') {
-      ap(ac, btn('✓ KYC','bs',(function(id){return function(){approveKYC(id);};})(u.id)));
-      ap(ac, btn('✗','br',(function(id){return function(){rejectKYC(id);};})(u.id)));
+    if (u.kyc_status === 'pending') {
+      ap(ac, btn('✓ KYC','bs',(function(id){return function(){setKYC(id,'approved');};})(u.id)));
+      ap(ac, btn('✗','br',(function(id){return function(){setKYC(id,'rejected');};})(u.id)));
     }
-    return [nc, u.country, sbdg(u.kyc), wc, u.brx>0?(u.brx/1000).toFixed(0)+'K':'-', u.joined, ac];
+    return [nc, u.country || '—', sbdg(u.kyc_status), wc, u.referral_code || '—', dt(u.created_at), ac];
   });
-  add(mkTable(['User','Country','KYC','Wallet','BRX','Joined','Actions'], rows));
+  add(mkTable(['User','Country','KYC','Wallet','Referral','Joined','Actions'], rows));
 }
 
 function pgKYC() {
-  var pending = U.filter(function(u){return u.kyc==='pending';});
-  add(secHdr('KYC Queue', pending.length+' applications pending'));
+  add(loadingCard('Loading KYC queue…'));
+  api('/api/admin/users')
+    .then(function(r) { if (PAGE !== 'kyc') return; USERS_CACHE = (r && r.users) || []; clearPg(); renderKYC(); })
+    .catch(function(e) { if (PAGE !== 'kyc') return; clearPg(); add(errCard(e.message, pgKYC)); });
+}
+function renderKYC() {
+  var pending = USERS_CACHE.filter(function(u){return u.kyc_status==='pending';});
+  add(secHdr('KYC Queue', pending.length + ' applications pending'));
+  setBadge('kyc-ct', pending.length);
   if (!pending.length) {
     var empty = mk('div',{cls:'card',css:'text-align:center;padding:40px'});
     ap(empty, t('div','font-size:40px;margin-bottom:10px','✅'), t('div','color:var(--muted)','All KYC reviewed!'));
     add(empty); return;
   }
   pending.forEach(function(u) {
+    var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || u.email || '—';
     var c = mk('div',{cls:'card',css:'margin-bottom:12px'});
     var hdr = d('display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px');
     var nd = d('');
-    ap(nd, t('div','font-size:16px;font-weight:700;color:var(--white)',u.fn+' '+u.ln), t('div','font-size:12px;color:var(--muted)',u.email+' · '+u.country));
+    ap(nd, t('div','font-size:16px;font-weight:700;color:var(--white)', name), t('div','font-size:12px;color:var(--muted)', (u.email||'') + ' · ' + (u.country||'—')));
     ap(hdr, nd, bdg('⏳ PENDING','bg-gold'));
     ap(c, hdr, miniGrid([
-      ['DOCUMENT','KTP/Passport','var(--white)'],
-      ['SELFIE','Uploaded ✓','var(--green)'],
-      ['WALLET',u.wallet?u.wallet.slice(0,12)+'...':'Not set',u.wallet?'var(--blueL)':'var(--red)']
+      ['COUNTRY', u.country || '—', 'var(--white)'],
+      ['REGISTERED', dt(u.created_at), 'var(--off)'],
+      ['WALLET', u.wallet_address ? u.wallet_address.slice(0,12)+'...' : 'Not set', u.wallet_address ? 'var(--blueL)' : 'var(--red)']
     ]));
     var br = d('display:flex;gap:10px;flex-wrap:wrap;margin-top:14px');
     ap(br,
-      btn('✅ Approve','bs',(function(id){return function(){approveKYC(id);nav('kyc');};})(u.id)),
-      btn('❌ Reject','br',(function(id){return function(){rejectKYC(id);nav('kyc');};})(u.id)),
+      btn('✅ Approve','bs',(function(id){return function(){setKYC(id,'approved');};})(u.id)),
+      btn('❌ Reject','br',(function(id){return function(){setKYC(id,'rejected');};})(u.id)),
       btn('View Profile','bo',(function(id){return function(){viewUser(id);};})(u.id))
     );
     ap(c, br);
@@ -570,80 +690,134 @@ function pgKYC() {
 }
 
 function pgWallets() {
-  add(secHdr('Wallet Registry', U.filter(function(u){return u.wallet;}).length+' wallets registered', '⬇ Export CSV', exportWallets));
-  var readyBrx = O.filter(function(o){return o.status==='confirmed';}).reduce(function(s,o){return s+o.brx;},0);
+  add(loadingCard('Loading wallet registry…'));
+  Promise.all([api('/api/admin/users'), api('/api/admin/dashboard')])
+    .then(function(res) {
+      if (PAGE !== 'wallets') return;
+      USERS_CACHE = (res[0] && res[0].users) || [];
+      clearPg();
+      renderWallets(res[1] || {});
+    })
+    .catch(function(e) { if (PAGE !== 'wallets') return; clearPg(); add(errCard(e.message, pgWallets)); });
+}
+function renderWallets(dx) {
+  var withWallet = USERS_CACHE.filter(function(u){return u.wallet_address;});
+  add(secHdr('Wallet Registry', withWallet.length + ' wallets registered', '⬇ Export CSV', exportWallets));
   var sc = mk('div',{cls:'card',css:'margin-bottom:16px;background:rgba(26,86,219,.06);border-color:rgba(26,86,219,.25)'});
   ap(sc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:12px','📋 Airdrop Summary'));
-  ap(sc, miniGrid([['Total Wallets',U.filter(function(u){return u.wallet;}).length,'var(--blueL)'],['BRX Ready',(readyBrx/1e6).toFixed(2)+'M','var(--gold)'],['Confirmed Orders',O.filter(function(o){return o.status==='confirmed';}).length,'var(--green)']]));
+  ap(sc, miniGrid([
+    ['Wallets Set', num(dx.walletsSet != null ? dx.walletsSet : withWallet.length), 'var(--blueL)'],
+    ['BRX Sold', kfmt(dx.totalBrxSold), 'var(--gold)'],
+    ['Confirmed Orders', num(dx.confirmedOrders), 'var(--green)']
+  ]));
   add(sc);
-  var rows = U.map(function(u) {
-    var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)',u.fn+' '+u.ln), t('div','font-size:10px;color:var(--muted)',u.email));
+  if (!USERS_CACHE.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No users yet.'})); return; }
+  var rows = USERS_CACHE.map(function(u) {
+    var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || '—';
+    var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)', name), t('div','font-size:10px;color:var(--muted)', u.email || ''));
     var wc = d('');
-    if (u.wallet) {
-      ap(wc, s('font-family:var(--mono);font-size:10px;color:var(--blueL);display:block',u.wallet.slice(0,22)+'...'));
-      var cpb = mk('button',{css:'background:rgba(26,86,219,.1);border:none;color:var(--blueL);padding:2px 7px;border-radius:5px;font-size:9px;cursor:pointer;margin-top:3px',txt:'Copy',on:(function(w){return function(){copyTxt(w);};})(u.wallet)});
-      ap(wc, cpb);
+    if (u.wallet_address) {
+      ap(wc, s('font-family:var(--mono);font-size:10px;color:var(--blueL);display:block', u.wallet_address.slice(0,22)+'...'));
+      ap(wc, mk('button',{css:'background:rgba(26,86,219,.1);border:none;color:var(--blueL);padding:2px 7px;border-radius:5px;font-size:9px;cursor:pointer;margin-top:3px',txt:'Copy',on:(function(w){return function(){copyTxt(w);};})(u.wallet_address)}));
     } else ap(wc, s('color:var(--muted);font-size:11px','Not registered'));
-    var uo = O.filter(function(o){return o.uid===u.id&&(o.status==='confirmed'||o.status==='distributed');});
-    var bt = uo.reduce(function(s,o){return s+o.brx;},0);
-    var st = uo.some(function(o){return o.status==='distributed';}) ? bdg('Distributed','bg-teal') : bt>0 ? bdg('Ready','bg-green') : bdg('No orders','bg-muted');
-    return [nc, sbdg(u.kyc), wc, bt>0?(bt/1000).toFixed(0)+'K BRX':'-', st];
+    var st = u.wallet_address ? bdg('Wallet set','bg-green') : bdg('No wallet','bg-muted');
+    return [nc, sbdg(u.kyc_status), wc, dt(u.created_at), st];
   });
-  add(mkTable(['User','KYC','Wallet Address','BRX','Status'], rows));
+  add(mkTable(['User','KYC','Wallet Address','Joined','Status'], rows));
 }
 
 function pgOrders() {
-  add(secHdr('ICO Orders', O.length+' total · '+O.filter(function(o){return o.status==='pending_payment';}).length+' awaiting payment'));
+  add(loadingCard('Loading orders…'));
+  var q = '/api/admin/orders?page=' + OPAGE + '&limit=' + OLIMIT + (OFILT !== 'all' ? '&status=' + encodeURIComponent(OFILT) : '');
+  api(q)
+    .then(function(r) { if (PAGE !== 'orders') return; clearPg(); renderOrders((r && r.orders) || [], r && r.total); })
+    .catch(function(e) { if (PAGE !== 'orders') return; clearPg(); add(errCard(e.message, pgOrders)); });
+}
+function renderOrders(orders, total) {
+  add(secHdr('ICO Orders', (total != null ? total + ' total' : orders.length + ' loaded') + ' · filter: ' + (OFILT === 'all' ? 'all' : OFILT.replace(/_/g,' '))));
   var fw = d('display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap');
   [['all','All'],['pending_payment','Pending'],['confirmed','Confirmed'],['distributed','Distributed']].forEach(function(v) {
-    var active = OFILT===v[0];
-    ap(fw, mk('button',{cls:'btn bsm',css:'background:'+(active?'var(--blue)':'rgba(255,255,255,.05)')+';color:'+(active?'#fff':'var(--muted)')+';border:1px solid '+(active?'var(--blue)':'rgba(255,255,255,.08)'),txt:v[1],on:(function(fv){return function(){OFILT=fv;nav('orders');};})(v[0])}));
+    var active = OFILT === v[0];
+    ap(fw, mk('button',{cls:'btn bsm',css:'background:'+(active?'var(--blue)':'rgba(255,255,255,.05)')+';color:'+(active?'#fff':'var(--muted)')+';border:1px solid '+(active?'var(--blue)':'rgba(255,255,255,.08)'),txt:v[1],on:(function(fv){return function(){OFILT=fv;OPAGE=1;nav('orders');};})(v[0])}));
   });
   add(fw);
-  var filtered = OFILT==='all' ? O : O.filter(function(o){return o.status===OFILT;});
-  var rows = filtered.map(function(o) {
-    var uc = d(''); ap(uc, t('div','font-weight:600;color:var(--white);font-size:12px',o.user), t('div','font-size:10px;color:var(--muted)',o.email));
-    var txc = s('font-family:var(--mono);font-size:10px;color:'+(o.tx?'var(--muted)':'var(--red)'),o.tx?o.tx.slice(0,14)+'...':'NOT YET');
+  if (!orders.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No orders found.'})); return; }
+  var rows = orders.map(function(o) {
+    var uc = d(''); ap(uc, t('div','font-weight:600;color:var(--white);font-size:12px', orderUserName(o)), t('div','font-size:10px;color:var(--muted)', (o.users && o.users.email) || ''));
+    var txc = s('font-family:var(--mono);font-size:10px;color:'+(o.tx_hash?'var(--muted)':'var(--red)'), o.tx_hash ? o.tx_hash.slice(0,14)+'...' : 'NOT YET');
     var ac = d('display:flex;gap:5px;flex-wrap:wrap');
-    if (o.status==='pending_payment') ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.id)));
-    else if (o.status==='confirmed') ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeOrder(id);};})(o.id)));
+    if (o.status === 'pending_payment') ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.order_id)));
+    else if (o.status === 'confirmed') ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeBatch([id]);};})(o.order_id)));
     else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
-    return [o.id, uc, '$'+o.usd.toLocaleString(), (o.brx/1000).toFixed(0)+'K', bdg(o.crypto,'bg-blue'), txc, sbdg(o.status), o.date, ac];
+    return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), txc, sbdg(o.status), dt(o.created_at), ac];
   });
   add(mkTable(['Order','User','USD','BRX','Crypto','Tx Hash','Status','Date','Action'], rows));
+  // Pagination
+  if (total != null && total > OLIMIT) {
+    var pgs = Math.ceil(total / OLIMIT);
+    var pr = d('display:flex;gap:8px;align-items:center;margin-top:14px;justify-content:flex-end');
+    ap(pr, s('font-size:11px;color:var(--muted)','Page ' + OPAGE + ' of ' + pgs));
+    if (OPAGE > 1) ap(pr, btn('← Prev','bo',function(){OPAGE--;nav('orders');}));
+    if (OPAGE < pgs) ap(pr, btn('Next →','bo',function(){OPAGE++;nav('orders');}));
+    add(pr);
+  }
 }
 
 function pgRounds() {
-  add(secHdr('ICO Rounds','Manage token sale rounds'));
-  ROUNDS.forEach(function(r) {
-    var c = mk('div',{cls:'card'+(r.active?' glow':''),css:'margin-bottom:12px'});
+  add(loadingCard('Loading rounds…'));
+  api('/api/admin/dashboard')
+    .then(function(dx) { if (PAGE !== 'rounds') return; clearPg(); renderRounds(dx || {}); })
+    .catch(function(e) { if (PAGE !== 'rounds') return; clearPg(); add(errCard(e.message, pgRounds)); });
+}
+function renderRounds(dx) {
+  add(secHdr('ICO Rounds','Round pricing is fixed by protocol — activation is managed via System Settings'));
+  var activeKey = String(dx.activeRound || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  var defs = [
+    {key:'seed', name:'Seed Sale', price:0.008, supply:'80M BRX', target:dx.seedTarget != null ? Number(dx.seedTarget) : 640000, lock:'12mo', vest:'24mo'},
+    {key:'round1', name:'ICO Round 1', price:0.015, supply:'100M BRX', target:null, lock:'3mo', vest:'12mo'},
+    {key:'round2', name:'ICO Round 2', price:0.022, supply:'50M BRX', target:null, lock:'3mo', vest:'9mo'},
+    {key:'dex', name:'DEX Listing', price:0.030, supply:'—', target:null, lock:'—', vest:'—'}
+  ];
+  defs.forEach(function(r) {
+    var isActive = activeKey && (activeKey === r.key || activeKey.indexOf(r.key) !== -1 || r.key.indexOf(activeKey) !== -1);
+    var c = mk('div',{cls:'card'+(isActive?' glow':''),css:'margin-bottom:12px'});
     var hdr = d('display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px');
     var nd = d('');
-    ap(nd, t('div','font-size:16px;font-weight:800;color:var(--white)',r.name), t('div','font-size:12px;color:var(--muted)','Lock: '+r.lock+'mo · Vest: '+r.vest+'mo · Min: $'+r.min));
-    var br = d('display:flex;gap:8px;align-items:center');
-    ap(br, r.active?bdg('● ACTIVE','bg-green'):bdg('Inactive','bg-muted'));
-    if (!r.active) ap(br, btn('Activate','bp',(function(id){return function(){activateRound(id);};})(r.id)));
-    else ap(br, btn('Pause','br',(function(id){return function(){deactivateRound(id);};})(r.id)));
-    ap(hdr, nd, br);
+    ap(nd, t('div','font-size:16px;font-weight:800;color:var(--white)', r.name),
+           t('div','font-size:12px;color:var(--muted)','Lock: ' + r.lock + ' · Vest: ' + r.vest + ' · Min: $100'));
+    ap(hdr, nd, isActive ? bdg('● ACTIVE','bg-green') : bdg('Inactive','bg-muted'));
     ap(c, hdr);
-    ap(c, miniGrid([['Price','$'+r.price.toFixed(3),'var(--gold)'],['Tokens',r.total>0?(r.total/1e6).toFixed(0)+'M':'N/A','var(--white)'],['Target',r.target>0?'$'+r.target.toLocaleString():'N/A','var(--blueL)'],['Raised',r.raised>0?'$'+r.raised.toLocaleString():'$0','var(--green)']]));
-    if (r.total>0&&r.target>0) {
+    ap(c, miniGrid([
+      ['Price','$' + r.price.toFixed(3),'var(--gold)'],
+      ['Supply', r.supply, 'var(--white)'],
+      ['Target', r.target != null ? usd(r.target) : '—', 'var(--blueL)'],
+      ['Raised', isActive ? usd(dx.totalRaised) : '—', 'var(--green)']
+    ]));
+    if (isActive && r.target > 0 && dx.totalRaised != null) {
       var pg2 = d('margin-top:12px');
-      ap(pg2, pb(r.raised/r.target*100, r.active?'linear-gradient(90deg,var(--blue),var(--accent))':'var(--muted)', 7));
+      ap(pg2, pb(Number(dx.totalRaised) / r.target * 100, 'linear-gradient(90deg,var(--blue),var(--accent))', 7));
       ap(c, pg2);
     }
     add(c);
   });
+  var note = mk('div',{cls:'card',css:'background:rgba(26,86,219,.05)'});
+  ap(note, t('div','font-size:11px;color:var(--muted)','ICO total raise target: ' + usd(dx.totalRaiseTarget != null ? dx.totalRaiseTarget : 2000000) + ' · Total BRX supply: 1,000,000,000 (fixed) · Min $100 / Max $50,000 per wallet.'));
+  add(note);
 }
 
 function pgDistribute() {
-  var ready = O.filter(function(o){return o.status==='confirmed';});
-  var totalBrx = ready.reduce(function(s,o){return s+o.brx;},0);
+  add(loadingCard('Loading confirmed orders…'));
+  api('/api/admin/orders?status=confirmed&page=1&limit=100')
+    .then(function(r) { if (PAGE !== 'distribute') return; clearPg(); renderDistribute((r && r.orders) || []); })
+    .catch(function(e) { if (PAGE !== 'distribute') return; clearPg(); add(errCard(e.message, pgDistribute)); });
+}
+function renderDistribute(ready) {
+  var totalBrx = ready.reduce(function(s2,o){return s2 + (Number(o.brx_allocated) || 0);}, 0);
   add(secHdr('Distribute BRX Tokens','Send BRX to confirmed investors'));
 
   var cc = mk('div',{cls:'card glow',css:'margin-bottom:16px;background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25)'});
   ap(cc, t('div','font-size:14px;font-weight:700;color:var(--gold);margin-bottom:12px','⚠ Pre-Distribution Checklist'));
-  ['BRX Token Contract deployed on Polygon','All wallets confirmed and KYC approved','Smart contract has sufficient BRX balance','TGE date passed or DAO governance approved','CertiK audit report published'].forEach(function(item) {
+  ['BRX Token Contract deployed on Polygon','All wallets confirmed and KYC approved','Smart contract has sufficient BRX balance','TGE date passed or DAO governance approved','Security audit report published'].forEach(function(item) {
     var row = d('display:flex;align-items:center;gap:10px;background:var(--bg1);border-radius:9px;padding:11px;margin-bottom:8px');
     var cb = mk('input',{type:'checkbox',css:'accent-color:var(--green);width:15px;height:15px'});
     ap(row, cb, t('div','font-size:12px;font-weight:600;color:var(--white)',item));
@@ -653,12 +827,25 @@ function pgDistribute() {
 
   var mc = mk('div',{cls:'card',css:'margin-bottom:16px'});
   ap(mc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:12px','📦 Ready for Distribution'));
-  ap(mc, miniGrid([['Orders Ready',ready.length,'var(--green)'],['Total BRX',(totalBrx/1e6).toFixed(2)+'M','var(--gold)'],['Wallets',[...new Set(ready.map(function(o){return o.uid;}))].length,'var(--blueL)']]));
-  if (ready.length>0) {
-    var rows = ready.map(function(o) { return [o.id, o.user, o.brx.toLocaleString()+' BRX', o.wallet, bdg('Ready','bg-green')]; });
+  ap(mc, miniGrid([
+    ['Orders Ready', ready.length, 'var(--green)'],
+    ['Total BRX', kfmt(totalBrx), 'var(--gold)'],
+    ['Total USD', usd(ready.reduce(function(s2,o){return s2 + (Number(o.usd_amount) || 0);}, 0)), 'var(--blueL)']
+  ]));
+  if (ready.length > 0) {
+    var rows = ready.map(function(o) {
+      var cb = mk('input',{type:'checkbox',css:'accent-color:var(--green);width:14px;height:14px',checked:'checked'});
+      cb.dataset.oid = o.order_id;
+      cb.className = 'dist-cb';
+      return [cb, String(o.order_id || '—'), orderUserName(o), num(o.brx_allocated) + ' BRX', s('font-family:var(--mono);font-size:10px;color:var(--blueL)', o.wallet_address ? o.wallet_address.slice(0,18)+'...' : '—'), bdg('Ready','bg-green')];
+    });
     ap(mc, mk('div',{css:'margin-top:14px'}));
-    mc.appendChild(mkTable(['Order','User','BRX Amount','Wallet','Status'], rows));
-    var db = mk('button',{cls:'btn bgold',css:'margin-top:14px;padding:12px 24px;font-size:14px',txt:'✈️ DISTRIBUTE ALL '+(totalBrx/1e6).toFixed(2)+'M BRX NOW',on:runDistribution});
+    mc.appendChild(mkTable(['', 'Order','User','BRX Amount','Wallet','Status'], rows));
+    var db = mk('button',{cls:'btn bgold',css:'margin-top:14px;padding:12px 24px;font-size:14px',txt:'✈️ DISTRIBUTE SELECTED ORDERS',on:function() {
+      var ids = Array.prototype.slice.call(document.querySelectorAll('.dist-cb'))
+        .filter(function(c){return c.checked;}).map(function(c){return c.dataset.oid;});
+      distributeBatch(ids);
+    }});
     ap(mc, db);
   } else {
     ap(mc, t('div','text-align:center;padding:20px;color:var(--muted)','No confirmed orders ready.'));
@@ -667,22 +854,51 @@ function pgDistribute() {
 }
 
 function pgProps() {
-  add(secHdr('Properties','Manage BRICK token listings','+ Add Property',openAddProp));
-  PROPS.forEach(function(p) {
+  add(loadingCard('Loading properties…'));
+  api('/api/marketplace/properties')
+    .then(function(r) { if (PAGE !== 'properties') return; clearPg(); renderProps((r && r.properties) || []); })
+    .catch(function(e) { if (PAGE !== 'properties') return; clearPg(); add(errCard(e.message, pgProps)); });
+}
+function propField(p, keys) { for (var i = 0; i < keys.length; i++) { if (p[keys[i]] != null) return p[keys[i]]; } return null; }
+function renderProps(props) {
+  add(secHdr('Properties','Phase 2 — single confidential asset · BRICK fixed at $10.00 per token'));
+  if (!props.length) {
+    var empty = mk('div',{cls:'card',css:'padding:30px'});
+    ap(empty, t('div','font-size:15px;font-weight:800;color:var(--white);margin-bottom:8px','🏨 Project Hotel Batam (Confidential)'),
+              t('div','font-size:12px;color:var(--muted);line-height:1.6','No property has been published by the backend yet. Phase 2 lists a single confidential operating hotel in Batam, Indonesia. BRICK token price is fixed at $10.00 forever — 1,850,000 tokens, est. APY ~5.1% from the annual dividend (70% of audited NOI, paid each June).'));
+    add(empty); return;
+  }
+  props.forEach(function(p) {
+    var name = propField(p, ['name','property_name','title']) || 'Project Hotel Batam (Confidential)';
+    var loc = propField(p, ['location','city','loc']) || 'Batam, Indonesia';
+    var price = propField(p, ['token_price','price_usd','price']);
+    var tokens = propField(p, ['total_tokens','total_supply','tokens']);
+    var sold = propField(p, ['tokens_sold','sold']);
+    var holders = propField(p, ['holders','holder_count','total_holders']);
+    var apy = propField(p, ['est_apy','estimated_apy','apy']);
+    var status = propField(p, ['status']) || '—';
     var c = mk('div',{cls:'card',css:'margin-bottom:12px'});
     var row = d('display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap');
-    ap(row, t('div','font-size:44px;flex-shrink:0',p.emoji));
+    ap(row, t('div','font-size:44px;flex-shrink:0','🏨'));
     var info = d('flex:1;min-width:200px');
     var hdr = d('display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px');
     var nd = d('');
-    ap(nd, t('div','font-size:15px;font-weight:800;color:var(--white)',p.name), t('div','font-size:11px;color:var(--muted)',p.loc+' · '+p.type));
+    ap(nd, t('div','font-size:15px;font-weight:800;color:var(--white)', name),
+           t('div','font-size:11px;color:var(--muted)', loc + ' · ' + (propField(p,['type','property_type']) || 'Hotel')));
     var br = d('display:flex;gap:7px;align-items:center');
-    ap(br, sbdg(p.status), btn('Edit','bo',function(){toast('Edit connects to backend API in production','success');}));
+    ap(br, sbdg(status));
     ap(hdr, nd, br);
     ap(info, hdr);
-    ap(info, miniGrid([['Fixed Price','$'+p.price.toFixed(2),'var(--teal)'],['Yield',p.yld+'%','var(--green)'],['Holders',p.holders.toString(),'var(--blueL)'],['Sold',(p.sold/1e6).toFixed(2)+'M','var(--white)']]));
-    ap(info, mk('div',{css:'margin-top:10px'}));
-    info.appendChild(pb((p.sold/p.tokens)*100,null,6));
+    ap(info, miniGrid([
+      ['Fixed Price', price != null ? usd(price) : '$10.00', 'var(--teal)'],
+      ['Est. APY', apy != null ? Number(apy).toFixed(1) + '%' : '—', 'var(--green)'],
+      ['Holders', holders != null ? num(holders) : '—', 'var(--blueL)'],
+      ['Sold', sold != null ? kfmt(sold) : '—', 'var(--white)']
+    ]));
+    if (tokens > 0 && sold != null) {
+      ap(info, mk('div',{css:'margin-top:10px'}));
+      info.appendChild(pb(Number(sold) / Number(tokens) * 100, null, 6));
+    }
     ap(row, info);
     ap(c, row);
     add(c);
@@ -690,187 +906,269 @@ function pgProps() {
 }
 
 function pgYield() {
-  add(secHdr('Yield Distribution','Monthly rental income to BRICK holders'));
-  var sc = mk('div',{cls:'card glow',css:'margin-bottom:16px;background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.2)'});
-  ap(sc, t('div','font-size:14px;font-weight:700;color:var(--green);margin-bottom:12px','💰 Next Distribution (April 2026)'));
-  ap(sc, miniGrid([['Live Properties','3','var(--blueL)'],['Monthly Revenue','$58,308','var(--white)'],['70% to Holders','$40,815','var(--green)'],['Holders','2,012','var(--gold)']]));
-  var sb = mk('button',{cls:'btn bs',css:'margin-top:14px',txt:'💰 Schedule April Yield Distribution',on:function(){toast('Yield distribution scheduled for April 30','success');}});
-  ap(sc, sb);
-  add(sc);
+  add(loadingCard('Loading dividend module…'));
+  api('/api/marketplace/properties')
+    .then(function(r) { if (PAGE !== 'yield') return; clearPg(); renderYield((r && r.properties) || []); })
+    .catch(function(e) { if (PAGE !== 'yield') return; clearPg(); add(errCard(e.message, pgYield)); });
+}
+function renderYield(props) {
+  add(secHdr('Annual Dividend (FY close Dec 31 · Pay June)','70% of audited NOI distributed annually to BRICK holders in USDC'));
 
-  var tc = mk('div',{cls:'card'});
-  ap(tc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','Per-Property Breakdown'));
-  var rows = PROPS.filter(function(p){return p.status==='Live';}).map(function(p) {
-    var mo = (p.sold*p.price*p.yld/100/12).toFixed(0);
-    var pt = (p.price*p.yld/100/12).toFixed(4);
-    var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)',p.emoji+' '+p.name), t('div','font-size:10px;color:var(--muted)',p.loc));
-    return [nc, '$'+parseInt(parseInt(mo)/0.7).toLocaleString(), '$'+mo, '$'+pt, p.holders.toString(), bdg('Scheduled Apr 30','bg-gold')];
-  });
-  ap(tc, mkTable(['Property','Gross Revenue','To Holders (70%)','Per Token','Holders','Status'], rows));
-  add(tc);
+  // Schedule strip
+  var sched = mk('div',{cls:'card',css:'margin-bottom:16px;background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.2)'});
+  ap(sched, t('div','font-size:13px;font-weight:700;color:var(--green);margin-bottom:12px','📅 Annual Dividend Cycle'));
+  ap(sched, miniGrid([
+    ['FISCAL CLOSE','Dec 31','var(--white)'],
+    ['AUDIT','Jan – Mar','var(--blueL)'],
+    ['ANNOUNCE','April','var(--gold)'],
+    ['PAY (USDC)','June','var(--green)']
+  ]));
+  add(sched);
+
+  // Distribution form
+  var fc = mk('div',{cls:'card glow',css:'margin-bottom:16px'});
+  ap(fc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','💰 Distribute Annual Dividend'));
+
+  function field(lbl, el) {
+    var row = d('margin-bottom:12px');
+    ap(row, mk('label',{css:'font-size:11px;color:var(--muted);display:block;margin-bottom:5px',txt:lbl}), el);
+    return row;
+  }
+  var sel = mk('select',{cls:'inp',id:'dv-prop'});
+  if (props.length) {
+    props.forEach(function(p) {
+      var opt = mk('option');
+      opt.value = p.id != null ? p.id : (p.property_id != null ? p.property_id : '');
+      opt.textContent = propField(p, ['name','property_name','title']) || ('Property ' + opt.value);
+      ap(sel, opt);
+    });
+  } else {
+    var opt0 = mk('option');
+    opt0.value = '';
+    opt0.textContent = 'No properties available — configure in backend first';
+    ap(sel, opt0);
+  }
+  var fyDefault = new Date().getFullYear() - 1;
+  ap(fc,
+    field('Property', sel),
+    field('Fiscal Year', mk('input',{cls:'inp',id:'dv-fy',type:'number',value:String(fyDefault)})),
+    field('Audited NOI (USD)', mk('input',{cls:'inp',id:'dv-noi',type:'number',placeholder:'Net Operating Income for the fiscal year, per audit report'})),
+    field('Gross Revenue (USD, optional)', mk('input',{cls:'inp',id:'dv-gross',type:'number',placeholder:'Optional — for records only'})),
+    field('Tokens in Circulation', mk('input',{cls:'inp',id:'dv-tokens',type:'number',value:'1850000'}))
+  );
+  ap(fc, t('div','font-size:11px;color:var(--muted);margin-bottom:12px','Holders pool = 70% of audited NOI. Per-token dividend = pool ÷ tokens in circulation. Payment is made in USDC in June.'));
+  var sb2 = mk('button',{cls:'btn bs',css:'padding:12px 24px;font-size:13px',txt:'💰 Calculate & Distribute',on:submitDividend,id:'dv-btn'});
+  ap(fc, sb2);
+  add(fc);
+
+  add(mk('div',{id:'dv-result'}));
+}
+function submitDividend() {
+  var propertyId = document.getElementById('dv-prop').value;
+  var fiscalYear = parseInt(document.getElementById('dv-fy').value, 10);
+  var noiUsd = parseFloat(document.getElementById('dv-noi').value);
+  var grossRaw = document.getElementById('dv-gross').value;
+  var tokens = parseFloat(document.getElementById('dv-tokens').value);
+  if (!propertyId) { toast('Select a property first.','warn'); return; }
+  if (!fiscalYear || fiscalYear < 2024 || fiscalYear > 2100) { toast('Enter a valid fiscal year.','warn'); return; }
+  if (!(noiUsd > 0)) { toast('Enter the audited NOI in USD.','warn'); return; }
+  if (!(tokens > 0)) { toast('Enter tokens in circulation.','warn'); return; }
+  var body = { propertyId: propertyId, fiscalYear: fiscalYear, noiUsd: noiUsd, totalTokensInCirculation: tokens };
+  if (grossRaw !== '' && !isNaN(parseFloat(grossRaw))) body.grossRevenue = parseFloat(grossRaw);
+  if (!confirm('Distribute FY' + fiscalYear + ' annual dividend?\nNOI: ' + usd(noiUsd) + ' → 70% to holders.')) return;
+  var b = document.getElementById('dv-btn');
+  b.disabled = true; b.textContent = 'Distributing…';
+  api('/api/admin/dividend/distribute', { method: 'POST', body: body })
+    .then(function(r) {
+      toast('✅ FY' + fiscalYear + ' dividend distribution recorded.','success');
+      var rc = document.getElementById('dv-result');
+      if (rc) {
+        rc.innerHTML = '';
+        var c = mk('div',{cls:'card glow',css:'background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.3)'});
+        ap(c, t('div','font-size:13px;font-weight:700;color:var(--green);margin-bottom:12px','✅ FY' + fiscalYear + ' Distribution Result'));
+        ap(c, miniGrid([
+          ['HOLDERS POOL (70%)', usd(r.holdersPool), 'var(--green)'],
+          ['PER TOKEN', r.perTokenDividend != null ? '$' + Number(r.perTokenDividend).toFixed(4) : '—', 'var(--gold)'],
+          ['APY', r.apy != null ? Number(r.apy).toFixed(2) + '%' : '—', 'var(--teal)'],
+          ['PAYMENT DATE', r.paymentDate ? dt(r.paymentDate) : '—', 'var(--blueL)']
+        ]));
+        ap(rc, c);
+      }
+    })
+    .catch(function(e) { toast('Distribution failed: ' + e.message,'error'); })
+    .then(function() { b.disabled = false; b.textContent = '💰 Calculate & Distribute'; });
 }
 
 function pgSettings() {
-  add(secHdr('System Settings','All configurable from this panel'));
-  var groups = [];
-  SETS.forEach(function(s){ if (groups.indexOf(s.grp)===-1) groups.push(s.grp); });
-  var tabs = mk('div',{cls:'tabs'});
-  groups.forEach(function(g) {
-    var t2 = mk('button',{cls:'tab'+(STAB===g?' on':''),txt:g,on:(function(gv){return function(){STAB=gv;nav('settings');};})(g)});
-    ap(tabs, t2);
-  });
-  add(tabs);
+  add(loadingCard('Loading settings…'));
+  api('/api/admin/settings')
+    .then(function(r) { if (PAGE !== 'settings') return; clearPg(); renderSettings((r && r.settings) != null ? r.settings : r); })
+    .catch(function(e) { if (PAGE !== 'settings') return; clearPg(); add(errCard(e.message, pgSettings)); });
+}
+function renderSettings(settings) {
+  add(secHdr('System Settings','Loaded from the backend — changes are saved via API and audit-logged'));
+  var entries = [];
+  if (Array.isArray(settings)) {
+    settings.forEach(function(x) {
+      entries.push({ key: x.key || x.k || x.name, value: x.value != null ? x.value : (x.v != null ? x.v : ''), desc: x.description || x.desc || '' });
+    });
+  } else if (settings && typeof settings === 'object') {
+    Object.keys(settings).forEach(function(k) {
+      var v = settings[k];
+      entries.push({ key: k, value: (v != null && typeof v === 'object') ? JSON.stringify(v) : (v != null ? String(v) : ''), desc: '' });
+    });
+  }
+  if (!entries.length) {
+    add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No settings returned by the backend.'}));
+    return;
+  }
+  SET_KEYS = entries.map(function(e2) { return e2.key; });
   var c = mk('div',{cls:'card'});
-  SETS.filter(function(s){return s.grp===STAB;}).forEach(function(s) {
+  entries.forEach(function(e2, i) {
     var row = mk('div',{cls:'srow'});
     var info = d('');
-    ap(info, t('div','font-size:13px;font-weight:600;color:var(--white)',s.lbl), t('div','font-size:11px;color:var(--muted)',s.desc));
+    ap(info, t('div','font-size:13px;font-weight:600;color:var(--white)', String(e2.key).replace(/_/g,' ').replace(/\b\w/g, function(ch){return ch.toUpperCase();})));
+    ap(info, t('div','font-size:11px;color:var(--muted)', e2.desc || e2.key));
     var ctrl = d('display:flex;align-items:center;gap:8px;flex-shrink:0');
-    var inp = mk('input',{cls:'inp',id:'s-'+s.k,css:'min-width:200px;max-width:260px'});
-    inp.value = s.v;
-    var sb = mk('button',{cls:'btn bs bsm',txt:'Save',on:(function(sk){return function(){saveSetting(sk,document.getElementById('s-'+sk).value);};})(s.k)});
-    ap(ctrl, inp, sb);
+    var inp = mk('input',{cls:'inp',id:'s-i'+i,css:'min-width:200px;max-width:260px'});
+    inp.value = e2.value;
+    var sbBtn = mk('button',{cls:'btn bs bsm',txt:'Save',on:(function(idx){return function(){saveSetting(idx);};})(i)});
+    ap(ctrl, inp, sbBtn);
     ap(row, info, ctrl);
     ap(c, row);
   });
   add(c);
 }
+function saveSetting(idx) {
+  var key = SET_KEYS[idx];
+  var inp = document.getElementById('s-i' + idx);
+  if (!key || !inp) return;
+  var body = {};
+  body[key] = inp.value;
+  api('/api/admin/settings', { method: 'PATCH', body: body })
+    .then(function() { toast('✅ Setting saved: ' + key, 'success'); })
+    .catch(function(e) { toast('Save failed: ' + e.message, 'error'); });
+}
 
 function pgAudit() {
-  add(secHdr('Audit Log','All admin actions logged','\u2b07 Export',function(){toast('Exported to CSV','success');}));
-  var cm = {kyc_approved:'bg-green',kyc_rejected:'bg-red',setting_updated:'bg-gold',payment_confirmed:'bg-blue',brx_distributed:'bg-teal'};
-  var rows = LOGS.map(function(l) {
-    return [s('font-size:10px;color:var(--muted)',l.time), s('font-size:11px;color:var(--muted)',l.admin), bdg(l.action.replace(/_/g,' ').toUpperCase(),cm[l.action]||'bg-muted'), s('font-weight:600;color:var(--white)',l.target), s('font-size:11px;color:var(--muted)',l.detail)];
+  add(loadingCard('Loading audit log…'));
+  api('/api/admin/audit')
+    .then(function(r) { if (PAGE !== 'audit') return; clearPg(); renderAudit((r && r.logs) || []); })
+    .catch(function(e) { if (PAGE !== 'audit') return; clearPg(); add(errCard(e.message, pgAudit)); });
+}
+function renderAudit(logs) {
+  add(secHdr('Audit Log','All admin actions logged'));
+  if (!logs.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No audit entries yet.'})); return; }
+  var cm = {kyc_approved:'bg-green',kyc_rejected:'bg-red',setting_updated:'bg-gold',payment_confirmed:'bg-blue',order_confirmed:'bg-blue',brx_distributed:'bg-teal',dividend_distributed:'bg-teal'};
+  var rows = logs.map(function(l) {
+    var admin = l.users ? (l.users.email || l.users.first_name || '—') : '—';
+    var target = [l.target_type, l.target_id].filter(Boolean).join(' ');
+    var details = l.details;
+    if (details != null && typeof details === 'object') details = JSON.stringify(details);
+    return [
+      s('font-size:10px;color:var(--muted)', (l.created_at || '').replace('T',' ').slice(0,16)),
+      s('font-size:11px;color:var(--muted)', admin),
+      bdg(String(l.action || '—').replace(/_/g,' ').toUpperCase(), cm[l.action] || 'bg-muted'),
+      s('font-weight:600;color:var(--white)', target || '—'),
+      s('font-size:11px;color:var(--muted)', details || '—')
+    ];
   });
   add(mkTable(['Time','Admin','Action','Target','Detail'], rows));
 }
 
 // ─── ACTIONS ──────────────────────────────────────────────────
-function approveKYC(id) {
-  var u = U.find(function(x){return x.id===id;});
-  if (!u) return;
-  u.kyc = 'approved';
-  document.getElementById('kyc-ct').textContent = U.filter(function(x){return x.kyc==='pending';}).length;
-  LOGS.unshift({admin:'admin@brickxprotocol.io',action:'kyc_approved',target:u.fn+' '+u.ln,detail:'Manual approval',time:new Date().toLocaleString()});
-  toast('✅ KYC approved for '+u.fn+' '+u.ln,'success');
+function setKYC(userId, status) {
+  var body = { status: status };
+  if (status === 'rejected') {
+    var reason = prompt('Rejection reason (shown to the user):','');
+    if (reason === null) return;
+    if (!reason.trim()) { toast('A rejection reason is required.','warn'); return; }
+    body.reason = reason.trim();
+  } else {
+    if (!confirm('Approve KYC for this user?')) return;
+  }
+  api('/api/admin/kyc/' + encodeURIComponent(userId), { method: 'PATCH', body: body })
+    .then(function() {
+      toast(status === 'approved' ? '✅ KYC approved.' : 'KYC rejected.', status === 'approved' ? 'success' : 'warn');
+      closeModal();
+      refreshCounts();
+      nav(PAGE);
+    })
+    .catch(function(e) { toast('KYC update failed: ' + e.message, 'error'); });
 }
-function rejectKYC(id) {
-  var u = U.find(function(x){return x.id===id;});
-  if (!u) return;
-  var reason = prompt('Rejection reason:','Document unclear, please resubmit.');
-  if (!reason) return;
-  u.kyc = 'rejected';
-  document.getElementById('kyc-ct').textContent = U.filter(function(x){return x.kyc==='pending';}).length;
-  LOGS.unshift({admin:'admin@brickxprotocol.io',action:'kyc_rejected',target:u.fn+' '+u.ln,detail:reason,time:new Date().toLocaleString()});
-  toast('KYC rejected for '+u.fn,'warn');
+function confirmOrder(orderId) {
+  var tx = prompt('Enter the on-chain transaction hash (0x + 64 hex characters):','');
+  if (tx === null) return;
+  tx = tx.trim();
+  if (!/^0x[0-9a-fA-F]{64}$/.test(tx)) {
+    toast('Invalid tx hash — must be 0x followed by 64 hex characters.','error');
+    return;
+  }
+  api('/api/admin/orders/' + encodeURIComponent(orderId) + '/confirm', { method: 'PATCH', body: { txHash: tx } })
+    .then(function() {
+      toast('✅ Order ' + orderId + ' confirmed.','success');
+      refreshCounts();
+      nav(PAGE);
+    })
+    .catch(function(e) { toast('Confirm failed: ' + e.message, 'error'); });
 }
-function confirmOrder(id) {
-  var o = O.find(function(x){return x.id===id;});
-  if (!o) return;
-  var tx = prompt('Enter transaction hash:','0x'+Math.random().toString(16).slice(2,66));
-  if (!tx) return;
-  o.status = 'confirmed'; o.tx = tx;
-  document.getElementById('ord-ct').textContent = O.filter(function(x){return x.status==='pending_payment';}).length;
-  LOGS.unshift({admin:'admin@brickxprotocol.io',action:'payment_confirmed',target:id,detail:'Tx: '+tx.slice(0,20),time:new Date().toLocaleString()});
-  toast('✅ Order '+id+' confirmed! '+o.brx.toLocaleString()+' BRX allocated.','success');
-  nav(PAGE);
-}
-function distributeOrder(id) {
-  var o = O.find(function(x){return x.id===id;});
-  if (!o) return;
-  if (!confirm('Distribute '+o.brx.toLocaleString()+' BRX to '+o.wallet+'?')) return;
-  o.status = 'distributed';
-  LOGS.unshift({admin:'admin@brickxprotocol.io',action:'brx_distributed',target:id,detail:o.brx.toLocaleString()+' BRX sent',time:new Date().toLocaleString()});
-  toast('✈️ '+o.brx.toLocaleString()+' BRX distributed!','success');
-  nav(PAGE);
-}
-function runDistribution() {
-  var ready = O.filter(function(o){return o.status==='confirmed';});
-  if (!ready.length) { toast('No orders ready.','warn'); return; }
-  var total = ready.reduce(function(s,o){return s+o.brx;},0);
-  if (!confirm('Distribute BRX to '+ready.length+' orders?')) return;
-  ready.forEach(function(o) {
-    o.status = 'distributed';
-    LOGS.unshift({admin:'admin@brickxprotocol.io',action:'brx_distributed',target:o.id,detail:o.brx.toLocaleString()+' BRX → '+o.wallet.slice(0,16),time:new Date().toLocaleString()});
-  });
-  toast('✈️ '+(total/1e6).toFixed(2)+'M BRX distributed to '+ready.length+' wallets!','success');
-  nav(PAGE);
-}
-function saveSetting(k, v) {
-  var s = SETS.find(function(x){return x.k===k;});
-  if (s) s.v = v;
-  LOGS.unshift({admin:'admin@brickxprotocol.io',action:'setting_updated',target:k,detail:'Updated to: '+v.slice(0,30),time:new Date().toLocaleString()});
-  toast('✅ Setting saved: '+k,'success');
-}
-function activateRound(id) {
-  ROUNDS.forEach(function(r){r.active=false;});
-  var r = ROUNDS.find(function(x){return x.id===id;});
-  if (r) r.active = true;
-  toast('🚀 '+(r?r.name:'Round')+' is now ACTIVE','success');
-  nav(PAGE);
-}
-function deactivateRound(id) {
-  var r = ROUNDS.find(function(x){return x.id===id;});
-  if (r) r.active = false;
-  toast('Round paused','warn');
-  nav(PAGE);
+function distributeBatch(orderIds) {
+  if (!orderIds || !orderIds.length) { toast('No orders selected.','warn'); return; }
+  if (!confirm('Distribute BRX for ' + orderIds.length + ' order(s)? This is recorded on-chain and cannot be undone.')) return;
+  api('/api/admin/distribute/batch', { method: 'POST', body: { orderIds: orderIds } })
+    .then(function(r) {
+      toast('✈️ Distribution executed for ' + orderIds.length + ' order(s).','success');
+      refreshCounts();
+      nav(PAGE);
+    })
+    .catch(function(e) { toast('Distribution failed: ' + e.message, 'error'); });
 }
 function viewUser(id) {
-  var u = U.find(function(x){return x.id===id;});
-  if (!u) return;
+  var u = USERS_CACHE.find(function(x){return x.id===id;});
+  if (!u) { toast('User not loaded.','warn'); return; }
+  var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || u.email || '—';
   var mb = document.getElementById('mbox');
   mb.innerHTML = '';
   var hdr = d('display:flex;justify-content:space-between;align-items:center;margin-bottom:16px');
-  ap(hdr, t('div','font-size:16px;font-weight:800;color:var(--white)',u.fn+' '+u.ln));
-  var cb = mk('button',{css:'background:rgba(255,255,255,.08);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer',txt:'✕',on:closeModal});
-  ap(hdr, cb);
+  ap(hdr, t('div','font-size:16px;font-weight:800;color:var(--white)', name));
+  ap(hdr, mk('button',{css:'background:rgba(255,255,255,.08);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer',txt:'✕',on:closeModal}));
   ap(mb, hdr);
-  [['Email',u.email],['Country',u.country],['KYC',u.kyc],['Wallet',u.wallet||'Not set'],['Joined',u.joined]].forEach(function(item) {
+  [['Email',u.email||'—'],['Country',u.country||'—'],['KYC',u.kyc_status||'—'],['Wallet',u.wallet_address||'Not set'],['Referral Code',u.referral_code||'—'],['Joined',dt(u.created_at)],['Last Login',u.last_login?String(u.last_login).replace('T',' ').slice(0,16):'—']].forEach(function(item) {
     var row = d('display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px');
     ap(row, s('color:var(--muted)',item[0]), s('color:var(--white);font-weight:600;word-break:break-all',item[1]));
     ap(mb, row);
   });
   var br = d('display:flex;gap:9px;margin-top:14px;flex-wrap:wrap');
-  if (u.kyc==='pending') {
-    ap(br, mk('button',{cls:'btn bs',txt:'✅ Approve KYC',on:(function(uid){return function(){approveKYC(uid);closeModal();nav(PAGE);};})(u.id)}));
-    ap(br, mk('button',{cls:'btn br',txt:'❌ Reject',on:(function(uid){return function(){rejectKYC(uid);closeModal();nav(PAGE);};})(u.id)}));
+  if (u.kyc_status === 'pending') {
+    ap(br, mk('button',{cls:'btn bs',txt:'✅ Approve KYC',on:(function(uid){return function(){setKYC(uid,'approved');};})(u.id)}));
+    ap(br, mk('button',{cls:'btn br',txt:'❌ Reject',on:(function(uid){return function(){setKYC(uid,'rejected');};})(u.id)}));
   }
   ap(br, mk('button',{cls:'btn bo',txt:'Close',on:closeModal}));
   ap(mb, br);
   openModal();
 }
-function openAddProp() {
-  var mb = document.getElementById('mbox');
-  mb.innerHTML = '';
-  ap(mb, t('div','font-size:16px;font-weight:800;color:var(--white);margin-bottom:16px','Add New Property'));
-  [['Name','ap-n','text','e.g. Skyline Tower'],['Location','ap-l','text','City, Country'],['Type','ap-t','text','Hotel / Residential'],['Token Price ($)','ap-p','number','10.00'],['Annual Yield (%)','ap-y','number','12.5']].forEach(function(f) {
-    var row = d('margin-bottom:12px');
-    var lbl = mk('label',{css:'font-size:11px;color:var(--muted);display:block;margin-bottom:5px',txt:f[0]});
-    var inp = mk('input',{cls:'inp',id:f[1],type:f[2],placeholder:f[3]});
-    ap(row, lbl, inp);
-    ap(mb, row);
-  });
-  var br = d('display:flex;gap:9px;margin-top:8px');
-  ap(br, mk('button',{cls:'btn bo',txt:'Cancel',on:closeModal}));
-  ap(br, mk('button',{cls:'btn bs bfull',txt:'Add Property',on:addProp}));
-  ap(mb, br);
-  openModal();
-}
-function addProp() {
-  var n = document.getElementById('ap-n');
-  if (!n||!n.value) { toast('Name required','warn'); return; }
-  PROPS.push({id:'p'+Date.now(),name:n.value,loc:document.getElementById('ap-l').value,type:document.getElementById('ap-t').value,emoji:'🏠',status:'Coming Soon',price:Number(document.getElementById('ap-p').value)||0,tokens:1000000,sold:0,yld:Number(document.getElementById('ap-y').value)||0,holders:0});
-  closeModal(); toast('✅ Property added!','success'); nav(PAGE);
+// CSV export — escapes quotes and neutralizes formula-injection (= + - @ prefixes).
+function csvCell(v) {
+  v = (v == null ? '' : String(v)).replace(/"/g, '""');
+  if (/^[=+\-@]/.test(v)) v = "'" + v;
+  return '"' + v + '"';
 }
 function exportWallets() {
-  var rows = ['User,Email,Wallet,BRX,KYC'];
-  U.forEach(function(u) {
-    var brx = O.filter(function(o){return o.uid===u.id&&o.status!=='pending_payment';}).reduce(function(s,o){return s+o.brx;},0);
-    rows.push('"'+u.fn+' '+u.ln+'","'+u.email+'","'+(u.wallet||'')+'",'+brx+',"'+u.kyc+'"');
+  if (!USERS_CACHE.length) { toast('No user data loaded yet.','warn'); return; }
+  var rows = ['User,Email,Country,Wallet,KYC'];
+  USERS_CACHE.forEach(function(u) {
+    rows.push([
+      csvCell(((u.first_name||'') + ' ' + (u.last_name||'')).trim()),
+      csvCell(u.email),
+      csvCell(u.country),
+      csvCell(u.wallet_address),
+      csvCell(u.kyc_status)
+    ].join(','));
   });
   var blob = new Blob([rows.join('\n')],{type:'text/csv'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'brickx_wallets.csv'; a.click();
-  toast('✅ Exported!','success');
+  URL.revokeObjectURL(a.href);
+  toast('✅ Exported ' + USERS_CACHE.length + ' rows.','success');
 }
 function copyTxt(t2) { navigator.clipboard.writeText(t2).then(function(){toast('Copied!','success');}).catch(function(){}); }
 
@@ -893,6 +1191,12 @@ function startClock() {
   function tick() { var e=document.getElementById('clk'); if(e) e.textContent=new Date().toUTCString().slice(17,25)+' UTC'; }
   tick(); setInterval(tick,1000);
 }
+
+// ─── INIT ─────────────────────────────────────────────────────
+(function init() {
+  if (getToken()) enterApp();
+  else showLogin();
+})();
 </script>
 </body>
 </html>
