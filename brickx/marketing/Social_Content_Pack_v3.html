@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRICKX — Social Media Content Pack v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020509;--bg1:#060D18;--bg2:#0A1628;--blue:#1A56DB;--blueL:#3B82F6;--teal:#14B8A6;--green:#10B981;--gold:#F59E0B;--purple:#8B5CF6;--white:#fff;--off:#E2E8F0;--muted:#64748B;--dim:#374151;--border:rgba(26,86,219,0.15);--f:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace}
+body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--blue);border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.header{background:var(--bg1);border-bottom:1px solid var(--border);padding:16px 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.logo{font-family:'Georgia',serif;font-size:18px;font-weight:900;color:var(--white)}.logo span{color:var(--blueL)}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+
+.page-tabs{display:flex;gap:4px;background:var(--bg1);border-radius:12px;padding:4px;margin-bottom:24px;overflow-x:auto}
+.ptab{flex-shrink:0;padding:9px 16px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);background:transparent;font-family:var(--f);transition:all .2s}
+.ptab.on{background:var(--bg2);color:var(--blueL);box-shadow:0 0 0 1px var(--border)}
+
+.sec-hdr{margin-bottom:18px}
+.sec-tag{font-size:10px;color:var(--blueL);letter-spacing:3px;text-transform:uppercase;font-weight:700;display:block;margin-bottom:6px}
+.sec-title{font-size:20px;font-weight:800;color:var(--white);margin-bottom:5px}
+.sec-sub{font-size:13px;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+
+.post-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .3s}
+.post-card:hover{border-color:rgba(26,86,219,.4);transform:translateY(-2px)}
+.post-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ptype{display:inline-flex;align-items:center;gap:3px;border-radius:100px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.pt-announce{background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);color:var(--blueL)}
+.pt-edu{background:rgba(20,184,166,.15);border:1px solid rgba(20,184,166,.3);color:var(--teal)}
+.pt-hype{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold)}
+.pt-community{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.pt-thread{background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);color:#0EA5E9}
+.pt-dm{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:var(--purple)}
+.copy-btn{background:rgba(26,86,219,.1);border:none;color:var(--blueL);padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .2s;white-space:nowrap}
+.copy-btn:hover{background:rgba(26,86,219,.22)}
+.copy-btn.ok{background:rgba(16,185,129,.12);color:var(--green)}
+.post-body{padding:16px}
+.post-text{font-size:13px;color:var(--off);line-height:1.8;white-space:pre-wrap;font-family:var(--f)}
+.post-meta{padding:10px 16px;border-top:1px solid rgba(255,255,255,.05);display:flex;gap:14px;flex-wrap:wrap}
+.pmeta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+
+.sched-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:28px}
+.sched-table th{background:var(--bg1);padding:10px 12px;text-align:left;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--border)}
+.sched-table td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--off);vertical-align:top;font-size:12px}
+.sched-table tr:hover td{background:rgba(26,86,219,.03)}
+.plat{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700}
+.plat-tw{background:rgba(29,161,242,.12);color:#1DA1F2;border:1px solid rgba(29,161,242,.25)}
+.plat-tg{background:rgba(0,136,204,.12);color:#0088CC;border:1px solid rgba(0,136,204,.25)}
+.plat-ig{background:rgba(225,48,108,.12);color:#E1306C;border:1px solid rgba(225,48,108,.25)}
+
+.hash-cloud{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.hash-pill{background:rgba(26,86,219,.1);border:1px solid rgba(26,86,219,.2);border-radius:100px;padding:5px 13px;font-size:12px;font-weight:600;color:var(--blueL);cursor:pointer;transition:all .2s}
+.hash-pill:hover{background:rgba(26,86,219,.22);transform:scale(1.04)}
+
+.kol-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.kol-emo{width:44px;height:44px;border-radius:50%;background:rgba(26,86,219,.12);border:1px solid rgba(26,86,219,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kol-name{font-size:13px;font-weight:700;color:var(--white)}
+.kol-handle{font-size:11px;color:var(--blueL);margin-bottom:4px}
+.kol-desc{font-size:11px;color:var(--muted);line-height:1.55}
+.kol-priority{font-size:9px;font-weight:800;padding:2px 9px;border-radius:100px}
+.pri-high{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
+.pri-med{background:rgba(100,116,139,.1);color:var(--muted);border:1px solid rgba(100,116,139,.2)}
+
+.visual-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px}
+.visual-card h3{font-size:14px;font-weight:700;color:var(--white);margin-bottom:14px}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.swatch{width:54px;height:54px;border-radius:10px;display:flex;align-items:flex-end;padding:4px;font-size:8px;font-weight:700;color:rgba(255,255,255,.8)}
+
+.hidden{display:none}
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);border-radius:11px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--green);display:none;align-items:center;gap:6px;animation:fadeUp .3s ease}
+#toast.show{display:flex}
+</style>
+</head>
+<body>
+<div id="toast">✓ Copied!</div>
+
+<div class="header">
+  <div><div class="logo">BRICK<span>X</span> <span style="font-family:var(--f);font-size:13px;color:var(--muted);font-weight:400">Social Media Content Pack v3</span></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span style="font-size:11px;padding:4px 12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:100px;color:var(--green)">✓ 70+ Posts</span>
+    <span style="font-size:11px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:100px;color:var(--muted)">Full English</span>
+    <span style="font-size:11px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:100px;color:var(--muted)">Two-Phase Strategy</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="page-tabs">
+    <button class="ptab on" onclick="show('twitter')">𝕏 Twitter/X</button>
+    <button class="ptab" onclick="show('telegram')">✈️ Telegram</button>
+    <button class="ptab" onclick="show('instagram')">📸 Instagram</button>
+    <button class="ptab" onclick="show('schedule')">📅 Schedule</button>
+    <button class="ptab" onclick="show('hashtags')">🏷️ Hashtags</button>
+    <button class="ptab" onclick="show('kol')">🤝 KOL Strategy</button>
+    <button class="ptab" onclick="show('visual')">🎨 Visual Guide</button>
+  </div>
+
+  <!-- TWITTER -->
+  <div id="pg-twitter">
+    <div class="sec-hdr">
+      <span class="sec-tag">Twitter / X — Launch Series</span>
+      <div class="sec-title">24 Posts — Thread + Ongoing</div>
+      <div class="sec-sub">Post the 8-tweet launch thread on Day 1 as a single thread for maximum reach. Then use ongoing posts 1-2x per day.</div>
+    </div>
+    <div style="background:rgba(26,86,219,.06);border:1px solid rgba(26,86,219,.2);border-radius:12px;padding:16px;margin-bottom:20px;font-size:13px;color:var(--blueL)">
+      🧵 Post tweets 1-8 as a single connected thread on launch day. Threads get 3-5x more reach than individual posts.
+    </div>
+    <div class="grid" id="tw-launch"></div>
+    <div class="sec-hdr" style="margin-top:8px">
+      <span class="sec-tag">Ongoing Content</span>
+      <div class="sec-title">Daily & Weekly Posts</div>
+    </div>
+    <div class="grid" id="tw-ongoing"></div>
+  </div>
+
+  <!-- TELEGRAM -->
+  <div id="pg-telegram" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">Telegram — Official Channel</span>
+      <div class="sec-title">8 Announcement Posts</div>
+      <div class="sec-sub">For the official announcement channel. No hashtags needed in Telegram — focus on clear text with emojis.</div>
+    </div>
+    <div class="grid" id="tg-posts"></div>
+  </div>
+
+  <!-- INSTAGRAM -->
+  <div id="pg-instagram" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">Instagram — Feed & Stories</span>
+      <div class="sec-title">Captions + Story Scripts + Reel Scripts</div>
+      <div class="sec-sub">Pair captions with dark background graphics from Canva. All English.</div>
+    </div>
+    <div class="grid" id="ig-posts"></div>
+  </div>
+
+
+  <!-- AI IMAGE PROMPTS PAGE -->
+  <div id="pg-aiprompts" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag" style="color:#8B5CF6">AI Image Prompts</span>
+      <div class="sec-title">Generate Photos for Every Post</div>
+      <div class="sec-sub">Each prompt is ready to paste into Gemini AI, Midjourney, or Adobe Firefly. Copy prompt → generate image → pair with caption → post.</div>
+    </div>
+
+    <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:16px;padding:20px;margin-bottom:24px">
+      <div style="font-size:15px;font-weight:800;color:#8B5CF6;margin-bottom:10px;display:flex;align-items:center;gap:8px">✨ How to Use</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+        <div style="background:var(--bg2);border-radius:10px;padding:14px;text-align:center">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#8B5CF6;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">1</div>
+          <div style="font-size:12px;font-weight:600;color:var(--off);margin-bottom:3px">Copy Prompt</div>
+          <div style="font-size:11px;color:var(--muted)">Click "Copy Prompt" on any card</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:10px;padding:14px;text-align:center">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#8B5CF6;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">2</div>
+          <div style="font-size:12px;font-weight:600;color:var(--off);margin-bottom:3px">Paste & Generate</div>
+          <div style="font-size:11px;color:var(--muted)">Paste in Gemini → generate image</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:10px;padding:14px;text-align:center">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#8B5CF6;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">3</div>
+          <div style="font-size:12px;font-weight:600;color:var(--off);margin-bottom:3px">Copy Caption & Post</div>
+          <div style="font-size:11px;color:var(--muted)">Use caption from each card</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="https://gemini.google.com" target="_blank" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#8B5CF6;padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;text-decoration:none">Open Gemini AI →</a>
+        <a href="https://www.midjourney.com" target="_blank" style="background:rgba(26,86,219,.1);border:1px solid rgba(26,86,219,.25);color:var(--blueL);padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;text-decoration:none">Open Midjourney →</a>
+        <a href="https://firefly.adobe.com" target="_blank" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:var(--gold);padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;text-decoration:none">Adobe Firefly →</a>
+      </div>
+    </div>
+
+    <div id="ai-cards-list"></div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div id="pg-schedule" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">30-Day Launch Calendar</span>
+      <div class="sec-title">Posting Schedule</div>
+      <div class="sec-sub">Week 1 = maximum intensity. Weeks 2-4 = sustain and convert.</div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:10px">📅 WEEK 1 — MAXIMUM INTENSITY</div>
+    <table class="sched-table" style="margin-bottom:22px">
+      <thead><tr><th>Day</th><th>Twitter/X</th><th>Telegram</th><th>Instagram</th><th>Objective</th></tr></thead>
+      <tbody id="sched-w1"></tbody>
+    </table>
+    <div style="font-size:13px;font-weight:700;color:var(--blueL);margin-bottom:10px">📅 WEEKS 2-4 — SUSTAIN & CONVERT</div>
+    <table class="sched-table">
+      <thead><tr><th>Period</th><th>Twitter/X</th><th>Telegram</th><th>Instagram</th><th>Objective</th></tr></thead>
+      <tbody id="sched-w2"></tbody>
+    </table>
+  </div>
+
+  <!-- HASHTAGS -->
+  <div id="pg-hashtags" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">Hashtag Strategy</span>
+      <div class="sec-title">Master Hashtag Library</div>
+      <div class="sec-sub">Click any hashtag to copy. Use 3-5 per tweet, 10-15 per Instagram post. No hashtags in Telegram.</div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:10px">🔥 Primary (always include)</div>
+    <div class="hash-cloud" id="ht-primary"></div>
+    <div style="font-size:13px;font-weight:700;color:var(--blueL);margin-bottom:10px;margin-top:20px">🏢 Real Estate & RWA</div>
+    <div class="hash-cloud" id="ht-re"></div>
+    <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:10px;margin-top:20px">⛓️ Crypto & DeFi</div>
+    <div class="hash-cloud" id="ht-crypto"></div>
+    <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;margin-top:20px">🌏 Southeast Asia</div>
+    <div class="hash-cloud" id="ht-sea"></div>
+    <div class="visual-card" style="margin-top:20px">
+      <h3>📋 Ready-Made Hashtag Sets</h3>
+      <div id="ht-sets" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+  </div>
+
+  <!-- KOL -->
+  <div id="pg-kol" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">KOL & Influencer Strategy</span>
+      <div class="sec-title">Target Influencer Categories</div>
+      <div class="sec-sub">Offer whitelist allocation + referral commission. Never pay for fake engagement — only authentic reviews.</div>
+    </div>
+    <div id="kol-list"></div>
+    <div class="sec-hdr" style="margin-top:24px">
+      <span class="sec-tag">Outreach Template</span>
+      <div class="sec-title">KOL DM / Email Template</div>
+    </div>
+    <div class="post-card">
+      <div class="post-hdr"><span class="ptype pt-dm">DM TEMPLATE</span><button class="copy-btn" onclick="cp('kol-dm')">Copy</button></div>
+      <div class="post-body"><div class="post-text" id="kol-dm"></div></div>
+    </div>
+    <div class="sec-hdr" style="margin-top:24px">
+      <span class="sec-tag">Community Channels</span>
+      <div class="sec-title">Telegram & Discord Groups to Target</div>
+    </div>
+    <div id="comm-ch" style="display:flex;flex-direction:column;gap:9px"></div>
+  </div>
+
+  <!-- VISUAL -->
+  <div id="pg-visual" class="hidden">
+    <div class="sec-hdr">
+      <span class="sec-tag">Brand Visual Guide</span>
+      <div class="sec-title">Design System for Social Media</div>
+      <div class="sec-sub">Follow these rules for all graphics. Create in Canva, Figma, or Adobe Express.</div>
+    </div>
+    <div class="visual-card">
+      <h3>Color Palette</h3>
+      <div class="color-row">
+        <div class="swatch" style="background:#020509">#020509</div>
+        <div class="swatch" style="background:#0A1628">#0A1628</div>
+        <div class="swatch" style="background:#1A56DB">#1A56DB</div>
+        <div class="swatch" style="background:#3B82F6">#3B82F6</div>
+        <div class="swatch" style="background:#14B8A6">#14B8A6</div>
+        <div class="swatch" style="background:#10B981">#10B981</div>
+        <div class="swatch" style="background:#F59E0B">#F59E0B</div>
+        <div class="swatch" style="background:#E2E8F0;color:#020509">#E2E8F0</div>
+      </div>
+    </div>
+    <div class="visual-card">
+      <h3>Image Sizes</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:var(--bg1);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--blueL);margin-bottom:8px">𝕏 Twitter/X</div>
+          <div style="font-size:12px;color:var(--muted)">Feed image: <span style="color:var(--white)">1200 × 675px</span></div>
+          <div style="font-size:12px;color:var(--muted)">Profile: <span style="color:var(--white)">400 × 400px</span></div>
+          <div style="font-size:12px;color:var(--muted)">Banner: <span style="color:var(--white)">1500 × 500px</span></div>
+        </div>
+        <div style="background:var(--bg1);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px">📸 Instagram</div>
+          <div style="font-size:12px;color:var(--muted)">Feed: <span style="color:var(--white)">1080 × 1080px</span></div>
+          <div style="font-size:12px;color:var(--muted)">Story/Reel: <span style="color:var(--white)">1080 × 1920px</span></div>
+          <div style="font-size:12px;color:var(--muted)">Carousel: <span style="color:var(--white)">1080 × 1080px</span></div>
+        </div>
+        <div style="background:var(--bg1);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:#0088CC;margin-bottom:8px">✈️ Telegram</div>
+          <div style="font-size:12px;color:var(--muted)">Channel image: <span style="color:var(--white)">640 × 640px</span></div>
+          <div style="font-size:12px;color:var(--muted)">Post image: <span style="color:var(--white)">1280 × 720px</span></div>
+        </div>
+        <div style="background:var(--bg1);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">🎨 Canva Tips</div>
+          <div style="font-size:12px;color:var(--muted)">Search: "Crypto announcement"</div>
+          <div style="font-size:12px;color:var(--muted)">Set palette colors above</div>
+          <div style="font-size:12px;color:var(--muted)">Font: Space Grotesk / Calibri</div>
+        </div>
+      </div>
+    </div>
+    <div class="visual-card">
+      <h3>Design Rules</h3>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--green)">✓</span> Always dark background (#020509 or #0A1628)</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--green)">✓</span> BRICKX logo visible in every image</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--green)">✓</span> One key number per image — large, gold color</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--green)">✓</span> Always include: brickxprotocol.io</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--green)">✓</span> Hotel posts: always say "Project Hotel Batam" — not hotel name</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--red)">✗</span> No white backgrounds</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--red)">✗</span> Never disclose hotel name before acquisition closes</div>
+        <div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--red)">✗</span> No low-resolution images or pixelated text</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+var TW_LAUNCH = [
+  {type:'pt-thread',lbl:'Thread 1/8',platform:'Twitter/X',chars:'278',text:'🧵 THREAD: We are tokenizing real estate across Southeast Asia.\n\nBuy fractions. Earn annual dividend. Sell anytime at fixed price.\n\nNo banks. No lawyers. No $500K minimum.\n\nThis is BRICKX Protocol. Two phases. One mission.\n\n(1/8) 👇'},
+  {type:'pt-thread',lbl:'Thread 2/8',platform:'Twitter/X',chars:'265',text:'The problem:\n\n🔴 $326 TRILLION in global real estate\n🔴 Less than 1% accessible to retail investors\n🔴 You need $500K+ just to start\n🔴 No liquidity — takes months to sell\n🔴 Blocked by borders and regulations\n\nThis is 2026. It should not be this hard.\n\n(2/8)'},
+  {type:'pt-thread',lbl:'Thread 3/8',platform:'Twitter/X',chars:'272',text:'Our two-phase approach:\n\nPHASE 1 (NOW):\nBRX ICO → raise $2M → build full ecosystem\nSeed price: $0.008/BRX. DEX target: $0.030 (+275%)\n\nPHASE 2 (AFTER ICO):\nAcquire existing operating hotel in Batam\nBudget: up to $18.5M USD\nIssue BRICK tokens at $10 fixed price\n\n(3/8)'},
+  {type:'pt-thread',lbl:'Thread 4/8',platform:'Twitter/X',chars:'270',text:'Phase 2 — Project Hotel Batam\n\n🏨 Existing 3-4 star hotel, already operating\n📍 Batam Island — 30 min ferry from Singapore\n💰 Budget: up to $18.5M USD\n🔒 Hotel name: confidential until acquisition closes\n\nWhy buy existing?\nRevenue from day one. Proven occupancy.\nNo 2-3 year construction wait.\n\n(4/8)'},
+  {type:'pt-thread',lbl:'Thread 5/8',platform:'Twitter/X',chars:'268',text:'How the annual dividend works:\n\n1. Hotel operates all year → revenue recorded\n2. December 31 → fiscal year close + holder snapshot\n3. January–March → independent audit\n4. April → dividend per token announced\n5. JUNE → USDC transferred to all holder wallets\n\n70% of Net Operating Income → holders\nNo claim needed. Auto-transfer.\n\n(5/8)'},
+  {type:'pt-thread',lbl:'Thread 6/8',platform:'Twitter/X',chars:'262',text:'BRICK token mechanics:\n\n✅ Fixed price: $10.00 — NEVER changes\n✅ 1 BRICK = fractional hotel ownership\n✅ Annual dividend in USDC each June\n✅ Sell on marketplace at same $10 price\n✅ Minimum 1 token = $10\n\nNo speculation. No price risk.\nJust real hotel income paid annually.\n\n(6/8)'},
+  {type:'pt-thread',lbl:'Thread 7/8',platform:'Twitter/X',chars:'258',text:'BRX Tokenomics — Phase 1:\n\n📊 Total supply: 1,000,000,000 BRX (fixed forever)\n💎 Seed: $0.008 → Round 1: $0.015 → DEX: $0.030\n🗳️ BRX = governance vote + staking rewards\n🔥 30% of fees burned (deflationary)\n🤝 0% VC allocation — 76% community\n\nAudit: CertiK (scheduled)\nChain: Polygon\n\n(7/8)'},
+  {type:'pt-thread',lbl:'Thread 8/8',platform:'Twitter/X',chars:'272',text:'🌱 BRX Seed Sale is LIVE NOW\n\n• Price: $0.008/BRX (lowest ever)\n• Hard cap: $640,000\n• Already: 38.7% filled\n• Min: $100 · Max: $50,000/wallet\n• Pay: USDT / USDC / ETH / BNB\n\nLock in before Round 1 at $0.015 (+87.5%)\n\nRegister → KYC → Send → BRX allocated\n\n👉 brickxprotocol.io\n\n(8/8) RT if you\'re joining 🔁'},
+];
+
+var TW_ONGOING = [
+  {type:'pt-hype',lbl:'Price Reminder',platform:'Twitter/X',chars:'245',text:'📌 BRX Seed Price: $0.008\n\nRound 1 opens at $0.015 (+87.5%)\nDEX launch target: $0.030 (+275%)\n\nEvery day you wait = more expensive BRX.\n\nSeed closes at $640K raised or May 30.\n153 spots remaining.\n\n→ brickxprotocol.io'},
+  {type:'pt-edu',lbl:'Fixed Price Explained',platform:'Twitter/X',chars:'260',text:'Most crypto: buy → hope price goes up → 90% lose money.\n\nBRICK tokens are different.\n\nFixed price: $10.00. Forever.\n\nYou do not make money from price appreciation.\nYou earn from real hotel rental income — paid annually in USDC each June.\n\nThis is yield investing. On-chain.'},
+  {type:'pt-edu',lbl:'Annual Dividend Cycle',platform:'Twitter/X',chars:'255',text:'How the BRICKX annual dividend works:\n\nJan–Dec: Hotel operates, revenue collected\n31 Dec: Fiscal year close + holder snapshot\nJan–Mar: Independent audit\nApril: Dividend per token announced\nJune: USDC automatically sent to your wallet\n\nNo claim. No action needed.\nJust hold BRICK tokens at Dec 31.\n\n#BRICKX #PassiveIncome'},
+  {type:'pt-hype',lbl:'Two-Phase Explainer',platform:'Twitter/X',chars:'268',text:'BRICKX has a clear two-phase plan:\n\n🔵 PHASE 1 (NOW):\nBRX ICO → $2M raise → build ecosystem\n→ Seed at $0.008, DEX at $0.030 (+275%)\n\n🟡 PHASE 2 (AFTER ICO):\nAcquire hotel Batam ($18.5M budget)\n→ BRICK tokens at $10 fixed\n→ Annual dividend every June\n\nSequential. Transparent. Real assets.'},
+  {type:'pt-community',lbl:'Referral Push',platform:'Twitter/X',chars:'238',text:'📢 Share your BRICKX referral code.\n\nEarn 500 BRX per friend who joins the seed sale.\n\nAt DEX price ($0.030) = $15 per referral.\n10 friends = $150 in BRX bonus.\n\nGet your referral code at brickxprotocol.io\n\nTag someone who needs passive income 👇'},
+  {type:'pt-edu',lbl:'Why Batam',platform:'Twitter/X',chars:'258',text:'Why Batam for the first hotel?\n\n🚢 30 min ferry from Singapore\n🏭 Indonesia Free Trade Zone\n📈 Hotel demand growing 15%/year\n🏨 Limited 4-star supply = high occupancy\n💰 Property 40-60% cheaper than Jakarta/Bali\n🔑 Founder has local real estate network\n\nStrategic location. Real demand. Real asset.'},
+  {type:'pt-hype',lbl:'Confidential Hotel',platform:'Twitter/X',chars:'252',text:'People ask: why is the hotel name confidential?\n\nSimple: standard M&A practice.\n\nDisclosing early = seller raises price.\nNegotiation fails = project delayed.\n\nOnce SPA is signed:\n✓ Hotel name revealed\n✓ Full due diligence published\n✓ Investors notified FIRST\n\nTransparency after deal. Not before.'},
+  {type:'pt-edu',lbl:'BRX vs BRICK',platform:'Twitter/X',chars:'265',text:'Quick explainer: BRX vs BRICK\n\nBRX = Governance token\n→ Buy in ICO (Phase 1)\n→ Governance voting + staking\n→ Deflationary (fee burns)\n→ DEX target: $0.030\n\nBRICK = Property token\n→ Buy on platform (Phase 2)\n→ Fixed price $10 forever\n→ Annual hotel dividend in USDC\n→ Sell anytime on marketplace\n\nTwo tokens. One ecosystem.'},
+];
+
+var TG_POSTS = [
+  {type:'pt-announce',lbl:'Channel Launch',platform:'Telegram',chars:'480',text:'🏨 BRICKX Protocol is LIVE.\n\nWelcome to the official BRICKX announcement channel.\n\nWhat is BRICKX?\n→ Real estate tokenization on Polygon blockchain\n→ Two-phase model: ICO ecosystem → Hotel annual dividend\n→ Buy fractional hotel ownership from $100\n→ Annual USDC dividend paid every June\n→ Fixed token price — zero speculation\n\n━━━━━━━━━━━━━━━━━━━━\nSEED SALE: 🟢 LIVE NOW\nPrice: $0.008/BRX (hard cap $640,000)\n━━━━━━━━━━━━━━━━━━━━\n\n🌐 brickxprotocol.io\n📄 docs.brickxprotocol.io\n📱 @BRICKXProtocol on X\n\nDrop a 🏨 if you\'re in!'},
+  {type:'pt-hype',lbl:'Daily Progress',platform:'Telegram',chars:'380',text:'📊 SEED SALE DAILY UPDATE\n\n━━━━━━━━━━━━━━━━━━━━\n💰 Raised: $247,500 / $640,000\n📈 Progress: 38.7% filled\n👥 Investors: 847 registered\n🌍 Countries: 28\n⏰ Estimated close: 14 days\n━━━━━━━━━━━━━━━━━━━━\n\nSeed: $0.008/BRX\nRound 1: $0.015 (+87.5%)\n\nTime is running.\n→ brickxprotocol.io'},
+  {type:'pt-edu',lbl:'Annual Dividend Explained',platform:'Telegram',chars:'540',text:'📚 HOW THE ANNUAL DIVIDEND WORKS\n\nMany investors ask: "When do I get paid?"\n\nHere is the complete cycle:\n\n🏨 Jan–Dec: Hotel operations, revenue collected\n📋 Dec 31: Fiscal year close. Holder snapshot taken.\n🔍 Jan–Mar: Independent audit of hotel P&L\n📢 April: Dividend per BRICK token announced\n💵 JUNE: USDC automatically sent to all holder wallets\n\nExample (Base Case):\n• Hotel budget: $18.5M\n• Annual revenue: $2,462,400\n• NOI (55%): $1,354,320\n• 70% to holders: $948,024/year\n• Per token: $0.51/BRICK\n• APY: ~5.1%\n\nTOKEN PRICE stays at $10.00 forever.\nReturns come from real hotel income only.\nZero speculation.\n\nQuestions? Drop them below 👇'},
+  {type:'pt-announce',lbl:'Phase 2 Hotel Update',platform:'Telegram',chars:'420',text:'🏨 PHASE 2 — PROJECT HOTEL BATAM UPDATE\n\nTarget: Existing 3-4 star operating hotel, Batam Island\n\nWhy existing hotel?\n✅ Revenue from day one (no construction wait)\n✅ Proven occupancy & revenue history\n✅ Budget efficient: up to $18.5M USD\n✅ Batam: 30 min from Singapore, Free Trade Zone\n\nStatus:\n📋 LOI (Letter of Intent) in preparation — Q2 2026\n🔒 Hotel name confidential until SPA signed\n📢 All seed investors notified FIRST when deal closes\n\n→ brickxprotocol.io/hotel'},
+  {type:'pt-edu',lbl:'KYC Guide',platform:'Telegram',chars:'400',text:'⚠️ KYC IS REQUIRED — Here\'s how to complete it in 5 minutes:\n\nStep 1: Register at brickxprotocol.io\nStep 2: Click "Start KYC Verification"\nStep 3: Upload government ID (passport, national ID, or driver\'s license)\nStep 4: Take a live selfie\nStep 5: Wait 5–30 minutes for approval\n\nSupported IDs: Passport, National ID, Driver\'s License\nSupported countries: 80+\nKYC provider: Sumsub (trusted globally)\n\n✅ Once approved → you are cleared to buy BRX\n❌ No KYC = no purchase (regulatory requirement)\n\nNeed help? → support@brickxprotocol.io'},
+  {type:'pt-edu',lbl:'Payment Guide',platform:'Telegram',chars:'440',text:'💳 HOW TO PAY — Complete Guide\n\nAccepted cryptocurrencies:\n✅ USDT (Polygon) — RECOMMENDED\n✅ USDC (Polygon) — RECOMMENDED\n✅ ETH (Ethereum mainnet)\n✅ BNB (BNB Chain)\n\nWe recommend USDT or USDC on Polygon:\n• ~2 minute on-chain confirmation\n• Gas fee: ~$0.01\n• Auto-detected by our system\n\nProcess:\n1. Register + complete KYC\n2. Add your Polygon wallet address\n3. Choose amount (min $100, max $50,000)\n4. Send to BRICKX treasury wallet\n5. System auto-detects transaction\n6. Email confirmation sent\n7. BRX allocated — distributed at TGE\n\nQuestion? Ask below 👇'},
+  {type:'pt-announce',lbl:'AMA Announcement',platform:'Telegram',chars:'340',text:'🎤 WEEKLY AMA — This Saturday\n\nJoin the founding team for a live Q&A session.\n\nTopics:\n→ Phase 2 hotel acquisition update\n→ BRX seed sale progress\n→ Smart contract audit timeline\n→ Annual dividend model deep-dive\n→ Roadmap 2026–2028\n\n📅 Saturday, [DATE], 7PM WIB / 8PM SGT\n📍 BRICKX Community Telegram\n\nSubmit questions in advance:\nt.me/brickxcommunity\n\nSee you there! 🏨'},
+  {type:'pt-hype',lbl:'Round 1 Urgency',platform:'Telegram',chars:'360',text:'⚡ FINAL REMINDER — Seed Sale Closing Soon\n\nThe BRX seed round closes at $640,000 raised.\n\nCurrently: $247,500 raised (38.7%)\nRemaining: $392,500\n\nWhen seed closes:\n→ Round 1 opens at $0.015 (+87.5% vs seed)\n→ No more $0.008 price. Ever.\n\nSeed buyers lock in the lowest price in BRICKX history.\n\nMinimum: $100\nPayment: USDT / USDC / ETH / BNB\n\n→ brickxprotocol.io'},
+];
+
+var IG_POSTS = [
+  {type:'pt-announce',lbl:'Carousel: What is BRICKX',platform:'Instagram Feed Carousel',chars:'900',text:'SLIDE 1:\n"You no longer need $500,000 to own hotel real estate."\n\nSLIDE 2:\nBRICKX PROTOCOL\nFractional real estate ownership on-chain\nStarting from just $100\n\nSLIDE 3:\nTWO PHASES:\nPhase 1 → BRX ICO (Live Now)\n$0.008/BRX · Raises $2M for ecosystem\n\nPhase 2 → Hotel Token (After ICO)\nAcquire operating hotel Batam · $18.5M budget\nBRICK tokens at $10 fixed price · Annual dividend June\n\nSLIDE 4:\nAnnual Dividend Cycle\nDec 31 → Fiscal close + snapshot\nJan–Mar → Independent audit\nApril → Dividend announced\nJune → USDC in your wallet\n\nSLIDE 5:\nJoin Seed Sale\n$0.008/BRX · Min $100\nbrickxprotocol.io\n\n━━━━━━━━━\nCAPTION:\nReal estate used to require $500K, a local bank account, and 6 months of paperwork.\n\nWe changed that.\n\nBRICKX is a two-phase protocol: Phase 1 raises $2M via BRX ICO to build the ecosystem. Phase 2 acquires an existing operating hotel in Batam, Indonesia (budget up to $18.5M). Issue BRICK tokens at $10 fixed price. 70% of Net Operating Income distributed annually to holders — paid in USDC each June.\n\nSeed sale live now. Link in bio.\n\n#BRICKX #RealEstate #Crypto #PassiveIncome #RWA #Polygon #AnnualDividend #HotelInvestment'},
+  {type:'pt-edu',lbl:'Reel: Annual Dividend',platform:'Instagram Reel',chars:'500',text:'REEL SCRIPT (30-45 seconds):\n\n[HOOK — first 3 seconds]\n"This crypto token pays you every June. Automatically."\n\n[BODY]\nMost crypto: buy low, sell high.\nThat\'s speculation.\n\nBRICK tokens are different.\nFixed price: $10.00 — forever.\n\nHow do you earn?\nSimple: annual hotel dividend.\n\n[HOW IT WORKS]\nHotel generates revenue all year.\nDecember 31: fiscal year closes.\nAudit completes by March.\nApril: dividend per token announced.\nJune: USDC goes directly to your wallet.\n\nNo claim. No action. Automatic.\n\n[CAPTION]\nAnnual hotel dividend — paid every June in USDC.\n\nFixed price. Real income. Zero speculation.\nBRICKX Protocol — link in bio.\n\n#BRICKX #PassiveIncome #RWA #AnnualDividend'},
+  {type:'pt-hype',lbl:'Story Series: Countdown',platform:'Instagram Stories',chars:'400',text:'STORY 1 (Urgency):\n⏰ [X] DAYS LEFT\nBRX Seed Sale Closing Soon\nCurrent price: $0.008\nRound 1: $0.015 (+87.5%)\n[Swipe Up → brickxprotocol.io]\n\nSTORY 2 (Social Proof):\n👥 847 investors\n🌍 28 countries\n💰 $247,500+ raised\nSeed allocation filling fast.\n[Poll: "Are you joining? Yes / Researching"]\n\nSTORY 3 (Dividend Explainer):\nAnnual dividend cycle:\nDec 31 → Hotel fiscal close\nApril → Dividend announced\nJune → USDC to your wallet\nFixed price: $10/BRICK. Always.\n[Swipe Up → Learn more]\n\nSTORY 4 (CTA):\nSeed price: $0.008/BRX\nDEX target: $0.030 (+275%)\nPayment: USDT / USDC / ETH / BNB\nMin: $100\n[Link in bio → brickxprotocol.io]'},
+  {type:'pt-community',lbl:'Team Introduction',platform:'Instagram Feed',chars:'450',text:'CAPTION:\nThe team building BRICKX comes from real estate development and DeFi protocol engineering — not just another whitepaper.\n\nOur founder has been actively developing property in Batam for 10+ years. He is currently the field project manager for a hotel renovation in Batam. This is not a remote team guessing at a market — this is boots-on-the-ground local knowledge.\n\nPhase 2: acquiring an existing operating hotel in Batam. Budget up to $18.5M USD. Hotel name disclosed after acquisition closes.\n\nSeed sale live. brickxprotocol.io\n\n#BRICKX #Founder #RealEstate #Batam #Crypto #Web3 #DeFi #Indonesia #PassiveIncome'},
+];
+
+var SCHED_W1 = [
+  {day:'Day 1',tw:'LAUNCH THREAD (8 tweets) + cover image',tg:'Channel launch post (pinned)',ig:'Carousel: What is BRICKX + 3 stories',obj:'Maximum awareness'},
+  {day:'Day 2',tw:'Price reminder + comparison meme',tg:'Daily progress update + KYC guide',ig:'Reel: Annual dividend explained',obj:'Drive registrations'},
+  {day:'Day 3',tw:'Project Hotel Batam thread (4 tweets)',tg:'Hotel Batam details post',ig:'Hotel story series + feed post',obj:'Build credibility'},
+  {day:'Day 4',tw:'BRX vs BRICK explainer + tokenomics',tg:'Tokenomics breakdown post',ig:'Tokenomics carousel',obj:'Educate investors'},
+  {day:'Day 5',tw:'Referral campaign launch',tg:'Referral bonus announcement',ig:'Referral story + CTA post',obj:'Viral growth'},
+  {day:'Day 6',tw:'Annual dividend cycle explainer thread',tg:'Dividend calendar post',ig:'Dividend infographic carousel',obj:'Unique positioning'},
+  {day:'Day 7',tw:'Weekly roundup + milestones',tg:'AMA announcement',ig:'Week 1 recap stories',obj:'Community retention'},
+];
+
+var SCHED_W2 = [
+  {day:'Week 2 Mon–Wed',tw:'1 educational + 1 price reminder/day',tg:'Daily update + 1 deep-dive post',ig:'2 feed posts + daily stories',obj:'Sustain momentum'},
+  {day:'Week 2 Thu–Sun',tw:'KOL retweets + community highlights',tg:'Weekly AMA + FAQ compilation',ig:'Team post + Reel',obj:'Community growth'},
+  {day:'Week 3',tw:'Countdown posts + final urgency',tg:'"Last week" announcements',ig:'Daily countdown stories',obj:'Final FOMO push'},
+  {day:'Week 4',tw:'Sold out / Round 1 announcement',tg:'Post-seed next steps update',ig:'Celebration + Round 1 preview',obj:'Transition to Round 1'},
+];
+
+var HT_PRIMARY = ['#BRICKX','#BRXToken','#BRICKToken','#BRICKXProtocol','#SeedSale','#AnnualDividend'];
+var HT_RE = ['#RealEstate','#TokenizedRealEstate','#FractionalRealEstate','#RWA','#RealWorldAssets','#PropTech','#REIT','#HotelInvestment','#PropertyToken','#PassiveIncome'];
+var HT_CRYPTO = ['#DeFi','#Polygon','#Web3','#Crypto','#Blockchain','#ICO','#Altcoin','#CryptoInvesting','#YieldInvesting','#SmartContracts','#USDC'];
+var HT_SEA = ['#Indonesia','#Batam','#Singapore','#Malaysia','#ASEAN','#SoutheastAsia','#IndonesiaCrypto','#SingaporeCrypto','#BatamIsland'];
+
+var HT_SETS = [
+  {name:'Seed Sale Post',tags:'#BRICKX #BRXToken #SeedSale #ICO #RWA #Polygon #DeFi'},
+  {name:'Hotel / Phase 2 Post',tags:'#BRICKX #HotelInvestment #BatamIsland #Indonesia #RealEstate #PassiveIncome'},
+  {name:'Annual Dividend Post',tags:'#BRICKX #AnnualDividend #PassiveIncome #RWA #FractionalRealEstate #USDC'},
+  {name:'Education Post',tags:'#BRICKX #TokenizedRealEstate #RWA #FractionalRealEstate #DeFi #Web3'},
+  {name:'Instagram (max tags)',tags:'#BRICKX #RealEstate #Crypto #PassiveIncome #RWA #Polygon #Tokenization #DeFi #SeedSale #Indonesia #Singapore #Batam #Web3 #Investment #AnnualDividend #HotelInvestment'},
+  {name:'Telegram (no hashtags needed)',tags:'Skip hashtags in Telegram — plain text with emojis performs better.'},
+];
+
+var KOL_DATA = [
+  {e:'🏢',n:'RWA / Tokenization KOLs',h:'Search #RWA #TokenizedRealEstate on X',f:'50K–500K followers',d:'Primary target. Audience already understands the concept. Offer whitelist allocation + referral commission.',p:'HIGH'},
+  {e:'🇮🇩',n:'Indonesian Crypto KOLs',h:'Indonesian crypto YouTube / Instagram',f:'100K–2M followers',d:'Massive Indonesian crypto community. Post in Bahasa Indonesia for these KOLs. Batam story resonates strongly.',p:'HIGH'},
+  {e:'🇸🇬',n:'Singapore Fintech KOLs',h:'SG-based crypto / fintech accounts',f:'20K–200K followers',d:'HNW Singapore audience. Batam is 30 min away — personal relevance. Focus on yield investing angle.',p:'HIGH'},
+  {e:'🏨',n:'Real Estate + Passive Income',h:'RE passive income creators',f:'50K–500K followers',d:'Non-crypto RE investors curious about tokenization. Best conversion — they understand yield investing.',p:'HIGH'},
+  {e:'🌏',n:'SE Asia Crypto Communities',h:'Telegram groups + Discord servers',f:'Various',d:'Post in: Crypto Malaysia, Philippines Crypto, Vietnam DeFi, Thailand Blockchain. Be authentic — not spammy.',p:'MEDIUM'},
+];
+
+var KOL_DM = `Hi [Name],
+
+I've been following your content on [RWA / real estate tokenization / passive income] and believe your audience would find what we're building genuinely valuable.
+
+I'm the founder of BRICKX Protocol — a two-phase real estate tokenization platform on Polygon.
+
+PHASE 1 (Live Now): BRX ICO — raise $2M to build full ecosystem.
+Seed price $0.008/BRX → DEX target $0.030 (+275%).
+
+PHASE 2 (After ICO): Acquire existing operating hotel in Batam, Indonesia.
+Budget: up to $18.5M USD. Issue BRICK tokens at $10 fixed price.
+Annual dividend: 70% of Net Operating Income paid each June in USDC — audited annually.
+
+What makes BRICKX different:
+• Fixed token price — zero speculation, pure yield income
+• Annual dividend (December fiscal close → June payment)
+• Hotel already operating — revenue from day one
+• 0% VC allocation — 100% community
+
+What I'd like to offer you:
+• Priority whitelist allocation at seed price
+• Referral commission structure for your audience
+• Exclusive AMA / interview with our founding team
+
+Happy to send our whitepaper and financial model.
+Website: brickxprotocol.io
+
+Best,
+[Your Name]
+BRICKX Protocol`;
+
+var COMM_CH = [
+  {t:'Telegram',n:'Indonesian Crypto Groups',d:'Engage authentically for 2 weeks before mentioning BRICKX. Admins ban obvious promotion.'},
+  {t:'Discord',n:'RWA Tokenization Servers',d:'Search "RWA" and "Real World Assets" on Discord. Post in #projects or #opportunities channels.'},
+  {t:'Reddit',n:'r/CryptoCurrency + r/realestateinvesting',d:'Educational posts only — no direct promotion. Explain RWA tokenization concept, mention BRICKX naturally.'},
+  {t:'Product Hunt',n:'Launch on Product Hunt',d:'Launch BRICKX on Day 1 of seed sale. Get community to upvote. Drives significant crypto-adjacent traffic.'},
+  {t:'Bitcointalk',n:'Official ANN Thread',d:'Standard for ICO projects. Create announcement thread with whitepaper, tokenomics, team details.'},
+];
+
+// ── RENDER ─────────────────────────────────────────────────────
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function makeCard(post, id){
+  var div = document.createElement('div');
+  div.className = 'post-card';
+  div.innerHTML = '<div class="post-hdr">'
+    + '<span class="ptype ' + post.type + '">' + post.lbl + '</span>'
+    + '<button class="copy-btn" onclick="cp(\'' + id + '\')">Copy</button>'
+    + '</div>'
+    + '<div class="post-body"><div class="post-text" id="' + id + '">' + esc(post.text) + '</div></div>'
+    + '<div class="post-meta">'
+    + '<div class="pmeta">📱 ' + post.platform + '</div>'
+    + (post.chars ? '<div class="pmeta">📝 ' + post.chars + ' chars</div>' : '')
+    + '</div>';
+  return div;
+}
+
+function renderAll(){
+  var tl = document.getElementById('tw-launch');
+  TW_LAUNCH.forEach(function(p,i){ tl.appendChild(makeCard(p,'tl'+i)); });
+
+  var to = document.getElementById('tw-ongoing');
+  TW_ONGOING.forEach(function(p,i){ to.appendChild(makeCard(p,'to'+i)); });
+
+  var tg = document.getElementById('tg-posts');
+  TG_POSTS.forEach(function(p,i){ tg.appendChild(makeCard(p,'tg'+i)); });
+
+  var ig = document.getElementById('ig-posts');
+  IG_POSTS.forEach(function(p,i){ ig.appendChild(makeCard(p,'ig'+i)); });
+
+  // Schedule Week 1
+  var sw1 = document.getElementById('sched-w1');
+  SCHED_W1.forEach(function(r){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="font-weight:700;color:var(--white);white-space:nowrap">' + r.day + '</td>'
+      + '<td><span class="plat plat-tw">X</span> ' + r.tw + '</td>'
+      + '<td><span class="plat plat-tg">TG</span> ' + r.tg + '</td>'
+      + '<td><span class="plat plat-ig">IG</span> ' + r.ig + '</td>'
+      + '<td style="color:var(--gold);font-weight:600">' + r.obj + '</td>';
+    sw1.appendChild(tr);
+  });
+  var sw2 = document.getElementById('sched-w2');
+  SCHED_W2.forEach(function(r){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="font-weight:700;color:var(--white)">' + r.day + '</td>'
+      + '<td>' + r.tw + '</td>'
+      + '<td>' + r.tg + '</td>'
+      + '<td>' + r.ig + '</td>'
+      + '<td style="color:var(--blueL);font-weight:600">' + r.obj + '</td>';
+    sw2.appendChild(tr);
+  });
+
+  // Hashtags
+  function renderHash(id, tags){
+    var c = document.getElementById(id);
+    tags.forEach(function(t){
+      var p = document.createElement('div');
+      p.className = 'hash-pill';
+      p.textContent = t;
+      p.onclick = function(){ navigator.clipboard.writeText(t).then(showToast); };
+      c.appendChild(p);
+    });
+  }
+  renderHash('ht-primary',HT_PRIMARY);
+  renderHash('ht-re',HT_RE);
+  renderHash('ht-crypto',HT_CRYPTO);
+  renderHash('ht-sea',HT_SEA);
+
+  var htSets = document.getElementById('ht-sets');
+  HT_SETS.forEach(function(s,i){
+    var sid = 'hs'+i;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;padding:12px;background:var(--bg1);border-radius:10px;gap:12px;flex-wrap:wrap';
+    row.innerHTML = '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--white);margin-bottom:5px">' + s.name + '</div>'
+      + '<div style="font-size:11px;color:var(--blueL);line-height:1.6" id="' + sid + '">' + s.tags + '</div></div>'
+      + '<button class="copy-btn" onclick="cp(\'' + sid + '\')">Copy</button>';
+    htSets.appendChild(row);
+  });
+
+  // KOL
+  var kl = document.getElementById('kol-list');
+  KOL_DATA.forEach(function(k){
+    var c = document.createElement('div');
+    c.className = 'kol-card';
+    c.innerHTML = '<div class="kol-emo">' + k.e + '</div>'
+      + '<div style="flex:1"><div class="kol-name">' + k.n + '</div>'
+      + '<div class="kol-handle">' + k.h + ' · ' + k.f + '</div>'
+      + '<div class="kol-desc">' + k.d + '</div></div>'
+      + '<div><span class="kol-priority ' + (k.p==='HIGH'?'pri-high':'pri-med') + '">' + k.p + '</span></div>';
+    kl.appendChild(c);
+  });
+
+  document.getElementById('kol-dm').textContent = KOL_DM;
+
+  var cc = document.getElementById('comm-ch');
+  COMM_CH.forEach(function(c){
+    var row = document.createElement('div');
+    row.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px;display:flex;gap:12px;align-items:flex-start';
+    row.innerHTML = '<span style="background:rgba(26,86,219,.12);color:var(--blueL);border:1px solid rgba(26,86,219,.25);border-radius:7px;padding:2px 10px;font-size:10px;font-weight:700;white-space:nowrap">' + c.t + '</span>'
+      + '<div><div style="font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px">' + c.n + '</div>'
+      + '<div style="font-size:12px;color:var(--muted)">' + c.d + '</div></div>';
+    cc.appendChild(row);
+  });
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+function show(page){
+  ['twitter','telegram','instagram','aiprompts','schedule','hashtags','kol','visual'].forEach(function(p){
+    var el = document.getElementById('pg-'+p);
+    if(el) el.className = p===page ? '' : 'hidden';
+  });
+  document.querySelectorAll('.ptab').forEach(function(b){
+    b.className = b.getAttribute('onclick').includes("'"+page+"'") ? 'ptab on' : 'ptab';
+  });
+}
+
+// ── COPY ──────────────────────────────────────────────────────
+function cp(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent || el.innerText).then(function(){
+    var btn = el.closest && el.closest('.post-card') ? el.closest('.post-card').querySelector('.copy-btn') : null;
+    if(btn){ btn.textContent='Copied!'; btn.className='copy-btn ok'; setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn';},2000); }
+    showToast();
+  });
+}
+function showToast(){
+  var t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+
+// ─── AI IMAGE PROMPTS DATA ─────────────────────────────────────
+var AI_PROMPTS = [
+  {
+    title: '1. Brand Cover — Launch Announcement',
+    platforms: 'Twitter 1200x675px · Instagram 1080x1080px',
+    style: 'Dark Luxury',
+    prompt: `Create a professional cryptocurrency real estate brand announcement image.
+
+STYLE: Dark luxury technology. Ultra-high production quality. Cinematic.
+BACKGROUND: Deep navy to near-black gradient (#020509 to #0A1628). Faint blue grid lines. Soft radial blue glow from center-top.
+MAIN TEXT (center, very large):
+- "BRICKX" in white bold serif font
+- The letter "X" in electric blue (#3B82F6)
+- Below: "PROTOCOL" small spaced blue uppercase
+TAGLINE: "Real Estate. Tokenized. For Everyone." in white medium sans-serif
+BOTTOM — 4 stat cards (dark bg, colored values):
+"$0.008" gold | "BRX Seed Price" gray
+"$2M" blue | "ICO Target" gray
+"$18.5M" teal | "Hotel Budget" gray
+"June" green | "Annual Dividend" gray
+ACCENT: Thin golden line at top. Hexagon pattern faint in bg.
+FOOTER: "brickxprotocol.io" small bottom-right
+NO people, faces, or stock charts. Pure geometry and typography.`,
+    caption: `🚀 BRICKX Protocol is live.
+
+Real estate tokenization on Polygon.
+Buy hotel fractions from $100.
+Earn annual dividend each June.
+Fixed token price — zero speculation.
+
+Seed Sale: $0.008/BRX
+👉 brickxprotocol.io
+
+#BRICKX #RWA #RealEstate #Crypto #PassiveIncome #Polygon`
+  },
+  {
+    title: '2. Project Hotel Batam — Confidential Teaser',
+    platforms: 'Instagram 1080x1080px · Twitter 1200x675px',
+    style: 'Dark Gold Mystery',
+    prompt: `Create a luxury hotel investment teaser image with confidential mystery theme.
+
+STYLE: Dark luxury real estate. Gold and deep navy. High-end hospitality.
+BACKGROUND: Very dark navy (#020509). Gold geometric line accents in corners.
+MAIN VISUAL: Silhouette outline of modern luxury hotel — 12-15 floors, contemporary architecture — in dark blue with golden edge lighting. Details deliberately obscured (mystery effect).
+OVERLAY TEXT (centered):
+- "PROJECT HOTEL BATAM" in gold bold serif (#F59E0B), very large
+- Below: "(Confidential — Under Acquisition)" in smaller muted text
+BELOW HOTEL — 4 stat cards:
+"$18.5M" gold | "Max Budget USD"
+"$10.00" teal | "Fixed BRICK Price"
+"~5-8%" green | "Est. Annual APY"
+"June" gold | "Annual Dividend"
+SMALL golden padlock icon near "Confidential"
+FOOTER: "Hotel name disclosed after acquisition closes · brickxprotocol.io"
+ATMOSPHERE: Prestigious, exclusive, exciting mystery.`,
+    caption: `🏨 Project Hotel Batam — Phase 2
+
+Acquiring an existing operating hotel in Batam Island, Indonesia.
+
+Budget: up to $18.5M USD
+BRICK Token: $10.00 fixed price
+Annual Dividend: 70% NOI → paid June
+APY: ~5–8% estimated
+
+🔒 Hotel name confidential until acquisition closes. Seed investors notified first.
+
+#BRICKX #HotelInvestment #BatamIsland #AnnualDividend #RWA`
+  },
+  {
+    title: '3. Annual Dividend Cycle Infographic',
+    platforms: 'Instagram 1080x1080px · Telegram 1280x720px',
+    style: 'Dark Infographic',
+    prompt: `Create a clean dark infographic showing annual dividend cycle for a real estate token.
+
+STYLE: Dark background infographic. Professional. Tech-finance aesthetic.
+BACKGROUND: Dark navy (#0A1628). Subtle grid.
+TITLE top (gold bold serif): "Annual Dividend Cycle"
+Subtitle: "BRICKX Protocol"
+
+MAIN VISUAL: Vertical flow with 6 step cards:
+Step 1 (blue): "Jan–Dec" | "Hotel Operations" | "Revenue collected monthly"
+Step 2 (teal): "Dec 31" | "Fiscal Year Close" | "Holder snapshot taken"
+Step 3 (muted): "Jan–Mar" | "Independent Audit" | "Full P&L verified"
+Step 4 (gold): "April" | "Dividend Announced" | "Amount per BRICK token"
+Step 5 (GREEN, highlighted, larger): "JUNE" | "USDC PAID TO WALLET" | "Auto-transfer. No claim needed." — green glow effect
+Step 6 (dim): "Repeat" | "Every Year" | "Perpetual annual model"
+
+BOTTOM: "70% NOI to Holders · 30% to Protocol · $10 Fixed Token Price"
+FOOTER: "brickxprotocol.io"`,
+    caption: `How BRICKX annual dividend works:
+
+📅 Jan–Dec: Hotel generates revenue
+🔒 Dec 31: Fiscal close + holder snapshot
+🔍 Jan–Mar: Independent audit
+📢 April: Dividend per token announced
+💵 JUNE: USDC auto-sent to your wallet
+
+No claim. No action. Just hold BRICK tokens at Dec 31.
+
+70% of hotel Net Operating Income → holders
+Token price: $10.00 fixed forever
+
+#BRICKX #AnnualDividend #PassiveIncome #RWA #Crypto`
+  },
+  {
+    title: '4. BRX Price Ladder — Tokenomics',
+    platforms: 'Twitter 1200x675px · Instagram 1080x1080px',
+    style: 'Chart Dark',
+    prompt: `Create a dark cryptocurrency tokenomics visualization showing price progression.
+
+STYLE: Professional dark crypto infographic. Dark navy bg. Glowing elements.
+BACKGROUND: Very dark navy to black gradient. Faint blue grid.
+TITLE: "BRX Token — Price Progression" white bold.
+
+MAIN VISUAL: Ascending staircase chart, 4 levels left to right:
+STEP 1 (golden, highlighted):
+"SEED" label
+"$0.008 / BRX" large gold font
+"← YOU ARE HERE" gold arrow
+"$640K cap"
+
+STEP 2 (blue):
+"ROUND 1"
+"$0.015 / BRX"
+"+87.5%" green
+
+STEP 3 (teal):
+"ROUND 2"
+"$0.022 / BRX"
+"+175%"
+
+STEP 4 (purple, top):
+"DEX LAUNCH"
+"$0.030 / BRX"
+"+275%" bright green
+
+BELOW: "Total Supply: 1,000,000,000 BRX · 0% VC · 76% Community · Polygon"
+Rising green arrow connecting all steps.
+FOOTER: "brickxprotocol.io"`,
+    caption: `BRX Token Price Progression:
+
+🟡 Seed: $0.008/BRX ← YOU ARE HERE
+🔵 Round 1: $0.015 (+87.5%)
+🔵 Round 2: $0.022 (+175%)
+🟣 DEX Launch: $0.030 (+275%)
+
+1,000,000,000 BRX fixed forever.
+0% VC allocation. 76% to community.
+
+Seed closes at $640,000 raised.
+Min: $100 · USDT/USDC/ETH/BNB
+
+brickxprotocol.io
+
+#BRX #BRICKX #ICO #SeedSale #Crypto #Polygon`
+  },
+  {
+    title: '5. Seed Sale Urgency / Countdown',
+    platforms: 'Instagram Story 1080x1920px · Twitter 1200x675px',
+    style: 'Urgency',
+    prompt: `Create a high-urgency cryptocurrency seed sale countdown image.
+
+STYLE: Dark with urgency visual. Red and gold accents.
+BACKGROUND: Very dark navy. Strong spotlight creating urgency.
+
+TOP BANNER (gold bold): "⚡ SEED SALE — CLOSING SOON"
+
+MAIN VISUAL: Large progress bar:
+- Left portion filled with gold gradient (38.7% filled)
+- Right portion dark
+- Above: "$247,500 raised / $640,000 cap"
+- Text: "38.7% FILLED" in gold
+
+BELOW BAR: "153 SPOTS REMAINING" large red/orange
+
+PRICE BOXES side by side:
+Box 1 (gold border highlighted): "SEED NOW" · "$0.008/BRX"
+Box 2 (dim): "ROUND 1 NEXT" · "$0.015" · +87.5%
+Box 3 (dim): "DEX LAUNCH" · "$0.030" · +275%
+
+TEXT: "Lock in seed price before Round 1 opens"
+FOOTER: "brickxprotocol.io — Register → KYC → Buy"`,
+    caption: `⚡ BRX Seed Sale — Closing Soon
+
+$247,500 raised of $640,000
+38.7% filled · 153 spots remaining
+
+🟡 Seed: $0.008/BRX ← NOW
+→ Round 1: $0.015 (+87.5%)
+→ DEX: $0.030 (+275%)
+
+Every day you wait = higher price.
+
+Min $100 · USDT/USDC/ETH/BNB
+brickxprotocol.io
+
+#BRICKX #BRX #SeedSale #ICO #Crypto`
+  },
+  {
+    title: '6. Why Batam — Location Highlight',
+    platforms: 'Instagram 1080x1080px · Twitter 1200x675px',
+    style: 'Location Map',
+    prompt: `Create a sophisticated dark location infographic highlighting Batam Island, Indonesia.
+
+STYLE: Dark luxury map/location graphic. Navy and teal. Professional investment material.
+BACKGROUND: Dark navy. Faint Southeast Asia map outline in very dim blue lines.
+
+MAIN ELEMENT: Minimalist stylized map showing:
+- Singapore island: glowing white dot, labeled
+- Batam Island: larger gold glowing dot, labeled
+- Dotted line connecting them
+- Text along line: "30 min by ferry"
+
+TITLE top: "Why Batam?" bold white serif
+
+BELOW MAP — 5 reason cards (2 columns):
+Teal: "🚢 30 Min from Singapore" | "Gateway to Asia"
+Blue: "🏭 Free Trade Zone" | "Easier permits & business"
+Green: "📈 15% Annual Growth" | "Hotel demand rising"
+Gold: "🏨 Limited 4-Star Supply" | "High occupancy rate"
+Purple: "💰 40-60% Cheaper" | "vs Jakarta & Bali"
+
+BOTTOM: "Project Hotel Batam · Budget up to $18.5M USD · BRICKX Protocol"
+FOOTER: "brickxprotocol.io"`,
+    caption: `Why Batam for our first hotel?
+
+🚢 30 min ferry from Singapore — gateway to Asia
+🏭 Indonesia Free Trade Zone
+📈 Hotel demand growing 15%/year
+🏨 Limited 4-star supply = high occupancy
+💰 Properties 40-60% cheaper than Jakarta/Bali
+🔑 Founder has 10+ years local real estate network
+
+Project Hotel Batam · Budget up to $18.5M USD
+
+#BRICKX #Batam #BatamIsland #Indonesia #RealEstate #HotelInvestment`
+  },
+  {
+    title: '7. Two-Phase Strategy Overview',
+    platforms: 'Instagram 1080x1080px · Twitter 1200x675px',
+    style: 'Strategy Two-Column',
+    prompt: `Create a clean two-column strategy infographic for a blockchain real estate protocol.
+
+STYLE: Dark professional infographic. Two colored columns. Clean minimal.
+BACKGROUND: Very dark navy.
+TITLE centered top: "BRICKX Two-Phase Strategy"
+
+LEFT CARD (blue border):
+Phase badge: "PHASE 1" blue
+Status: "LIVE NOW" green badge
+Title: "BRX ICO"
+Sub: "Build the Ecosystem"
+Bullets with blue arrows:
+• Raise $2M via BRX token sale
+• Seed: $0.008 → DEX: $0.030
+• Full marketplace + KYC + platform
+• CertiK smart contract audit
+• BRX: governance + staking
+
+RIGHT CARD (gold border):
+Phase badge: "PHASE 2" gold
+Status: "AFTER ICO" gold badge
+Title: "Hotel Token"
+Sub: "Acquire & Tokenize"
+Bullets with gold arrows:
+• Buy existing hotel Batam
+• Budget: up to $18.5M USD
+• BRICK tokens: $10.00 fixed
+• Annual dividend: 70% NOI
+• Paid in USDC every June
+
+Center arrow "→" connecting cards
+BOTTOM timeline: [Seed] → [ICO] → [Hotel] → [BRICK] → [First Dividend June]
+FOOTER: "brickxprotocol.io"`,
+    caption: `BRICKX has a clear two-phase plan:
+
+🔵 PHASE 1 — LIVE NOW
+BRX ICO → raise $2M → build ecosystem
+Seed $0.008 · DEX target $0.030 (+275%)
+
+🟡 PHASE 2 — AFTER ICO
+Acquire existing hotel Batam ($18.5M max)
+BRICK tokens $10 fixed · Annual dividend June
+
+Sequential. Transparent. Real assets.
+
+brickxprotocol.io
+
+#BRICKX #TwoPhase #ICO #RWA #RealEstate #Crypto`
+  },
+  {
+    title: '8. Fixed Price vs Speculation',
+    platforms: 'Instagram 1080x1080px · Twitter 1200x675px',
+    style: 'Comparison Dark',
+    prompt: `Create a striking comparison infographic: speculative crypto vs fixed-price yield token.
+
+STYLE: Dark comparison two-column. Bold typography. High contrast.
+BACKGROUND: Very dark navy. Split design feel.
+TITLE centered: "Two Types of Crypto Investment"
+
+LEFT COLUMN (red/dark):
+Header: "❌ Speculation"
+Visual: Jagged red price chart going wildly up and down
+List:
+• Price fluctuates daily
+• Need price UP to profit
+• 90% of traders lose money
+• Returns = speculation only
+• No underlying real asset
+
+RIGHT COLUMN (green/teal, brighter):
+Header: "✅ Fixed Yield"
+Visual: Flat teal line at $10 (stable) + separate green bar showing annual dividend
+List:
+• Price: $10.00 FOREVER
+• Earn from real hotel revenue
+• Annual USDC dividend in June
+• Returns = real rental income
+• Backed by physical hotel asset
+
+CENTER: "VS" large bold white
+
+BOTTOM HIGHLIGHT: "$10.00 · Fixed Price · Always"
+Below: "70% of hotel Net Operating Income → BRICK holders annually"
+FOOTER: "BRICKX Protocol · brickxprotocol.io"`,
+    caption: `Most crypto = buy low, hope high, get wrecked.
+
+BRICK tokens are different:
+
+❌ Speculation: price goes up → profit / down → loss
+
+✅ Fixed yield:
+Price $10.00 FOREVER
+Returns = real hotel income, paid June in USDC
+No gambling. No speculation.
+
+#BRICKX #BRICK #FixedPrice #PassiveIncome #RWA #Crypto`
+  },
+  {
+    title: '9. Referral Program — Community Growth',
+    platforms: 'Instagram 1080x1080px · Twitter 1200x675px',
+    style: 'Community Gold',
+    prompt: `Create an exciting referral program announcement for a cryptocurrency project.
+
+STYLE: Dark luxury with community/excitement energy. Gold and green. Premium feel.
+BACKGROUND: Dark navy with subtle gold particle/constellation pattern.
+
+TITLE large centered: "BRICKX REFERRAL PROGRAM"
+Sub: "Earn BRX for Every Friend You Bring"
+
+MAIN VISUAL: Simple diagram:
+[YOU icon] → share arrow → [FRIEND icon] → buys → [500 BRX badge glowing gold]
+
+REWARD BOX (gold bordered):
+"500 BRX per referral"
+"At DEX price ($0.030) = $15 per referral"
+"10 friends = $150 in BRX bonus"
+
+HOW IT WORKS (3 steps):
+1. Register at brickxprotocol.io
+2. Get your referral code
+3. Share — earn when they buy
+
+NOTE: "Active during seed sale · Bonus distributed at TGE"
+FOOTER: "brickxprotocol.io"`,
+    caption: `📢 BRICKX Referral Program is live!
+
+Earn 500 BRX per friend who joins the seed sale.
+
+At DEX price ($0.030):
+→ 1 referral = $15 BRX bonus
+→ 10 referrals = $150 BRX
+→ 50 referrals = $750 BRX
+
+How:
+1. Register at brickxprotocol.io
+2. Get your referral code
+3. Share → earn when they buy
+
+Tag a friend who needs passive income 👇
+
+#BRICKX #Referral #BRX #Crypto #PassiveIncome`
+  },
+  {
+    title: '10. Instagram Story — Daily Stats Update',
+    platforms: 'Instagram Story 1080x1920px ONLY',
+    style: 'Story Vertical',
+    prompt: `Create a vertical Instagram Story for a cryptocurrency real estate project. Dimensions: 1080x1920px (9:16 portrait).
+
+STYLE: Dark vertical story. Clean bold swipeable design. Luxury crypto.
+
+BACKGROUND: Dark navy to near-black gradient. Blue glow top-center.
+
+TOP SECTION (top quarter):
+BRICKX logo centered (white serif, X in blue)
+Small text: "Daily Seed Sale Update"
+
+MIDDLE SECTION (3 large stacked stat cards):
+Card 1 (gold accent): "38.7%" large gold number | "Seed Round Filled" | progress bar
+Card 2 (blue accent): "$0.008" | "Current Seed Price" | "→ Round 1: $0.015"
+Card 3 (green accent): "June" | "Annual Dividend Month" | "70% NOI to holders"
+
+BOTTOM SECTION:
+"153 Spots Remaining" in white
+Large gold/orange CTA: "JOIN NOW →"
+"brickxprotocol.io"
+
+Swipe-up indicator at very bottom.
+Mobile-optimized, high contrast, no small text.`,
+    caption: `📊 BRICKX Seed Sale Update
+
+38.7% filled · 153 spots left
+$0.008/BRX current price
+
+Round 1: $0.015 (+87.5%)
+
+Annual dividend paid every June
+70% hotel NOI → holders
+Fixed BRICK token: $10.00
+
+Min $100 · brickxprotocol.io
+
+#BRICKX #BRX #SeedSale`
+  },
+];
+
+function makeAiCards() {
+  var container = document.getElementById('ai-cards-list');
+  if (!container) return;
+  container.innerHTML = '';
+  AI_PROMPTS.forEach(function(p, i) {
+    var pid = 'ai-p-' + i;
+    var cid = 'ai-c-' + i;
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--bg2);border:1px solid rgba(139,92,246,.2);border-radius:16px;overflow:hidden;margin-bottom:14px;transition:all .3s';
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:14px 18px;border-bottom:1px solid rgba(139,92,246,.15);background:rgba(139,92,246,.04);display:flex;align-items:flex-start;justify-content:space-between;gap:12px';
+    hdr.innerHTML = '<div><div style="font-size:14px;font-weight:700;color:var(--white);margin-bottom:4px">' + p.title + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + p.platforms + '</div>'
+      + '<span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:var(--gold);border-radius:100px;padding:2px 10px;font-size:10px;font-weight:700">' + p.style + '</span></div>';
+
+    // Body
+    var body = document.createElement('div');
+    body.style.cssText = 'padding:18px';
+
+    // Prompt box
+    var pLbl = document.createElement('div');
+    pLbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8B5CF6;margin-bottom:8px';
+    pLbl.textContent = '✨ AI IMAGE PROMPT — Paste into Gemini / Midjourney / Adobe Firefly';
+
+    var pBox = document.createElement('div');
+    pBox.style.cssText = 'background:var(--bg1);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:14px;font-size:11px;color:var(--off);line-height:1.75;font-family:var(--mono);margin-bottom:14px;position:relative;white-space:pre-wrap';
+    pBox.id = pid;
+    pBox.textContent = p.prompt;
+
+    var pBtn = document.createElement('button');
+    pBtn.style.cssText = 'position:absolute;top:10px;right:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:7px;color:#8B5CF6;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--f)';
+    pBtn.textContent = 'Copy Prompt';
+    pBtn.onclick = (function(bid, btn) { return function() {
+      navigator.clipboard.writeText(document.getElementById(bid).textContent).then(function() {
+        btn.textContent = 'Copied!';
+        btn.style.background = 'rgba(16,185,129,.12)';
+        btn.style.color = 'var(--green)';
+        setTimeout(function() { btn.textContent = 'Copy Prompt'; btn.style.background = 'rgba(139,92,246,.15)'; btn.style.color = '#8B5CF6'; }, 2000);
+        showToast();
+      });
+    }; })(pid, pBtn);
+    pBox.style.position = 'relative';
+    pBox.appendChild(pBtn);
+
+    // Caption box
+    var cLbl = document.createElement('div');
+    cLbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blueL);margin-bottom:8px';
+    cLbl.textContent = '📝 POST CAPTION — Copy & paste alongside generated image';
+
+    var cBox = document.createElement('div');
+    cBox.style.cssText = 'background:rgba(26,86,219,.05);border:1px solid rgba(26,86,219,.15);border-radius:10px;padding:14px;font-size:12px;color:var(--off);line-height:1.75;margin-bottom:10px;white-space:pre-wrap;position:relative';
+    cBox.id = cid;
+    cBox.textContent = p.caption;
+
+    var cBtn = document.createElement('button');
+    cBtn.style.cssText = 'position:absolute;top:10px;right:10px;background:rgba(26,86,219,.1);border:none;color:var(--blueL);padding:4px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--f)';
+    cBtn.textContent = 'Copy Caption';
+    cBtn.onclick = (function(bid, btn) { return function() {
+      navigator.clipboard.writeText(document.getElementById(bid).textContent).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy Caption'; }, 2000);
+        showToast();
+      });
+    }; })(cid, cBtn);
+    cBox.appendChild(cBtn);
+
+    // How-to note
+    var note = document.createElement('div');
+    note.style.cssText = 'background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7';
+    note.innerHTML = '<strong style="color:var(--green)">How to use in Gemini:</strong> Go to <a href="https://gemini.google.com" target="_blank" style="color:var(--blueL)">gemini.google.com</a> → click image generation → paste prompt → generate → download best result → post with the caption above.';
+
+    body.appendChild(pLbl);
+    body.appendChild(pBox);
+    body.appendChild(cLbl);
+    body.appendChild(cBox);
+    body.appendChild(note);
+    card.appendChild(hdr);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+// Extend show() to handle aiprompts page
+var _originalShow = show;
+show = function(page) {
+  _originalShow(page);
+  if (page === 'aiprompts') {
+    var el = document.getElementById('pg-aiprompts');
+    if (el) el.className = '';
+    makeAiCards();
+  }
+};
+
+renderAll();
+</script>
+</body>
+</html>

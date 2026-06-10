@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRICKX Protocol — Real Estate Tokenized On-Chain</title>
+<meta name="description" content="Buy fractional real estate from $100. Earn annual dividend from hotels. Fixed token price. Powered by Polygon.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020509;--bg1:#060D18;--bg2:#0A1628;--bg3:#0F2040;
+  --blue:#1A56DB;--blueL:#3B82F6;--teal:#14B8A6;
+  --green:#10B981;--gold:#F59E0B;--red:#EF4444;
+  --white:#fff;--off:#E2E8F0;--muted:#64748B;--dim:#374151;
+  --border:rgba(26,86,219,0.12);
+  --f:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;--serif:'Playfair Display',serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--blue);border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes scan{0%{top:-5%}100%{top:105%}}
+.blink{animation:blink 2s ease infinite}
+
+/* BG */
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(26,86,219,.035)1px,transparent 1px),linear-gradient(90deg,rgba(26,86,219,.035)1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
+.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:65vh;background:radial-gradient(ellipse at 50% 0%,rgba(26,86,219,.13)0%,transparent 65%);pointer-events:none;z-index:0}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(2,5,9,.94);border-bottom:1px solid var(--border);backdrop-filter:blur(24px);padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nav-logo{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--white);letter-spacing:1px;flex-shrink:0}
+.nav-logo span{color:var(--blueL)}
+.nav-links{display:flex;align-items:center;gap:18px}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--white)}
+.nav-cta{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--f);white-space:nowrap;flex-shrink:0}
+.nav-cta:hover{background:var(--blueL)}
+@media(max-width:600px){.nav-links{display:none}}
+
+/* LAYOUT */
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* HERO */
+.hero{padding:72px 0 56px;text-align:center}
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:100px;padding:7px 18px;font-size:11px;font-weight:700;color:var(--green);letter-spacing:1.5px;margin-bottom:24px}
+.hero h1{font-family:var(--serif);font-size:clamp(44px,9vw,84px);font-weight:900;color:var(--white);line-height:.92;letter-spacing:-2px;margin-bottom:20px}
+.hero h1 .gold{color:var(--gold)}
+.hero h1 .gr{background:linear-gradient(135deg,var(--blueL),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(15px,2.2vw,18px);color:var(--muted);max-width:540px;margin:0 auto 32px;line-height:1.75}
+
+/* PHASE BADGES */
+.phase-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
+.pbadge{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600}
+.pbadge.live{background:rgba(26,86,219,.12);border:1px solid rgba(26,86,219,.28);color:var(--blueL)}
+.pbadge.next{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--gold)}
+.pbadge .pnum{font-size:9px;font-weight:800;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pbadge.live .pnum{background:var(--blue);color:#fff}
+.pbadge.next .pnum{background:rgba(245,158,11,.2);color:var(--gold)}
+.pstatus{font-size:9px;font-weight:800;padding:2px 9px;border-radius:100px;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+
+/* CTA */
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px}
+.btn-main{background:linear-gradient(135deg,var(--gold),#F97316);color:#000;border:none;border-radius:12px;padding:15px 30px;font-size:15px;font-weight:800;cursor:pointer;transition:all .25s;font-family:var(--f)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(245,158,11,.28);filter:brightness(1.06)}
+.btn-sec{background:transparent;color:var(--off);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:15px 26px;font-size:14px;font-weight:600;cursor:pointer;transition:all .25s;font-family:var(--f)}
+.btn-sec:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.04)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:680px){.stats-grid{grid-template-columns:1fr 1fr}}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 14px;text-align:center;position:relative;overflow:hidden}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.scard:nth-child(1)::before{background:var(--gold)}
+.scard:nth-child(2)::before{background:var(--blueL)}
+.scard:nth-child(3)::before{background:var(--teal)}
+.scard:nth-child(4)::before{background:var(--green)}
+.sval{font-size:clamp(20px,4vw,28px);font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:5px}
+.slbl{font-size:10px;color:var(--muted);letter-spacing:.5px}
+
+/* PROGRESS BAR */
+.pb{background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden;height:8px}
+.pf{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--gold),#F97316)}
+
+/* SECTIONS */
+section{padding:60px 0}
+.sec-tag{display:block;font-size:10px;color:var(--blueL);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+.sec-title{font-family:var(--serif);font-size:clamp(26px,5vw,42px);font-weight:900;color:var(--white);line-height:1.1;margin-bottom:12px}
+.sec-sub{font-size:14px;color:var(--muted);line-height:1.75;max-width:560px}
+
+/* PHASE CARDS */
+.phases-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+@media(max-width:680px){.phases-grid{grid-template-columns:1fr}}
+.pcard{border-radius:18px;padding:26px;position:relative;overflow:hidden}
+.pcard.p1{background:rgba(26,86,219,.06);border:1px solid rgba(26,86,219,.2)}
+.pcard.p2{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18)}
+.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.pcard.p1::before{background:linear-gradient(90deg,var(--blue),var(--teal))}
+.pcard.p2::before{background:linear-gradient(90deg,var(--gold),#F97316)}
+.pcard-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pcard-hdr .ph-num{font-size:10px;font-weight:800;letter-spacing:2px;color:var(--muted)}
+.pcard h3{font-family:var(--serif);font-size:22px;font-weight:800;color:var(--white);margin-bottom:10px;line-height:1.2}
+.pcard p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:14px}
+.plist{list-style:none;display:flex;flex-direction:column;gap:7px}
+.plist li{display:flex;gap:9px;font-size:13px;color:var(--muted);line-height:1.5;align-items:flex-start}
+.plist li .arr{color:var(--blueL);font-weight:700;flex-shrink:0;margin-top:1px}
+.pcard.p2 .plist li .arr{color:var(--gold)}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+@media(max-width:800px){.steps{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){.steps{grid-template-columns:1fr}}
+.step{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px}
+.snum{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;font-family:var(--mono);margin-bottom:14px;border:1px solid}
+.snum.n1{background:rgba(26,86,219,.12);color:var(--blueL);border-color:rgba(26,86,219,.3)}
+.snum.n2{background:rgba(20,184,166,.12);color:var(--teal);border-color:rgba(20,184,166,.3)}
+.snum.n3{background:rgba(16,185,129,.12);color:var(--green);border-color:rgba(16,185,129,.3)}
+.snum.n4{background:rgba(245,158,11,.12);color:var(--gold);border-color:rgba(245,158,11,.3)}
+.step h4{font-size:14px;font-weight:700;color:var(--white);margin-bottom:7px}
+.step p{font-size:12px;color:var(--muted);line-height:1.65}
+
+/* HOTEL CARD */
+.hotel-card{background:var(--bg2);border:1px solid rgba(245,158,11,.18);border-radius:18px;padding:26px;margin-top:28px;position:relative;overflow:hidden}
+.hotel-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#F97316)}
+.hbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:100px;padding:5px 14px;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1px;margin-bottom:14px}
+.hotel-card h3{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--white);margin-bottom:7px}
+.hotel-card .hsub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.65}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:640px){.hstats{grid-template-columns:1fr 1fr}}
+.hstat{background:var(--bg3);border-radius:10px;padding:13px 10px;text-align:center}
+.hstat .v{font-size:18px;font-weight:800;color:var(--gold);font-family:var(--mono);margin-bottom:4px}
+.hstat .l{font-size:10px;color:var(--muted);letter-spacing:.3px}
+.hwhy{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+@media(max-width:560px){.hwhy{grid-template-columns:1fr}}
+.why-item{display:flex;gap:10px;font-size:13px;color:var(--muted);align-items:flex-start;padding:11px;background:var(--bg3);border-radius:9px;line-height:1.5}
+.why-item .ic{font-size:16px;flex-shrink:0}
+.why-item strong{color:var(--off)}
+.conf-note{background:rgba(26,86,219,.07);border:1px solid rgba(26,86,219,.18);border-radius:9px;padding:12px 16px;font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:flex-start;margin-top:16px;line-height:1.6}
+
+/* DIVIDEND */
+.div-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+@media(max-width:680px){.div-grid{grid-template-columns:1fr}}
+.div-box{background:var(--bg2);border-radius:16px;padding:22px}
+.div-box.calc{border:1px solid rgba(16,185,129,.2)}
+.div-box.cal{border:1px solid rgba(245,158,11,.18)}
+.div-box h4{font-size:14px;font-weight:700;color:var(--white);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.crow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.crow:last-child{border-bottom:none}
+.crow .ck{color:var(--muted)}
+.crow .cv{font-weight:600;color:var(--white);font-family:var(--mono);font-size:12px;text-align:right}
+.crow .cv.gold{color:var(--gold)}
+.crow .cv.green{color:var(--green)}
+.calrow{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start;font-size:13px}
+.calrow:last-child{border-bottom:none}
+.calrow .cm{font-weight:700;color:var(--gold);min-width:72px;font-family:var(--mono);font-size:12px;flex-shrink:0;padding-top:1px}
+.calrow .cd{color:var(--muted);line-height:1.6}
+.calrow.hl{background:rgba(16,185,129,.07);border-radius:8px;padding:11px 10px;margin:4px -10px;border-bottom:none}
+.calrow.hl .cm{color:var(--green)}
+.calrow.hl .cd{color:var(--off);font-weight:600}
+
+/* TOKENOMICS */
+.tok-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+@media(max-width:680px){.tok-grid{grid-template-columns:1fr}}
+.tok-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:22px}
+.tok-box h4{font-size:14px;font-weight:700;color:var(--white);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.trow{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.trow:last-child{border-bottom:none;font-weight:700;padding-top:10px;margin-top:2px}
+.trow .tk{color:var(--muted)}
+.trow .tv{font-weight:600;color:var(--white);font-family:var(--mono);font-size:12px}
+.price-ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.pstep{border-radius:9px;padding:12px 6px;text-align:center;border:1px solid}
+.pstep.cur{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35)}
+.pstep.up{background:var(--bg3);border-color:rgba(255,255,255,.06)}
+.pstep .pr{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase}
+.pstep .pv{font-size:15px;font-weight:800;font-family:var(--mono);margin-bottom:3px}
+.pstep.cur .pv{color:var(--gold)}
+.pstep.up .pv{color:var(--off)}
+.pstep .pc{font-size:10px;font-weight:700;color:var(--green)}
+.pstep.cur .pc{color:var(--gold);font-size:9px}
+
+/* COMPARISON */
+.comp-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);margin-top:28px}
+table.comp{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+table.comp th{padding:10px 14px;text-align:center;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border)}
+table.comp th:first-child{text-align:left}
+table.comp td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center;color:var(--muted);font-size:12px}
+table.comp td:first-child{text-align:left;color:var(--off);font-size:13px}
+table.comp tr:hover td{background:rgba(26,86,219,.03)}
+table.comp tr:last-child td{border-bottom:none}
+.chk{color:var(--green);font-size:15px;font-weight:700}
+.xmk{color:var(--dim);font-size:13px}
+.bxcol{background:rgba(26,86,219,.05);color:var(--white)!important;font-weight:700}
+
+/* FAQ */
+.faq-list{margin-top:28px;display:flex;flex-direction:column;gap:8px}
+.faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.faq-q{padding:15px 20px;font-size:14px;font-weight:600;color:var(--white);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .2s;gap:12px}
+.faq-q:hover{background:rgba(26,86,219,.06)}
+.faq-q .arr{font-size:11px;color:var(--muted);transition:transform .25s;flex-shrink:0}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.faq-a p{padding:0 20px 16px;font-size:13px;color:var(--muted);line-height:1.75}
+.faq-item.open .faq-a{max-height:220px}
+.faq-item.open .arr{transform:rotate(180deg)}
+
+/* REGISTER */
+.reg-section{background:var(--bg2);border:1px solid rgba(26,86,219,.2);border-radius:20px;padding:36px 28px;text-align:center;margin:56px 0;position:relative;overflow:hidden}
+.reg-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(26,86,219,.1)0%,transparent 70%);pointer-events:none}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(26,86,219,.4),transparent);animation:scan 4s ease-in-out infinite;pointer-events:none}
+.reg-section h2{font-family:var(--serif);font-size:clamp(26px,5vw,40px);font-weight:900;color:var(--white);margin-bottom:10px}
+.reg-section p{font-size:14px;color:var(--muted);margin-bottom:26px;line-height:1.7}
+.reg-form{display:flex;gap:10px;max-width:440px;margin:0 auto 14px;flex-wrap:wrap}
+.reg-form input{flex:1;min-width:180px;background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:13px 15px;color:var(--off);font-size:14px;font-family:var(--f);outline:none;transition:border .2s}
+.reg-form input:focus{border-color:var(--blueL)}
+.reg-form button{background:var(--gold);color:#000;border:none;border-radius:10px;padding:13px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--f);white-space:nowrap;transition:all .2s}
+.reg-form button:hover{filter:brightness(1.08)}
+.reg-note{font-size:11px;color:var(--dim)}
+.trust-row{display:flex;gap:14px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.trust-item{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
+.f-logo{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--white);margin-bottom:12px}
+.f-logo span{color:var(--blueL)}
+.f-links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.f-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color .2s}
+.f-links a:hover{color:var(--white)}
+.f-disc{font-size:11px;color:var(--dim);max-width:580px;margin:0 auto;line-height:1.7}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);border-radius:11px;padding:11px 16px;font-size:12px;font-weight:600;color:var(--green);display:none;align-items:center;gap:7px}
+#toast.show{display:flex;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div id="toast">✓ Registered! Check your email.</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">BRICK<span>X</span></div>
+  <div class="nav-links">
+    <a href="#phases">Strategy</a>
+    <a href="#how">How It Works</a>
+    <a href="#hotel">Hotel Project</a>
+    <a href="#dividend">Dividend</a>
+    <a href="#tokenomics">BRX Token</a>
+  </div>
+  <button class="nav-cta" onclick="scrollToReg()">Join Seed Sale →</button>
+</nav>
+
+<div class="wrap">
+
+<!-- HERO -->
+<section class="hero">
+  <div class="live-badge">
+    <span class="blink" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
+    BRX SEED SALE LIVE — $0.008 / BRX
+  </div>
+
+  <h1>Real Estate.<br><span class="gr">Tokenized.</span><br>For <span class="gold">Everyone.</span></h1>
+
+  <p class="hero-sub">Buy fractional ownership of income-generating hotels. Earn annual dividend in USDC. Fixed token price. Starting from just $100. Powered by Polygon.</p>
+
+  <div class="phase-row">
+    <div class="pbadge live">
+      <span class="pnum">1</span>
+      Phase 1: BRX ICO
+      <span class="pstatus">LIVE NOW</span>
+    </div>
+    <div class="pbadge next">
+      <span class="pnum">2</span>
+      Phase 2: Hotel Tokenization — After ICO
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn-main" onclick="scrollToReg()">🌱 Join Seed Sale — $0.008 / BRX</button>
+    <button class="btn-sec" onclick="window.open('https://docs.brickxprotocol.io')">Read Whitepaper →</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="scard">
+      <div class="sval" style="color:var(--gold)">$0.008</div>
+      <div class="slbl">Seed Price / BRX</div>
+    </div>
+    <div class="scard">
+      <div class="sval" style="color:var(--blueL)">$2M</div>
+      <div class="slbl">ICO Raise Target</div>
+    </div>
+    <div class="scard">
+      <div class="sval" style="color:var(--teal)">$18.5M</div>
+      <div class="slbl">Hotel Budget (USD)</div>
+    </div>
+    <div class="scard">
+      <div class="sval" style="color:var(--green)">June</div>
+      <div class="slbl">Annual Dividend</div>
+    </div>
+  </div>
+
+  <!-- SEED PROGRESS -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:14px;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--white)">Seed Round Progress</div>
+      <div style="font-size:12px;color:var(--gold);font-weight:700">38.7% Filled · 847 Investors</div>
+    </div>
+    <div class="pb" style="margin-bottom:8px"><div class="pf" style="width:38.7%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+      <span>$247,500 raised</span><span>$640,000 hard cap</span>
+    </div>
+  </div>
+</section>
+
+<!-- TWO PHASE STRATEGY -->
+<section id="phases">
+  <span class="sec-tag">Strategy</span>
+  <div class="sec-title">Two-Phase Approach</div>
+  <p class="sec-sub">Phase 1 builds the ecosystem. Phase 2 acquires and tokenizes the hotel. Each phase is independently funded.</p>
+
+  <div class="phases-grid">
+    <div class="pcard p1">
+      <div class="pcard-hdr">
+        <span class="ph-num">PHASE 1</span>
+        <span style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:2px 10px;font-size:9px;font-weight:800">LIVE NOW</span>
+      </div>
+      <h3>BRX ICO —<br>Build the Ecosystem</h3>
+      <p>Raise $2M via BRX token sale to fund platform development, smart contracts, KYC infrastructure, and marketplace. BRX holders receive governance rights and staking rewards.</p>
+      <ul class="plist">
+        <li><span class="arr">→</span>Seed Round: $0.008/BRX · Hard cap $640K</li>
+        <li><span class="arr">→</span>ICO Round 1 & 2 · DEX listing at $0.030</li>
+        <li><span class="arr">→</span>Full marketplace + KYC + admin panel live</li>
+        <li><span class="arr">→</span>Smart contract audit (CertiK)</li>
+        <li><span class="arr">→</span>BRX: governance voting + staking rewards</li>
+      </ul>
+    </div>
+    <div class="pcard p2">
+      <div class="pcard-hdr">
+        <span class="ph-num">PHASE 2</span>
+        <span style="background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25);border-radius:100px;padding:2px 10px;font-size:9px;font-weight:800">AFTER ICO COMPLETE</span>
+      </div>
+      <h3>Hotel Acquisition —<br>Tokenize & Earn</h3>
+      <p>Use the ICO-funded ecosystem to acquire an operating hotel in Batam, Indonesia. Budget up to $18.5M. Issue BRICK tokens at $10 fixed price. Annual dividend from real hotel revenue.</p>
+      <ul class="plist">
+        <li><span class="arr">→</span>Buy existing hotel — revenue from day one</li>
+        <li><span class="arr">→</span>Budget: up to $18.5M USD</li>
+        <li><span class="arr">→</span>Issue BRICK tokens at $10.00 fixed price</li>
+        <li><span class="arr">→</span>70% of Net Operating Income → holders</li>
+        <li><span class="arr">→</span>Annual dividend paid each June</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <span class="sec-tag">Process</span>
+  <div class="sec-title">How It Works</div>
+  <p class="sec-sub">Four simple steps from registration to earning annual dividend income.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="snum n1">01</div>
+      <h4>Register & KYC</h4>
+      <p>Create account, add your Polygon wallet address, and complete identity verification via Sumsub. Takes about 5 minutes. Free.</p>
+    </div>
+    <div class="step">
+      <div class="snum n2">02</div>
+      <h4>Buy BRX — Seed Round</h4>
+      <p>Send USDT/USDC to our treasury wallet. System auto-detects on-chain. Minimum $100. BRX allocated to your wallet instantly.</p>
+    </div>
+    <div class="step">
+      <div class="snum n3">03</div>
+      <h4>Access Marketplace</h4>
+      <p>After TGE — use the platform to purchase BRICK property tokens. Fixed $10.00 per token. Choose which hotel to invest in.</p>
+    </div>
+    <div class="step">
+      <div class="snum n4">04</div>
+      <h4>Earn Annual Dividend</h4>
+      <p>Hotel generates revenue. December fiscal close → independent audit → April announcement → June dividend paid in USDC automatically.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOTEL PROJECT -->
+<section id="hotel">
+  <span class="sec-tag">Phase 2 Project</span>
+  <div class="sec-title">Project Hotel Batam</div>
+  <p class="sec-sub">First acquisition target: an existing, operating hotel in Batam Island, Indonesia. Hotel name disclosed after acquisition closes.</p>
+
+  <div class="hotel-card">
+    <div class="hbadge">🏨 PHASE 2 — UNDER IDENTIFICATION</div>
+    <h3>Project Hotel Batam</h3>
+    <p class="hsub">We are acquiring an existing 3-4 star hotel that is already operating in Batam. Revenue starts from day one — no 2-3 year construction wait. Total budget up to $18.5M USD. Hotel name and exact location will be disclosed after the Sale and Purchase Agreement is signed. Investors are notified first.</p>
+
+    <div class="hstats">
+      <div class="hstat">
+        <div class="v">$18.5M</div>
+        <div class="l">Max Budget (USD)</div>
+      </div>
+      <div class="hstat">
+        <div class="v">$10.00</div>
+        <div class="l">Fixed BRICK Price</div>
+      </div>
+      <div class="hstat">
+        <div class="v">~5–8%</div>
+        <div class="l">Estimated APY</div>
+      </div>
+      <div class="hstat">
+        <div class="v">June</div>
+        <div class="l">Annual Dividend</div>
+      </div>
+    </div>
+
+    <div class="hwhy">
+      <div class="why-item"><span class="ic">✅</span><div><strong>Immediately Operational</strong> — Revenue starts from day one. No 2-3 year construction wait.</div></div>
+      <div class="why-item"><span class="ic">📊</span><div><strong>Proven Track Record</strong> — Occupancy history and P&L available. Thorough due diligence possible.</div></div>
+      <div class="why-item"><span class="ic">💰</span><div><strong>Capital Efficient</strong> — Buy existing at $12.3–$18.5M vs. building new at $18.5–$24.7M. Smarter allocation.</div></div>
+      <div class="why-item"><span class="ic">🚢</span><div><strong>Batam Is Strategic</strong> — 30 minutes by ferry from Singapore. Free Trade Zone. Stable business demand.</div></div>
+    </div>
+
+    <div class="conf-note">
+      <span style="font-size:16px;flex-shrink:0">🔒</span>
+      <span>Hotel name and exact location is <strong style="color:var(--off)">confidential</strong> until acquisition closes. Target identified — Letter of Intent in preparation Q2 2026. All seed investors will be notified before the BRICK hotel token sale launches.</span>
+    </div>
+  </div>
+</section>
+
+<!-- DIVIDEND MODEL -->
+<section id="dividend">
+  <span class="sec-tag">Returns</span>
+  <div class="sec-title">Annual Dividend Model</div>
+  <p class="sec-sub">70% of hotel Net Operating Income goes to BRICK token holders every year. Paid in USDC each June. Zero speculation — pure yield income.</p>
+
+  <div class="div-grid">
+    <div class="div-box calc">
+      <h4>📊 Example Calculation (Base Case · $18.5M Hotel)</h4>
+      <div class="crow"><span class="ck">Hotel Acquisition Budget</span><span class="cv">$18,500,000</span></div>
+      <div class="crow"><span class="ck">Total BRICK Tokens Issued</span><span class="cv">1,850,000 @ $10</span></div>
+      <div class="crow"><span class="ck">Rooms / ADR / Occupancy</span><span class="cv">100 · $95 · 72%</span></div>
+      <div class="crow"><span class="ck">Annual Gross Revenue</span><span class="cv">$2,462,400</span></div>
+      <div class="crow"><span class="ck">Net Operating Income (55%)</span><span class="cv">$1,354,320</span></div>
+      <div class="crow"><span class="ck">70% to Holders (Annual Pool)</span><span class="cv green">$948,024 / year</span></div>
+      <div class="crow"><span class="ck">Annual Dividend Per Token</span><span class="cv gold">$0.51 / BRICK</span></div>
+      <div class="crow" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:12px">
+        <span class="ck" style="color:var(--off);font-weight:600;font-size:14px">Annual APY</span>
+        <span class="cv gold" style="font-size:20px">~5.1%</span>
+      </div>
+      <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.14);border-radius:9px;padding:11px;margin-top:12px;font-size:12px;color:var(--gold);line-height:1.6">
+        ✓ Token price stays at $10.00 permanently. Your returns come from yield income only — zero price speculation.
+      </div>
+    </div>
+
+    <div class="div-box cal">
+      <h4>📅 Annual Dividend Cycle</h4>
+      <div class="calrow"><span class="cm">Jan – Dec</span><span class="cd">Hotel operations — monthly revenue and expenses recorded by hotel management team.</span></div>
+      <div class="calrow"><span class="cm">Dec 31</span><span class="cd">Fiscal year close. Snapshot of all BRICK token wallet holders taken on this date.</span></div>
+      <div class="calrow"><span class="cm">Jan – Mar</span><span class="cd">Independent financial audit of annual hotel P&L. Full verification of all revenue and expense figures.</span></div>
+      <div class="calrow"><span class="cm">April</span><span class="cd">BRICKX announces the dividend amount per BRICK token for the completed fiscal year.</span></div>
+      <div class="calrow hl">
+        <span class="cm">🟢 JUNE</span>
+        <span class="cd">USDC dividend auto-transferred to all BRICK token holder wallets via smart contract. No claim needed — directly into your wallet.</span>
+      </div>
+      <div class="calrow"><span class="cm">Repeat</span><span class="cd">Cycle repeats every year for as long as the hotel operates — perpetual annual dividend model.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENOMICS -->
+<section id="tokenomics">
+  <span class="sec-tag">BRX Token</span>
+  <div class="sec-title">BRX Tokenomics</div>
+  <p class="sec-sub">1,000,000,000 BRX fixed forever. 0% VC allocation. 76% to community. BRX grants governance rights, staking rewards, and protocol access.</p>
+
+  <div class="tok-grid">
+    <div class="tok-box">
+      <h4>Token Allocation</h4>
+      <div class="trow"><span class="tk">Ecosystem & Staking</span><span class="tv">350,000,000 — 35%</span></div>
+      <div class="trow"><span class="tk">ICO Public Sale</span><span class="tv">150,000,000 — 15%</span></div>
+      <div class="trow"><span class="tk">Team (3-year vested)</span><span class="tv">120,000,000 — 12%</span></div>
+      <div class="trow"><span class="tk">Strategic Partners</span><span class="tv">100,000,000 — 10%</span></div>
+      <div class="trow"><span class="tk">Seed Sale</span><span class="tv">80,000,000 — 8%</span></div>
+      <div class="trow"><span class="tk">Marketing & KOL</span><span class="tv">80,000,000 — 8%</span></div>
+      <div class="trow"><span class="tk">DEX Liquidity (Locked)</span><span class="tv">70,000,000 — 7%</span></div>
+      <div class="trow"><span class="tk">DAO Reserve</span><span class="tv">50,000,000 — 5%</span></div>
+      <div class="trow"><span class="tk" style="color:var(--blueL);font-weight:700">Total Supply (Fixed)</span><span class="tv" style="color:var(--gold)">1,000,000,000</span></div>
+    </div>
+
+    <div class="tok-box">
+      <h4>Price Progression</h4>
+      <div class="price-ladder">
+        <div class="pstep cur">
+          <div class="pr">Seed</div>
+          <div class="pv">$0.008</div>
+          <div class="pc">YOU ARE HERE</div>
+        </div>
+        <div class="pstep up">
+          <div class="pr">Round 1</div>
+          <div class="pv">$0.015</div>
+          <div class="pc">+87.5%</div>
+        </div>
+        <div class="pstep up">
+          <div class="pr">Round 2</div>
+          <div class="pv">$0.022</div>
+          <div class="pc">+175%</div>
+        </div>
+        <div class="pstep up">
+          <div class="pr">DEX</div>
+          <div class="pv">$0.030</div>
+          <div class="pc">+275%</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between">
+          <span>Seed lock period:</span><span style="color:var(--off)">12 months</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between">
+          <span>Linear vesting:</span><span style="color:var(--off)">24 months after lock</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between">
+          <span>Minimum investment:</span><span style="color:var(--off)">$100</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between">
+          <span>Max per wallet:</span><span style="color:var(--off)">$50,000</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between">
+          <span>Accepted:</span><span style="color:var(--off)">USDT / USDC / ETH / BNB</span>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px">
+          <span>Seed sold: 38.7%</span><span style="color:var(--gold);font-weight:600">$247,500 of $640,000</span>
+        </div>
+        <div class="pb"><div class="pf" style="width:38.7%"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section>
+  <span class="sec-tag">Why BRICKX</span>
+  <div class="sec-title">BRICKX vs The Alternatives</div>
+  <div class="comp-wrap">
+    <table class="comp">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th style="color:var(--gold)">BRICKX</th>
+          <th>RealT</th>
+          <th>Lofty.ai</th>
+          <th>Traditional RE</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Minimum Investment</td>
+          <td class="bxcol">$100</td>
+          <td>$50</td>
+          <td>$50</td>
+          <td>$500K+</td>
+        </tr>
+        <tr>
+          <td>Fixed Token Price (no speculation)</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+        </tr>
+        <tr>
+          <td>Annual Audited Dividend</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td>Monthly (estimated)</td>
+          <td>Monthly (estimated)</td>
+          <td>Varies</td>
+        </tr>
+        <tr>
+          <td>Hotel / Hospitality Assets</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="chk">✓</span></td>
+        </tr>
+        <tr>
+          <td>Open to SE Asia Investors</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td>Limited</td>
+          <td>Limited</td>
+          <td>Restricted</td>
+        </tr>
+        <tr>
+          <td>0% VC Allocation</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td>Marketplace Liquidity</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td><span class="chk">✓</span></td>
+          <td><span class="chk">✓</span></td>
+          <td><span class="xmk">✗</span></td>
+        </tr>
+        <tr>
+          <td>Governance Token (voting)</td>
+          <td class="bxcol"><span class="chk">✓</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+          <td><span class="xmk">✗</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section>
+  <span class="sec-tag">FAQ</span>
+  <div class="sec-title">Common Questions</div>
+
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What is the difference between BRX and BRICK tokens? <span class="arr">▼</span></div>
+      <div class="faq-a"><p><strong style="color:var(--off)">BRX</strong> is the governance and utility token for the BRICKX ecosystem — purchased in the ICO, used for voting, staking, and fee discounts. <strong style="color:var(--off)">BRICK</strong> is the property token for a specific hotel — fixed price of $10, bought on the platform after TGE, earns annual dividend from that hotel's revenue.</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">When is the first dividend paid? <span class="arr">▼</span></div>
+      <div class="faq-a"><p>First dividend: <strong style="color:var(--gold)">June 2028</strong> (for fiscal year 2027). Timeline: Hotel acquisition Q4 2026 → operations begin 2027 → fiscal close December 31, 2027 → independent audit Q1 2028 → dividend announcement April 2028 → <strong style="color:var(--green)">USDC payment June 2028</strong>.</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Why is the hotel name confidential? <span class="arr">▼</span></div>
+      <div class="faq-a"><p>This is standard M&A practice. Early disclosure can increase the seller's asking price or complicate negotiations. Once the Sale and Purchase Agreement is signed, the hotel name, location, financial details, and full due diligence report will be published to all investors before the BRICK token sale launches.</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What is the minimum investment? <span class="arr">▼</span></div>
+      <div class="faq-a"><p>BRX seed round: minimum <strong style="color:var(--off)">$100 USDC</strong>. BRICK hotel token: minimum 1 token = <strong style="color:var(--off)">$10.00</strong>. There is no minimum holding requirement for dividend — all holders receive a pro-rata share based on tokens held at the December 31 snapshot date.</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">What happens if the ICO does not reach its target? <span class="arr">▼</span></div>
+      <div class="faq-a"><p>If the raise target is not met, all investors receive a full refund. Smart contract escrow ensures funds remain secure. Hotel acquisition will only proceed after the ICO ecosystem is fully funded and the platform is operational.</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">How do I sell my BRICK tokens? <span class="arr">▼</span></div>
+      <div class="faq-a"><p>List your BRICK tokens on the BRICKX marketplace at the fixed $10 price. When a buyer purchases, the transfer happens instantly and USDC is deposited into your wallet. There is no lock period for BRICK tokens — you can list and sell at any time.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTER -->
+<div class="reg-section" id="register">
+  <div class="scan-line"></div>
+  <h2>Join the Seed Sale</h2>
+  <p>Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).<br>Only <strong style="color:var(--gold)">153 spots remaining</strong> in seed allocation.</p>
+  <div class="reg-form">
+    <input type="email" id="reg-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doRegister()">
+    <button onclick="doRegister()">Register Now →</button>
+  </div>
+  <p class="reg-note">Free to register · KYC required before purchase · USDT / USDC / ETH / BNB accepted</p>
+  <div class="trust-row">
+    <div class="trust-item">🔒 SSL Encrypted</div>
+    <div class="trust-item">✓ GDPR Compliant</div>
+    <div class="trust-item">📋 No Spam</div>
+    <div class="trust-item">⚡ Polygon Network</div>
+    <div class="trust-item">🛡 KYC via Sumsub</div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="f-logo">BRICK<span>X</span> Protocol</div>
+    <div class="f-links">
+      <a href="#phases">Strategy</a>
+      <a href="#hotel">Hotel Project</a>
+      <a href="#dividend">Dividend Model</a>
+      <a href="#tokenomics">BRX Token</a>
+      <a href="https://docs.brickxprotocol.io" target="_blank">Whitepaper</a>
+      <a href="https://t.me/brickxprotocol" target="_blank">Telegram</a>
+      <a href="https://twitter.com/brickxprotocol" target="_blank">Twitter</a>
+    </div>
+    <p class="f-disc">
+      © 2026 BRICKX Protocol · seed@brickxprotocol.io<br>
+      This is not financial advice. Cryptocurrency and real estate token investments carry significant risk. All projected returns are estimates based on assumptions and are not guaranteed. Please conduct your own research before investing.
+    </p>
+  </div>
+</footer>
+
+<script>
+function scrollToReg(){
+  document.getElementById('register').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function doRegister(){
+  var email = document.getElementById('reg-email').value.trim();
+  var inp = document.getElementById('reg-email');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(function(){ inp.style.borderColor = ''; }, 2000);
+    return;
+  }
+  var t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3500);
+  inp.value = '';
+}
+
+function toggleFaq(el){
+  var item = el.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(function(f){ f.classList.remove('open'); });
+  if(!isOpen) item.classList.add('open');
+}
+
+// Scroll reveal
+var obs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, {threshold: 0.08});
+
+document.querySelectorAll('section').forEach(function(s){
+  s.style.opacity = '0';
+  s.style.transform = 'translateY(14px)';
+  s.style.transition = 'opacity .5s ease, transform .5s ease';
+  obs.observe(s);
+});
+</script>
+</body>
+</html>
