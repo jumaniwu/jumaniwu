@@ -119,6 +119,17 @@ sebelum pembelian ICO dibuka.
 
 ---
 
+### 3e. Bot Telegram (opsional — bisa kapan saja)
+1. Chat @BotFather di Telegram → `/newbot` → simpan token.
+2. Railway → project yang sama → **New Service → GitHub repo** →
+   Root Directory: `brickx/bot` → Start Command: `node brickx-telegram-bot.js`.
+3. Variables: `TELEGRAM_BOT_TOKEN`, `BRICKX_API_URL=https://api.domainanda.com`,
+   `TELEGRAM_CHANNEL_ID=@ChannelAnda`, `ADMIN_TELEGRAM_IDS=<id Telegram Anda>`
+   (cek ID Anda via bot @userinfobot).
+4. Jadikan bot **admin di channel** Anda supaya posting harian 9 pagi WIB jalan.
+
+---
+
 ## LANGKAH 4 — SAMBUNGKAN DOMAIN ANDA · ±20 menit (+ tunggu DNS)
 
 ### 4a. Domain utama → landing page

@@ -46,7 +46,7 @@ Southeast Asia focus. Two-phase model. Annual dividend (June each year).
 - brickx/contracts/BRICKXContracts.sol ← 5 Solidity contracts for Polygon
 
 ### Bot
-- brickx-telegram-bot.js               ← NOT in v4 package (missing — needs upload)
+- brickx/bot/brickx-telegram-bot.js    ← Telegram bot (live API stats, rate-limited)
 
 ### Docs & Marketing
 - brickx/docs/                         ← Whitepaper v2, Pitch Deck v4, Financial Model v3
