@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   country          TEXT DEFAULT '',
   phone            TEXT DEFAULT '',
   wallet_address   TEXT DEFAULT '',           -- Polygon wallet for BRX airdrop + BRICK dividends
+  -- kyc_status: 'in_progress' = Sumsub session started; 'pending' = awaiting manual review
   kyc_status       TEXT DEFAULT 'not_started' CHECK (kyc_status IN ('not_started','in_progress','pending','approved','rejected')),
   kyc_applicant_id TEXT DEFAULT '',           -- Sumsub applicant ID
   referral_code    TEXT UNIQUE,               -- User's own referral code
@@ -31,9 +32,10 @@ CREATE TABLE IF NOT EXISTS ico_orders (
   id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id         TEXT UNIQUE NOT NULL,       -- Human-readable: ORD-1234567890
   user_id          UUID REFERENCES users(id) NOT NULL,
-  usd_amount       NUMERIC(12,2) NOT NULL,     -- USD equivalent paid
-  brx_allocated    BIGINT NOT NULL,            -- BRX tokens allocated
+  usd_amount       NUMERIC(12,2) NOT NULL CHECK (usd_amount > 0),     -- USD equivalent paid
+  brx_allocated    BIGINT NOT NULL CHECK (brx_allocated > 0),         -- BRX tokens allocated
   price_per_brx    NUMERIC(8,6) NOT NULL,      -- 0.008000 for seed
+  -- 'dex' is the post-ICO listing price tier, not an order round — orders only exist for seed/round1/round2
   round            TEXT NOT NULL DEFAULT 'seed' CHECK (round IN ('seed','round1','round2')),
   crypto_currency  TEXT NOT NULL,              -- USDT/Polygon, USDC/Polygon, ETH, BNB
   pay_to_address   TEXT NOT NULL,              -- Treasury wallet address
@@ -61,7 +63,7 @@ CREATE TABLE IF NOT EXISTS referral_bonuses (
 -- ── PROPERTIES (PHASE 2 — BRICK HOTEL TOKENS) ────────────────
 CREATE TABLE IF NOT EXISTS properties (
   id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name             TEXT NOT NULL,             -- "Project Hotel Batam" until acquisition closes
+  name             TEXT NOT NULL UNIQUE,      -- "Project Hotel Batam" until acquisition closes
   display_name     TEXT DEFAULT 'Project Hotel Batam (Confidential)',
   location         TEXT DEFAULT 'Batam Island, Indonesia',
   property_type    TEXT DEFAULT 'Hotel',      -- Hotel, Residential, Commercial
@@ -89,7 +91,7 @@ CREATE TABLE IF NOT EXISTS token_holdings (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id     UUID REFERENCES users(id) NOT NULL,
   property_id UUID REFERENCES properties(id) NOT NULL,
-  balance     INTEGER NOT NULL DEFAULT 0,     -- Number of BRICK tokens held
+  balance     INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0), -- Number of BRICK tokens held
   cost_basis  NUMERIC(10,2) DEFAULT 10.00,    -- Always $10.00 fixed
   updated_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, property_id)
@@ -100,7 +102,7 @@ CREATE TABLE IF NOT EXISTS market_listings (
   id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   seller_id        UUID REFERENCES users(id) NOT NULL,
   property_id      UUID REFERENCES properties(id) NOT NULL,
-  token_amount     INTEGER NOT NULL,
+  token_amount     INTEGER NOT NULL CHECK (token_amount > 0),
   price_per_token  NUMERIC(10,2) DEFAULT 10.00 CHECK (price_per_token = 10.00), -- ENFORCED fixed price
   total_value      NUMERIC(12,2) GENERATED ALWAYS AS (token_amount * price_per_token) STORED,
   status           TEXT DEFAULT 'active' CHECK (status IN ('active','sold','cancelled')),
@@ -142,7 +144,7 @@ CREATE TABLE IF NOT EXISTS dividend_receipts (
   distribution_id UUID REFERENCES yield_distributions(id) NOT NULL,
   fiscal_year     INTEGER NOT NULL,
   tokens_held     INTEGER NOT NULL,           -- Tokens held at snapshot date
-  usdc_amount     NUMERIC(12,6) NOT NULL,     -- USDC received
+  usdc_amount     NUMERIC(12,6) NOT NULL CHECK (usdc_amount >= 0), -- USDC received
   wallet_address  TEXT NOT NULL,              -- Wallet that received payment
   tx_hash         TEXT,                       -- On-chain tx hash
   paid_at         TIMESTAMPTZ,
@@ -177,6 +179,7 @@ CREATE TABLE IF NOT EXISTS ico_settings (
   referral_bonus_brx          INTEGER DEFAULT 500,
   kyc_required                BOOLEAN DEFAULT TRUE,
   tge_date                    DATE,
+  last_scanned_block          BIGINT DEFAULT 0,     -- Payment monitor cursor (Polygon block height)
   -- Treasury wallets
   treasury_usdt_polygon       TEXT DEFAULT '',
   treasury_usdc_polygon       TEXT DEFAULT '',
@@ -247,42 +250,84 @@ INSERT INTO properties (
   TRUE,
   'December 31',
   'June',
-  'First hotel acquisition. Existing 3-4 star operating hotel in Nagoya Business District, Batam. Name and exact location disclosed after SPA signing. Budget up to $18.5M USD. Annual dividend 70% of NOI paid each June.'
-) ON CONFLICT DO NOTHING;
+  'First hotel acquisition. Existing operating 3-4 star hotel in Batam; name and exact location disclosed after SPA signing. Budget up to $18.5M USD. Annual dividend 70% of NOI paid each June.'
+) ON CONFLICT (name) DO NOTHING;
 
 -- ════════════════════════════════════════════════════════════════
 -- INDEXES
 -- ════════════════════════════════════════════════════════════════
-CREATE INDEX IF NOT EXISTS idx_users_email          ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_wallet         ON users(wallet_address);
+-- email is already UNIQUE on users — no separate index needed
+-- Unique wallet per user, but allow multiple unset ('') wallets
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wallet  ON users(wallet_address) WHERE wallet_address <> '';
 CREATE INDEX IF NOT EXISTS idx_users_kyc            ON users(kyc_status);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code  ON users(referral_code);
 CREATE INDEX IF NOT EXISTS idx_ico_orders_user      ON ico_orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_ico_orders_status    ON ico_orders(status);
-CREATE INDEX IF NOT EXISTS idx_ico_orders_tx        ON ico_orders(tx_hash);
+CREATE INDEX IF NOT EXISTS idx_ico_orders_round     ON ico_orders(round);
+CREATE INDEX IF NOT EXISTS idx_ico_orders_monitor   ON ico_orders(status, crypto_currency, created_at);
+-- One blockchain tx can only ever confirm one order (empty hashes excluded)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ico_orders_tx ON ico_orders(tx_hash) WHERE tx_hash <> '';
+CREATE INDEX IF NOT EXISTS idx_referral_referrer    ON referral_bonuses(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referral_referred    ON referral_bonuses(referred_id);
 CREATE INDEX IF NOT EXISTS idx_holdings_user        ON token_holdings(user_id);
 CREATE INDEX IF NOT EXISTS idx_holdings_property    ON token_holdings(property_id);
 CREATE INDEX IF NOT EXISTS idx_listings_property    ON market_listings(property_id);
 CREATE INDEX IF NOT EXISTS idx_listings_status      ON market_listings(status);
+CREATE INDEX IF NOT EXISTS idx_listings_seller      ON market_listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_yield_property_year  ON yield_distributions(property_id, fiscal_year);
 CREATE INDEX IF NOT EXISTS idx_dividend_user        ON dividend_receipts(user_id);
+CREATE INDEX IF NOT EXISTS idx_dividend_distribution ON dividend_receipts(distribution_id);
 CREATE INDEX IF NOT EXISTS idx_snapshot_date        ON annual_snapshots(snapshot_date, property_id);
+CREATE INDEX IF NOT EXISTS idx_snapshot_user        ON annual_snapshots(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_admin          ON audit_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created        ON audit_logs(created_at);
 
 -- ════════════════════════════════════════════════════════════════
+-- TRIGGERS — keep updated_at fresh
+-- ════════════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+CREATE TRIGGER trg_users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_holdings_updated_at ON token_holdings;
+CREATE TRIGGER trg_holdings_updated_at
+  BEFORE UPDATE ON token_holdings
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_ico_settings_updated_at ON ico_settings;
+CREATE TRIGGER trg_ico_settings_updated_at
+  BEFORE UPDATE ON ico_settings
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ════════════════════════════════════════════════════════════════
 -- ROW LEVEL SECURITY (Supabase)
 -- ════════════════════════════════════════════════════════════════
+-- RLS enabled on ALL tables — without it the public anon key can read/write everything
 ALTER TABLE users              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ico_orders         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referral_bonuses   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE properties         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE token_holdings     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_listings    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE yield_distributions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dividend_receipts  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE annual_snapshots   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ico_settings       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs         ENABLE ROW LEVEL SECURITY;
 
 -- Service role (backend) bypasses RLS — never expose service key to frontend
--- Public read for properties and settings
+-- anon role gets SELECT only (no INSERT/UPDATE/DELETE policies anywhere)
 CREATE POLICY "Public read properties" ON properties FOR SELECT TO anon USING (TRUE);
-CREATE POLICY "Public read settings"   ON ico_settings FOR SELECT TO anon USING (TRUE);
 CREATE POLICY "Public read distributions" ON yield_distributions FOR SELECT TO anon USING (TRUE);
+-- NOTE: ico_settings has NO anon policy on purpose — it holds treasury wallets and
+-- contract addresses. Public ICO info (round, prices, caps) is served by the backend
+-- via GET /api/ico/info using the service role.

@@ -230,7 +230,8 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 /* TOAST */
 #toast{position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);border-radius:11px;padding:11px 16px;font-size:12px;font-weight:600;color:var(--green);display:none;align-items:center;gap:7px}
 #toast.show{display:flex;animation:fadeUp .3s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.reg-err{font-size:12px;color:var(--red);margin:-6px auto 12px;max-width:440px;text-align:left;display:none}
+.reg-form button:disabled{opacity:.7;cursor:not-allowed;filter:none}
 </style>
 </head>
 <body>
@@ -278,7 +279,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 
   <div class="cta-row">
     <button class="btn-main" onclick="scrollToReg()">🌱 Join Seed Sale — $0.008 / BRX</button>
-    <button class="btn-sec" onclick="window.open('https://docs.brickxprotocol.io')">Read Whitepaper →</button>
+    <button class="btn-sec" onclick="window.open('https://docs.brickxprotocol.io','_blank','noopener')">Read Whitepaper →</button>
   </div>
 
   <!-- STATS -->
@@ -305,11 +306,11 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:14px;text-align:left">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div style="font-size:13px;font-weight:700;color:var(--white)">Seed Round Progress</div>
-      <div style="font-size:12px;color:var(--gold);font-weight:700">38.7% Filled · 847 Investors</div>
+      <div style="font-size:12px;color:var(--gold);font-weight:700" id="seed-pct">— Filled</div>
     </div>
-    <div class="pb" style="margin-bottom:8px"><div class="pf" style="width:38.7%"></div></div>
+    <div class="pb" style="margin-bottom:8px"><div class="pf" id="seed-bar" style="width:0%"></div></div>
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
-      <span>$247,500 raised</span><span>$640,000 hard cap</span>
+      <span id="seed-raised">— raised</span><span id="seed-cap">— hard cap</span>
     </div>
   </div>
 </section>
@@ -531,9 +532,9 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
       </div>
       <div style="margin-top:14px">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px">
-          <span>Seed sold: 38.7%</span><span style="color:var(--gold);font-weight:600">$247,500 of $640,000</span>
+          <span id="tok-seed-pct">Seed sold: —</span><span style="color:var(--gold);font-weight:600" id="tok-seed-amt">— of —</span>
         </div>
-        <div class="pb"><div class="pf" style="width:38.7%"></div></div>
+        <div class="pb"><div class="pf" id="tok-seed-bar" style="width:0%"></div></div>
       </div>
     </div>
   </div>
@@ -653,11 +654,15 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 <div class="reg-section" id="register">
   <div class="scan-line"></div>
   <h2>Join the Seed Sale</h2>
-  <p>Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).<br>Only <strong style="color:var(--gold)">153 spots remaining</strong> in seed allocation.</p>
+  <p>Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).</p>
+  <!-- NOTE: This form POSTs to {API}/api/whitelist. That backend route must exist
+       (it is NOT in the current server.js endpoint list) — until it is deployed,
+       submissions will show the fallback error message below. -->
   <div class="reg-form">
     <input type="email" id="reg-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doRegister()">
-    <button onclick="doRegister()">Register Now →</button>
+    <button id="reg-btn" onclick="doRegister()">Register Now →</button>
   </div>
+  <p class="reg-err" id="reg-err"></p>
   <p class="reg-note">Free to register · KYC required before purchase · USDT / USDC / ETH / BNB accepted</p>
   <div class="trust-row">
     <div class="trust-item">🔒 SSL Encrypted</div>
@@ -679,9 +684,9 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
       <a href="#hotel">Hotel Project</a>
       <a href="#dividend">Dividend Model</a>
       <a href="#tokenomics">BRX Token</a>
-      <a href="https://docs.brickxprotocol.io" target="_blank">Whitepaper</a>
-      <a href="https://t.me/brickxprotocol" target="_blank">Telegram</a>
-      <a href="https://twitter.com/brickxprotocol" target="_blank">Twitter</a>
+      <a href="https://docs.brickxprotocol.io" target="_blank" rel="noopener">Whitepaper</a>
+      <a href="https://t.me/brickxprotocol" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://twitter.com/brickxprotocol" target="_blank" rel="noopener">Twitter</a>
     </div>
     <p class="f-disc">
       © 2026 BRICKX Protocol · seed@brickxprotocol.io<br>

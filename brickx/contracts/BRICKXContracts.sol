@@ -1,30 +1,65 @@
 // SPDX-License-Identifier: MIT
 // ════════════════════════════════════════════════════════════════
-// BRICKX PROTOCOL — SMART CONTRACTS v1.0
+// BRICKX PROTOCOL — SMART CONTRACTS v1.1
 // Network: Polygon Mainnet (Chain ID: 137)
 // Compiler: Solidity ^0.8.20
-// Dependencies: OpenZeppelin Contracts v5.x
+// Self-contained single file — no external imports.
+// (A production deployment should migrate to audited
+//  OpenZeppelin Contracts v5.x equivalents.)
 //
 // Contracts:
 //   1. BRXToken.sol      — ERC-20 governance & utility token
 //   2. BRXVesting.sol    — Token vesting for ICO investors
 //   3. BRXICOVault.sol   — Seed sale & ICO payment vault
-//   4. BRICKToken.sol    — ERC-1155 property fractional tokens
-//   5. YieldDistributor  — Monthly rental yield distribution
+//   4. BRICKToken.sol    — Property fractional ownership ledger
+//   5. YieldDistributor  — Annual USDC dividend distribution
 // ════════════════════════════════════════════════════════════════
 
 pragma solidity ^0.8.20;
 
-// ── IMPORTS (install via: npm install @openzeppelin/contracts) ─
-// @openzeppelin/contracts/token/ERC20/ERC20.sol
-// @openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol
-// @openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol
-// @openzeppelin/contracts/token/ERC1155/ERC1155.sol
-// @openzeppelin/contracts/access/Ownable.sol
-// @openzeppelin/contracts/access/AccessControl.sol
-// @openzeppelin/contracts/utils/ReentrancyGuard.sol
-// @openzeppelin/contracts/utils/Pausable.sol
-// @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
+// ════════════════════════════════════════════════════════════════
+// SHARED: Minimal IERC20 interface (self-contained, no imports)
+// ════════════════════════════════════════════════════════════════
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+}
+
+// ════════════════════════════════════════════════════════════════
+// SHARED: Safe ERC-20 transfer helpers
+// USDT-on-Polygon compatible: tolerates tokens that return no data,
+// and reverts on tokens that return `false` instead of reverting.
+// ════════════════════════════════════════════════════════════════
+abstract contract SafeTokenTransfer {
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        (bool success, bytes memory data) =
+            token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, amount));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "Token transfer failed");
+    }
+
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
+        (bool success, bytes memory data) =
+            token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "Token transferFrom failed");
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// SHARED: Simple reentrancy guard (uint256 status flag)
+// ════════════════════════════════════════════════════════════════
+abstract contract ReentrancyGuard {
+    uint256 private _status = 1; // 1 = not entered, 2 = entered
+
+    modifier nonReentrant() {
+        require(_status == 1, "Reentrant call");
+        _status = 2;
+        _;
+        _status = 1;
+    }
+}
 
 
 // ════════════════════════════════════════════════════════════════
@@ -133,15 +168,18 @@ contract BRXToken {
 // ════════════════════════════════════════════════════════════════
 // CONTRACT 2: BRXVesting.sol
 // Linear vesting with cliff for all token allocations
+// Vesting math: nothing before cliff; after the cliff, tokens vest
+// linearly over `vestingDuration`; fully vested at
+// startTime + cliffDuration + vestingDuration.
 // ════════════════════════════════════════════════════════════════
-contract BRXVesting {
+contract BRXVesting is SafeTokenTransfer, ReentrancyGuard {
     struct VestingSchedule {
         address beneficiary;     // who receives tokens
         uint256 totalAmount;     // total BRX allocated
         uint256 released;        // already claimed
         uint256 startTime;       // when cliff starts
         uint256 cliffDuration;   // seconds before any unlock
-        uint256 vestingDuration; // total vesting period in seconds
+        uint256 vestingDuration; // linear vesting period AFTER the cliff, in seconds
         bool revocable;          // can admin revoke?
         bool revoked;
         string category;         // "seed" | "ico_r1" | "team" | "partner"
@@ -155,7 +193,7 @@ contract BRXVesting {
 
     event ScheduleCreated(bytes32 indexed scheduleId, address indexed beneficiary, uint256 amount, string category);
     event TokensReleased(bytes32 indexed scheduleId, address indexed beneficiary, uint256 amount);
-    event ScheduleRevoked(bytes32 indexed scheduleId);
+    event ScheduleRevoked(bytes32 indexed scheduleId, uint256 unvestedReturned);
 
     modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
 
@@ -165,6 +203,7 @@ contract BRXVesting {
     }
 
     // Create vesting schedule for an investor
+    // Pulls `amount` BRX from owner into this contract (requires prior approval)
     function createSchedule(
         address beneficiary,
         uint256 amount,
@@ -175,8 +214,10 @@ contract BRXVesting {
     ) external onlyOwner returns (bytes32) {
         require(beneficiary != address(0), "Zero address");
         require(amount > 0, "Zero amount");
+        require(vestingMonths > 0, "Zero vesting duration");
 
         bytes32 scheduleId = keccak256(abi.encodePacked(beneficiary, amount, block.timestamp, category));
+        require(schedules[scheduleId].totalAmount == 0, "Schedule exists");
 
         schedules[scheduleId] = VestingSchedule({
             beneficiary: beneficiary,
@@ -193,9 +234,8 @@ contract BRXVesting {
         holderSchedules[beneficiary].push(scheduleId);
         allScheduleIds.push(scheduleId);
 
-        // Transfer tokens from owner to this contract
-        // Requires prior approval
-        // IERC20(token).transferFrom(msg.sender, address(this), amount);
+        // Pull tokens from owner into this contract (requires prior approval)
+        _safeTransferFrom(token, msg.sender, address(this), amount);
 
         emit ScheduleCreated(scheduleId, beneficiary, amount, category);
         return scheduleId;
@@ -211,36 +251,53 @@ contract BRXVesting {
         // Before cliff: nothing
         if (elapsed < s.cliffDuration) return 0;
 
-        // After full vesting: everything remaining
-        if (elapsed >= s.vestingDuration) {
+        // After cliff + full vesting period: everything remaining
+        if (elapsed >= s.cliffDuration + s.vestingDuration) {
             return s.totalAmount - s.released;
         }
 
-        // Linear vesting after cliff
-        uint256 vested = (s.totalAmount * elapsed) / s.vestingDuration;
+        // Linear vesting starts AFTER the cliff
+        uint256 vested = (s.totalAmount * (elapsed - s.cliffDuration)) / s.vestingDuration;
         return vested - s.released;
     }
 
     // Investor claims vested tokens
-    function release(bytes32 scheduleId) external {
+    function release(bytes32 scheduleId) external nonReentrant {
         VestingSchedule storage s = schedules[scheduleId];
         require(msg.sender == s.beneficiary, "Not beneficiary");
         uint256 amount = releasable(scheduleId);
         require(amount > 0, "Nothing to release");
+
+        // Effects before interactions
         s.released += amount;
-        // IERC20(token).transfer(s.beneficiary, amount);
         emit TokensReleased(scheduleId, s.beneficiary, amount);
+
+        _safeTransfer(token, s.beneficiary, amount);
     }
 
-    // Admin can revoke unvested tokens (only if revocable)
-    function revoke(bytes32 scheduleId) external onlyOwner {
+    // Admin can revoke unvested tokens (only if revocable).
+    // Vested-but-unreleased tokens are paid to the beneficiary;
+    // unvested tokens are returned to the owner (treasury).
+    function revoke(bytes32 scheduleId) external onlyOwner nonReentrant {
         VestingSchedule storage s = schedules[scheduleId];
         require(s.revocable, "Not revocable");
         require(!s.revoked, "Already revoked");
+
+        uint256 vestedUnreleased = releasable(scheduleId);
+        uint256 unvested = s.totalAmount - s.released - vestedUnreleased;
+
+        // Effects before interactions
         s.revoked = true;
-        uint256 unvested = s.totalAmount - s.released - releasable(scheduleId);
-        // IERC20(token).transfer(owner, unvested); // return to treasury
-        emit ScheduleRevoked(scheduleId);
+        s.released += vestedUnreleased;
+        emit ScheduleRevoked(scheduleId, unvested);
+
+        if (vestedUnreleased > 0) {
+            _safeTransfer(token, s.beneficiary, vestedUnreleased);
+            emit TokensReleased(scheduleId, s.beneficiary, vestedUnreleased);
+        }
+        if (unvested > 0) {
+            _safeTransfer(token, owner, unvested); // return to treasury
+        }
     }
 
     // View all schedules for a holder
@@ -254,8 +311,10 @@ contract BRXVesting {
 // CONTRACT 3: BRXICOVault.sol
 // Seed Sale & ICO payment collection vault
 // Accepts USDT/USDC on Polygon, records allocations
+// NOTE: owner MUST be a multisig (e.g. Gnosis Safe 3-of-5) behind a
+// timelock — it controls KYC, rounds, and emergencyWithdraw.
 // ════════════════════════════════════════════════════════════════
-contract BRXICOVault {
+contract BRXICOVault is SafeTokenTransfer, ReentrancyGuard {
 
     // ── Structs ──
     struct Round {
@@ -274,7 +333,7 @@ contract BRXICOVault {
 
     struct Purchase {
         address buyer;
-        uint256 usdcPaid;       // USDC amount paid (6 decimals)
+        uint256 usdcPaid;       // USD stable paid — USDC or USDT (6 decimals)
         uint256 brxAllocated;   // BRX tokens allocated (18 decimals)
         uint256 timestamp;
         uint8   roundId;
@@ -283,7 +342,8 @@ contract BRXICOVault {
 
     // ── State ──
     address public owner;
-    address public treasury;        // receives USDC payments
+    address public pendingOwner;    // two-step ownership transfer
+    address public treasury;        // receives USDC/USDT payments
     address public usdc;            // USDC contract on Polygon
     address public usdt;            // USDT contract on Polygon
     address public brxToken;        // BRX token contract
@@ -307,10 +367,17 @@ contract BRXICOVault {
     event RoundCreated(uint8 indexed roundId, uint256 price, uint256 totalTokens);
     event RoundActivated(uint8 indexed roundId);
     event RoundFinalized(uint8 indexed roundId, uint256 raised);
-    event Purchase_made(bytes32 indexed purchaseId, address indexed buyer, uint256 usdc, uint256 brx, uint8 roundId);
+    event PurchaseMade(bytes32 indexed purchaseId, address indexed buyer, address payToken, uint256 stableAmount, uint256 brx, uint8 roundId);
     event KYCApproved(address indexed wallet);
+    event KYCRevoked(address indexed wallet);
+    event BlacklistUpdated(address indexed wallet, bool status);
     event BRXDistributed(address indexed recipient, uint256 amount);
     event EmergencyPause(bool paused);
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event KYCRequirementUpdated(bool required);
+    event OwnershipProposed(address indexed currentOwner, address indexed proposedOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event EmergencyWithdrawal(address indexed token, address indexed to, uint256 amount);
 
     // ── Modifiers ──
     modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
@@ -381,34 +448,43 @@ contract BRXICOVault {
     }
     function revokeKYC(address wallet) external onlyOwner {
         kycApproved[wallet] = false;
+        emit KYCRevoked(wallet);
     }
     function setBlacklist(address wallet, bool status) external onlyOwner {
         blacklisted[wallet] = status;
+        emit BlacklistUpdated(wallet, status);
     }
 
     // ── BUY with USDC ──
-    function buyWithUSDC(uint256 usdcAmount) external notPaused notBlacklisted kycPass {
+    function buyWithUSDC(uint256 usdcAmount) external notPaused notBlacklisted kycPass nonReentrant {
+        _buy(usdc, usdcAmount);
+    }
+
+    // ── BUY with USDT ──
+    function buyWithUSDT(uint256 usdtAmount) external notPaused notBlacklisted kycPass nonReentrant {
+        _buy(usdt, usdtAmount);
+    }
+
+    // Shared purchase logic (USDC/USDT, both 6 decimals on Polygon)
+    function _buy(address payToken, uint256 stableAmount) internal {
         Round storage r = rounds[currentRound];
         require(r.active, "No active round");
         require(block.timestamp >= r.startTime && block.timestamp <= r.endTime, "Round not in time window");
-        require(usdcAmount >= r.minInvestment, "Below minimum investment");
-        require(totalInvested[msg.sender] + usdcAmount <= r.maxInvestment, "Exceeds max investment per wallet");
-        require(r.raiseCollected + usdcAmount <= r.raiseTarget, "Round hard cap reached");
+        require(stableAmount >= r.minInvestment, "Below minimum investment");
+        require(totalInvested[msg.sender] + stableAmount <= r.maxInvestment, "Exceeds max investment per wallet");
+        require(r.raiseCollected + stableAmount <= r.raiseTarget, "Round hard cap reached");
 
         // Calculate BRX allocation
-        // brxAmount = (usdcAmount * 1e18) / pricePerBRX
+        // brxAmount = (stableAmount * 1e18) / pricePerBRX
         // Example: $1000 USDC (1000e6) at $0.008 (8000) = 125,000 BRX
-        uint256 brxAmount = (usdcAmount * 1e18) / r.pricePerBRX;
+        uint256 brxAmount = (stableAmount * 1e18) / r.pricePerBRX;
         require(r.tokensSold + brxAmount <= r.totalTokens, "Insufficient BRX remaining in round");
 
-        // Transfer USDC from buyer to treasury
-        // IERC20(usdc).transferFrom(msg.sender, treasury, usdcAmount);
-
-        // Record purchase
-        bytes32 purchaseId = keccak256(abi.encodePacked(msg.sender, usdcAmount, block.timestamp));
+        // ── Effects (state updates BEFORE external transfer) ──
+        bytes32 purchaseId = keccak256(abi.encodePacked(msg.sender, stableAmount, block.timestamp));
         purchases[purchaseId] = Purchase({
             buyer: msg.sender,
-            usdcPaid: usdcAmount,
+            usdcPaid: stableAmount,
             brxAllocated: brxAmount,
             timestamp: block.timestamp,
             roundId: currentRound,
@@ -417,32 +493,27 @@ contract BRXICOVault {
         allPurchaseIds.push(purchaseId);
         buyerPurchases[msg.sender].push(purchaseId);
 
-        // Update round stats
         r.tokensSold      += brxAmount;
-        r.raiseCollected  += usdcAmount;
-        totalInvested[msg.sender] += usdcAmount;
+        r.raiseCollected  += stableAmount;
+        totalInvested[msg.sender] += stableAmount;
 
-        emit Purchase_made(purchaseId, msg.sender, usdcAmount, brxAmount, currentRound);
+        emit PurchaseMade(purchaseId, msg.sender, payToken, stableAmount, brxAmount, currentRound);
 
-        // Create vesting schedule immediately
-        // IBRXVesting(vestingContract).createSchedule(
-        //     msg.sender,
-        //     brxAmount,
-        //     r.cliffMonths,
-        //     r.vestingMonths,
-        //     false,  // not revocable
-        //     "ico"
-        // );
+        // ── Interaction: pull stablecoin from buyer to treasury ──
+        _safeTransferFrom(payToken, msg.sender, treasury, stableAmount);
+
+        // Vesting schedules are created by admin via BRXVesting.createSchedule
+        // after TGE, per the round's cliff/vesting terms.
     }
 
-    // ── Admin: Distribute BRX (airdrop to vesting) ──
-    // Called after TGE to airdrop all purchased BRX
-    function distributeBatch(bytes32[] calldata purchaseIds) external onlyOwner {
+    // ── Admin: Distribute BRX (airdrop after TGE) ──
+    // Vault must be funded with BRX before calling.
+    function distributeBatch(bytes32[] calldata purchaseIds) external onlyOwner nonReentrant {
         for (uint i = 0; i < purchaseIds.length; i++) {
             Purchase storage p = purchases[purchaseIds[i]];
             if (!p.distributed && p.buyer != address(0)) {
-                p.distributed = true;
-                // IERC20(brxToken).transfer(p.buyer, p.brxAllocated);
+                p.distributed = true; // effect before interaction
+                _safeTransfer(brxToken, p.buyer, p.brxAllocated);
                 emit BRXDistributed(p.buyer, p.brxAllocated);
             }
         }
@@ -468,37 +539,65 @@ contract BRXICOVault {
     // ── Admin Controls ──
     function pause() external onlyOwner { paused = true; emit EmergencyPause(true); }
     function unpause() external onlyOwner { paused = false; emit EmergencyPause(false); }
-    function setTreasury(address _treasury) external onlyOwner { treasury = _treasury; }
-    function setKYCRequired(bool required) external onlyOwner { kycRequired = required; }
-    function transferOwnership(address newOwner) external onlyOwner { owner = newOwner; }
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Zero address");
+        emit TreasuryUpdated(treasury, _treasury);
+        treasury = _treasury;
+    }
+    function setKYCRequired(bool required) external onlyOwner {
+        kycRequired = required;
+        emit KYCRequirementUpdated(required);
+    }
 
-    // Emergency withdrawal (owner only)
-    function emergencyWithdraw(address token_, address to, uint256 amount) external onlyOwner {
-        // IERC20(token_).transfer(to, amount);
+    // ── Two-step ownership transfer ──
+    function proposeOwner(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Zero address");
+        pendingOwner = newOwner;
+        emit OwnershipProposed(owner, newOwner);
+    }
+    function acceptOwnership() external {
+        require(msg.sender == pendingOwner, "Not pending owner");
+        emit OwnershipTransferred(owner, pendingOwner);
+        owner = pendingOwner;
+        pendingOwner = address(0);
+    }
+
+    // Emergency withdrawal (owner only).
+    // SECURITY: owner must be a multisig (e.g. Gnosis Safe 3-of-5) behind a
+    // 48h timelock — this function can move any token held by the vault.
+    function emergencyWithdraw(address token_, address to, uint256 amount) external onlyOwner nonReentrant {
+        require(to != address(0), "Zero address");
+        _safeTransfer(token_, to, amount);
+        emit EmergencyWithdrawal(token_, to, amount);
     }
 }
 
 
 // ════════════════════════════════════════════════════════════════
 // CONTRACT 4: BRICKToken.sol
-// ERC-1155 property fractional ownership tokens
+// SIMPLIFIED fractional-ownership LEDGER for property tokens.
+// NOT a full ERC-1155 implementation (no safeTransferFrom,
+// operator approvals, batch ops, or ERC-165). A production
+// deployment MUST use OpenZeppelin ERC1155 instead.
 // Each property = unique token ID = 1,000,000 tokens
-// Price is FIXED permanently per property
+// Price is FIXED permanently per property: $10.00 USDC — NEVER changes
 // ════════════════════════════════════════════════════════════════
-contract BRICKToken {
+contract BRICKToken is SafeTokenTransfer, ReentrancyGuard {
     // ── Property ──
     struct Property {
         string  name;
         string  location;
-        uint256 stablePrice;     // Fixed USD price in USDC (6 decimals)
+        uint256 stablePrice;     // Fixed USD price in USDC (6 decimals) — always $10.00
         uint256 totalSupply;     // 1,000,000 tokens per property
         uint256 minted;
-        uint256 annualYieldBPS;  // yield in basis points (1250 = 12.5%)
-        uint256 monthlyRent;     // monthly rent in USDC (6 dec)
+        uint256 annualYieldBPS;  // ESTIMATED annual dividend yield in basis points (e.g. 510 = ~5.1%)
         bool    active;
         bool    yieldPaused;
         string  spvEntity;       // legal entity holding property
     }
+
+    // Protocol rule: BRICK price is $10.00, fixed forever (USDC 6 decimals)
+    uint256 public constant FIXED_BRICK_PRICE = 10_000000;
 
     // ── State ──
     string public name = "BRICKX Property Token";
@@ -507,6 +606,7 @@ contract BRICKToken {
     address public owner;
     address public factory;      // ICO contract that can mint
     address public usdc;
+    address public treasury;     // receives mint proceeds and marketplace fees
 
     uint256 public propertyCount;
     mapping(uint256 => Property) public properties;
@@ -530,13 +630,16 @@ contract BRICKToken {
     event TransferSingle(address indexed op, address indexed from, address indexed to, uint256 id, uint256 amount);
     event Listed(uint256 indexed listingId, address seller, uint256 propertyId, uint256 tokens, uint256 price);
     event Sale(uint256 indexed listingId, address indexed buyer, uint256 tokens, uint256 usdc);
+    event ListingCancelled(uint256 indexed listingId);
     event YieldDistributed(uint256 indexed propertyId, uint256 amount, uint256 perToken);
 
     modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
 
-    constructor(address _usdc) {
-        owner   = msg.sender;
-        usdc    = _usdc;
+    constructor(address _usdc, address _treasury) {
+        require(_usdc != address(0) && _treasury != address(0), "Zero address");
+        owner    = msg.sender;
+        usdc     = _usdc;
+        treasury = _treasury;
         platformFeeBPS = 50; // 0.5%
     }
 
@@ -544,11 +647,11 @@ contract BRICKToken {
     function addProperty(
         string calldata _name,
         string calldata _location,
-        uint256 _stablePrice,   // e.g. 10_000_000 for $10.00 USDC
-        uint256 _annualYieldBPS, // e.g. 1250 for 12.5%
-        uint256 _monthlyRent,   // in USDC
+        uint256 _stablePrice,    // MUST be 10_000000 ($10.00 USDC, 6 decimals)
+        uint256 _annualYieldBPS, // ESTIMATED annual dividend yield, e.g. 510 for ~5.1%
         string calldata _spvEntity
     ) external onlyOwner returns (uint256) {
+        require(_stablePrice == FIXED_BRICK_PRICE, "BRICK price fixed at $10.00");
         propertyCount++;
         properties[propertyCount] = Property({
             name: _name,
@@ -557,7 +660,6 @@ contract BRICKToken {
             totalSupply: 1_000_000,  // 1M BRICK per property
             minted: 0,
             annualYieldBPS: _annualYieldBPS,
-            monthlyRent: _monthlyRent,
             active: true,
             yieldPaused: false,
             spvEntity: _spvEntity
@@ -567,18 +669,23 @@ contract BRICKToken {
     }
 
     // ── Mint BRICK tokens (purchase property) ──
-    function mint(address buyer, uint256 propertyId, uint256 tokens) external onlyOwner {
+    // Collects USDC at the fixed stable price from `buyer` (requires prior
+    // approval) and forwards proceeds to the treasury.
+    function mint(address buyer, uint256 propertyId, uint256 tokens) external onlyOwner nonReentrant {
         Property storage p = properties[propertyId];
         require(p.active, "Property not active");
+        require(tokens > 0, "Zero tokens");
         require(p.minted + tokens <= p.totalSupply, "Exceeds supply");
 
-        // Collect USDC at stable price
         uint256 cost = tokens * p.stablePrice; // stablePrice has 6 decimals
-        // IERC20(usdc).transferFrom(buyer, address(this), cost);
 
+        // ── Effects before interaction ──
         p.minted += tokens;
         _balances[propertyId][buyer] += tokens;
         emit TransferSingle(msg.sender, address(0), buyer, propertyId, tokens);
+
+        // ── Interaction: collect USDC from buyer to treasury ──
+        _safeTransferFrom(usdc, buyer, treasury, cost);
     }
 
     // ── Marketplace: List tokens for sale ──
@@ -605,7 +712,8 @@ contract BRICKToken {
     }
 
     // ── Marketplace: Buy listed tokens ──
-    function buyListing(uint256 listingId) external {
+    // Buyer pays seller (minus platform fee); fee goes to treasury.
+    function buyListing(uint256 listingId) external nonReentrant {
         Listing storage l = listings[listingId];
         require(l.active, "Listing not active");
         require(msg.sender != l.seller, "Cannot buy own listing");
@@ -614,32 +722,29 @@ contract BRICKToken {
         uint256 fee = (totalCost * platformFeeBPS) / 10000;
         uint256 sellerReceives = totalCost - fee;
 
-        // Collect USDC from buyer
-        // IERC20(usdc).transferFrom(msg.sender, address(this), totalCost);
-
-        // Pay seller
-        // IERC20(usdc).transfer(l.seller, sellerReceives);
-
-        // Burn 30% of fee as BRX (deflationary)
-        // IBRXToken(brxToken).burn(feeInBRX);
-
-        // Transfer BRICK tokens to buyer
+        // ── Effects before interactions ──
+        l.active = false;
         _balances[l.propertyId][address(this)] -= l.tokens;
         _balances[l.propertyId][msg.sender] += l.tokens;
-
-        l.active = false;
         emit Sale(listingId, msg.sender, l.tokens, totalCost);
         emit TransferSingle(address(this), l.seller, msg.sender, l.propertyId, l.tokens);
+
+        // ── Interactions: collect USDC from buyer ──
+        _safeTransferFrom(usdc, msg.sender, l.seller, sellerReceives);
+        if (fee > 0) {
+            _safeTransferFrom(usdc, msg.sender, treasury, fee);
+        }
     }
 
     // ── Cancel listing ──
-    function cancelListing(uint256 listingId) external {
+    function cancelListing(uint256 listingId) external nonReentrant {
         Listing storage l = listings[listingId];
         require(msg.sender == l.seller, "Not seller");
         require(l.active, "Not active");
+        l.active = false;
         _balances[l.propertyId][address(this)] -= l.tokens;
         _balances[l.propertyId][msg.sender]    += l.tokens;
-        l.active = false;
+        emit ListingCancelled(listingId);
     }
 
     // ── Views ──
@@ -654,24 +759,19 @@ contract BRICKToken {
 
 // ════════════════════════════════════════════════════════════════
 // CONTRACT 5: YieldDistributor.sol
-// Monthly rental yield distribution to BRICK token holders
-// 70% of property net revenue → holders, 30% → protocol
+// Annual dividend distribution (70% NOI, paid June, Dec-31 snapshot)
+// to BRICK token holders. 70% of NOI → holders, 30% → protocol.
+// ADMIN-PUSH model: the off-chain system snapshots holders on Dec 31,
+// audits Jan-Mar, announces in April, and the admin pushes USDC
+// payouts in June via distributeAnnual().
 // ════════════════════════════════════════════════════════════════
-contract YieldDistributor {
+contract YieldDistributor is SafeTokenTransfer, ReentrancyGuard {
 
     struct Distribution {
-        uint256 propertyId;
-        uint256 totalAmount;       // USDC distributed total
-        uint256 perTokenAmount;    // USDC per BRICK token
+        uint16  fiscalYear;        // e.g. 2026 (snapshot taken Dec 31 of this year)
+        uint256 totalAmount;       // total USDC paid to holders
+        uint256 holderCount;       // number of holders paid
         uint256 timestamp;
-        uint256 periodStart;
-        uint256 periodEnd;
-        bool    processed;
-    }
-
-    struct HolderClaim {
-        uint256 lastClaimedDistributionId;
-        uint256 totalClaimed;
     }
 
     address public owner;
@@ -679,93 +779,70 @@ contract YieldDistributor {
     address public brickToken;
     address public treasury;
 
-    uint256 public holdersShareBPS = 7000;  // 70% to holders
-    uint256 public protocolShareBPS = 3000; // 30% to protocol
+    // Protocol rule: 70/30 split is IMMUTABLE — never changes
+    uint256 public constant HOLDERS_SHARE_BPS  = 7000; // 70% of NOI to holders
+    uint256 public constant PROTOCOL_SHARE_BPS = 3000; // 30% of NOI to protocol
 
     mapping(uint256 => Distribution[]) public propertyDistributions;
-    mapping(uint256 => mapping(address => HolderClaim)) public holderClaims;
+    mapping(uint256 => mapping(uint16 => bool)) public yearDistributed; // propertyId => fiscalYear => done
 
     uint256 public totalDistributed;
 
-    event YieldDeposited(uint256 indexed propertyId, uint256 amount, uint256 period);
-    event YieldClaimed(uint256 indexed propertyId, address indexed holder, uint256 amount);
+    event AnnualDistribution(uint256 indexed propertyId, uint16 indexed fiscalYear, uint256 totalAmount, uint256 holderCount);
+    event DividendPaid(uint256 indexed propertyId, uint16 indexed fiscalYear, address indexed holder, uint256 amount);
 
     modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
 
     constructor(address _usdc, address _brick, address _treasury) {
-        owner     = msg.sender;
-        usdc      = _usdc;
+        owner      = msg.sender;
+        usdc       = _usdc;
         brickToken = _brick;
-        treasury  = _treasury;
+        treasury   = _treasury;
     }
 
-    // Admin deposits monthly revenue from property
-    function depositYield(
+    // ── Annual admin-push distribution ──
+    // Holder list + amounts come from the off-chain Dec-31 snapshot
+    // (audited Jan-Mar). Amounts already reflect the 70% holders share.
+    // Pulls total USDC from owner (requires prior approval), then pays
+    // each holder directly.
+    function distributeAnnual(
         uint256 propertyId,
-        uint256 grossRevenue,      // USDC from hotel/property
-        uint256 totalTokensInCirculation,
-        uint256 periodStart,
-        uint256 periodEnd
-    ) external onlyOwner {
-        require(grossRevenue > 0, "Zero revenue");
-        require(totalTokensInCirculation > 0, "No tokens in circulation");
+        uint16 fiscalYear,
+        address[] calldata holders,
+        uint256[] calldata amounts
+    ) external onlyOwner nonReentrant {
+        require(holders.length == amounts.length, "Array length mismatch");
+        require(holders.length > 0, "Empty distribution");
+        require(!yearDistributed[propertyId][fiscalYear], "Year already distributed");
 
-        uint256 holdersAmount  = (grossRevenue * holdersShareBPS) / 10000;
-        uint256 protocolAmount = grossRevenue - holdersAmount;
+        uint256 total = 0;
+        for (uint256 i = 0; i < amounts.length; i++) {
+            require(holders[i] != address(0), "Zero address holder");
+            total += amounts[i];
+        }
+        require(total > 0, "Zero total");
 
-        uint256 perToken = holdersAmount / totalTokensInCirculation;
-
+        // ── Effects before interactions ──
+        yearDistributed[propertyId][fiscalYear] = true;
         propertyDistributions[propertyId].push(Distribution({
-            propertyId: propertyId,
-            totalAmount: holdersAmount,
-            perTokenAmount: perToken,
-            timestamp: block.timestamp,
-            periodStart: periodStart,
-            periodEnd: periodEnd,
-            processed: true
+            fiscalYear: fiscalYear,
+            totalAmount: total,
+            holderCount: holders.length,
+            timestamp: block.timestamp
         }));
+        totalDistributed += total;
+        emit AnnualDistribution(propertyId, fiscalYear, total, holders.length);
 
-        // Send protocol share to treasury
-        // IERC20(usdc).transfer(treasury, protocolAmount);
-
-        totalDistributed += holdersAmount;
-        emit YieldDeposited(propertyId, holdersAmount, periodStart);
-    }
-
-    // Holder claims accumulated yield
-    function claimYield(uint256 propertyId) external {
-        uint256 claimable = getClaimable(propertyId, msg.sender);
-        require(claimable > 0, "Nothing to claim");
-
-        Distribution[] storage dists = propertyDistributions[propertyId];
-        holderClaims[propertyId][msg.sender].lastClaimedDistributionId = dists.length;
-        holderClaims[propertyId][msg.sender].totalClaimed += claimable;
-
-        // IERC20(usdc).transfer(msg.sender, claimable);
-        emit YieldClaimed(propertyId, msg.sender, claimable);
-    }
-
-    // Calculate pending yield for a holder
-    function getClaimable(uint256 propertyId, address holder) public view returns (uint256 total) {
-        Distribution[] storage dists = propertyDistributions[propertyId];
-        uint256 lastClaimed = holderClaims[propertyId][holder].lastClaimedDistributionId;
-
-        // IBRICKToken brick = IBRICKToken(brickToken);
-
-        for (uint256 i = lastClaimed; i < dists.length; i++) {
-            // uint256 holderBalance = brick.balanceOf(holder, propertyId);
-            // total += dists[i].perTokenAmount * holderBalance;
+        // ── Interactions: pull USDC from owner, pay each holder ──
+        _safeTransferFrom(usdc, msg.sender, address(this), total);
+        for (uint256 i = 0; i < holders.length; i++) {
+            _safeTransfer(usdc, holders[i], amounts[i]);
+            emit DividendPaid(propertyId, fiscalYear, holders[i], amounts[i]);
         }
     }
 
     function getDistributionHistory(uint256 propertyId) external view returns (Distribution[] memory) {
         return propertyDistributions[propertyId];
-    }
-
-    function updateShares(uint256 holdersBPS, uint256 protocolBPS) external onlyOwner {
-        require(holdersBPS + protocolBPS == 10000, "Must sum to 100%");
-        holdersShareBPS  = holdersBPS;
-        protocolShareBPS = protocolBPS;
     }
 }
 
@@ -777,7 +854,7 @@ contract YieldDistributor {
 
 PREREQUISITES:
   npm install -g hardhat
-  npm install @openzeppelin/contracts @nomiclabs/hardhat-ethers ethers
+  npm install @nomiclabs/hardhat-ethers ethers
   npm install @nomicfoundation/hardhat-toolbox
 
 SETUP:
@@ -792,25 +869,24 @@ HARDHAT CONFIG (hardhat.config.js):
   module.exports = {
     solidity: { version: "0.8.20", settings: { optimizer: { enabled: true, runs: 200 } } },
     networks: {
-      // Mumbai Testnet (test first!)
-      mumbai: {
-        url: process.env.POLYGON_MUMBAI_RPC,
+      // Amoy Testnet (test first!)
+      amoy: {
+        url: process.env.POLYGON_AMOY_RPC,
         accounts: [process.env.DEPLOYER_PRIVATE_KEY],
-        chainId: 80001,
+        chainId: 80002,
       },
-      // Polygon Mainnet (deploy after testing)
+      // Polygon Mainnet (deploy after testing — network default gas pricing)
       polygon: {
         url: process.env.POLYGON_MAINNET_RPC,
         accounts: [process.env.DEPLOYER_PRIVATE_KEY],
         chainId: 137,
-        gasPrice: 50000000000, // 50 Gwei
       },
     },
     etherscan: { apiKey: { polygon: process.env.POLYGONSCAN_API_KEY } },
   };
 
 .env FILE:
-  POLYGON_MUMBAI_RPC=https://rpc-mumbai.maticvigil.com
+  POLYGON_AMOY_RPC=https://rpc-amoy.polygon.technology
   POLYGON_MAINNET_RPC=https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
   DEPLOYER_PRIVATE_KEY=0x... (use Gnosis Safe for mainnet)
   POLYGONSCAN_API_KEY=your_key
@@ -844,12 +920,12 @@ DEPLOY SCRIPT (scripts/deploy.js):
     await BRX.waitForDeployment();
     console.log("BRXToken:", await BRX.getAddress());
 
-    // 4. Deploy BRICK Token
-    const BRICK = await ethers.deployContract("BRICKToken", [USDC]);
+    // 4. Deploy BRICK Token (USDC + treasury)
+    const BRICK = await ethers.deployContract("BRICKToken", [USDC, TREASURY]);
     await BRICK.waitForDeployment();
     console.log("BRICKToken:", await BRICK.getAddress());
 
-    // 5. Deploy Yield Distributor
+    // 5. Deploy Yield Distributor (annual dividend, 70/30 split immutable)
     const YieldDist = await ethers.deployContract("YieldDistributor",
       [USDC, await BRICK.getAddress(), TREASURY]);
     await YieldDist.waitForDeployment();
@@ -869,16 +945,15 @@ DEPLOY SCRIPT (scripts/deploy.js):
     await ICOVault.activateRound(1);
     console.log("Seed round created and activated!");
 
-    // 7. Add Hotel Batam as first property
+    // 7. Add first property (hotel details CONFIDENTIAL until acquisition)
     await BRICK.addProperty(
-      "The Horizon Hotel Batam",
-      "Nagoya Business District, Batam, Indonesia",
-      10_000000n,   // $10.00 USDC (6 decimals)
-      1250,         // 12.5% annual yield (BPS)
-      114_000_000000n, // $114,000/month
-      "PT Horizon Batam SPV"
+      "Project Hotel Batam (Confidential)",
+      "Batam, Indonesia (exact location confidential)",
+      10_000000n,   // $10.00 USDC (6 decimals) — fixed forever, contract enforces this
+      510,          // ~5.1% ESTIMATED annual dividend yield (BPS)
+      "Confidential SPV"
     );
-    console.log("Hotel Batam property added!");
+    console.log("Confidential hotel property added!");
 
     console.log("\n✅ DEPLOYMENT COMPLETE");
     console.log("BRX Token:       ", await BRX.getAddress());
@@ -894,7 +969,7 @@ DEPLOY SCRIPT (scripts/deploy.js):
 COMMANDS:
   npx hardhat compile
   npx hardhat test
-  npx hardhat run scripts/deploy.js --network mumbai   # testnet first
+  npx hardhat run scripts/deploy.js --network amoy     # testnet first
   npx hardhat verify --network polygon CONTRACT_ADDRESS # verify on Polygonscan
   npx hardhat run scripts/deploy.js --network polygon  # mainnet
 
@@ -907,14 +982,15 @@ ESTIMATED GAS COST (Polygon):
   Total:                   ~$3-5 on Polygon mainnet
 
 SECURITY CHECKLIST:
-  [ ] All contracts tested on Mumbai testnet
-  [ ] CertiK or Hacken audit completed
+  [ ] All contracts tested on Amoy testnet
+  [ ] Professional audit (e.g. CertiK / Hacken) — REQUIRED before mainnet
   [ ] Multi-sig Gnosis Safe as owner (3-of-5)
   [ ] Emergency pause tested
   [ ] KYC whitelist populated before activating round
   [ ] Treasury wallet is multi-sig, not EOA
   [ ] Timelock on owner functions (48h delay)
   [ ] Bug bounty program live
+  [ ] Migrate BRICKToken to OpenZeppelin ERC1155 before production
 
 POST-DEPLOYMENT:
   1. Add all contract addresses to Admin Panel Settings

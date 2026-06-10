@@ -19,21 +19,42 @@
 // Run:  node src/index.js
 // Deps: npm install express cors helmet bcryptjs jsonwebtoken dotenv
 //       npm install @supabase/supabase-js resend axios express-rate-limit
-//       npm install node-cron ethers
+//       npm install node-cron ethers morgan
 // ════════════════════════════════════════════════════════════════
 
 const express    = require('express');
 const cors       = require('cors');
 const helmet     = require('helmet');
+const morgan     = require('morgan');
 const bcrypt     = require('bcryptjs');
 const jwt        = require('jsonwebtoken');
 const cron       = require('node-cron');
+const crypto     = require('crypto');
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 const { ethers } = require('ethers');
 const rateLimit  = require('express-rate-limit');
 const axios      = require('axios');
 require('dotenv').config();
+
+// ── ENV VALIDATION (fail fast) ────────────────────────────────
+// Required: server cannot run safely without these.
+const REQUIRED_ENV = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missingRequired = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missingRequired.length) {
+  console.error(`[Startup] FATAL — missing required environment variables: ${missingRequired.join(', ')}`);
+  console.error('[Startup] Set them in your .env file or hosting environment, then restart.');
+  process.exit(1);
+}
+// Recommended: warn only — features degrade gracefully without these.
+const RECOMMENDED_ENV = [
+  'RESEND_API_KEY',
+  'SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET',
+  'TREASURY_USDT_POLYGON', 'TREASURY_USDC_POLYGON', 'TREASURY_ETH', 'TREASURY_BNB',
+];
+RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
+  console.warn(`[Startup] WARN — environment variable ${k} not set (related feature disabled or degraded)`);
+});
 
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
@@ -87,19 +108,35 @@ const CONTRACTS = {
 };
 
 // ── MIDDLEWARE ─────────────────────────────────────────────────
+app.set('trust proxy', 1); // Behind Railway/Vercel proxy — needed for rate limiting & IPs
 app.use(helmet());
+
+// CORS — explicit allowlist; reject unknown browser origins.
+// Requests with no Origin header (curl, health checks, server-to-server) are allowed.
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL,
-    'http://localhost:3000',
-    'http://localhost:5173',
-  ],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // curl / health checks / same-origin
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
 }));
-app.use(express.json({ limit: '10mb' }));
+
+// JSON body parsing — 1mb is plenty for API payloads.
+// `verify` captures the raw body so webhook HMAC signatures can be checked.
+app.use(express.json({
+  limit: '1mb',
+  verify: (req, res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('combined')); // Request logging
 
 // Rate limiting
 const limiter     = rateLimit({ windowMs: 15*60*1000, max: 100, message: { error: 'Too many requests' } });
@@ -132,9 +169,18 @@ const adminAuth = async (req, res, next) => {
 };
 
 // ── HEALTH CHECK ──────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({
-    status:  'ok',
+app.get('/api/health', async (req, res) => {
+  // Ping the database so the health check reflects real availability
+  let dbStatus = 'ok';
+  try {
+    const { error } = await supabase.from('ico_settings').select('id').limit(1);
+    if (error) dbStatus = 'error';
+  } catch (e) {
+    dbStatus = 'error';
+  }
+  res.status(dbStatus === 'ok' ? 200 : 503).json({
+    status:  dbStatus === 'ok' ? 'ok' : 'degraded',
+    db:      dbStatus,
     version: '3.0.0',
     phase:   'Phase 1 — BRX ICO Active',
     model:   'Two-Phase: ICO Ecosystem → Hotel Annual Dividend',
@@ -161,16 +207,29 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password minimum 8 characters' });
     }
 
-    // Check duplicate email
+    // Check duplicate email — neutral message to limit email enumeration.
+    // Whitelist pre-registrations (no password yet) are upgraded in place.
     const { data: existing } = await supabase
-      .from('users').select('id').eq('email', email.toLowerCase()).single();
-    if (existing) return res.status(409).json({ error: 'Email already registered' });
+      .from('users').select('id, password_hash, referral_code').eq('email', email.toLowerCase()).single();
+    if (existing && existing.password_hash !== 'WHITELIST_PENDING') {
+      return res.status(409).json({ error: 'Unable to register with this email' });
+    }
+    if (existing) {
+      const passwordHash = await bcrypt.hash(password, 12);
+      const { data: upgraded, error: upErr } = await supabase.from('users').update({
+        first_name:    firstName,
+        last_name:     lastName,
+        password_hash: passwordHash,
+        country:       country || '',
+        is_active:     true,
+      }).eq('id', existing.id).select().single();
+      if (upErr) throw upErr;
+      const token = jwt.sign({ id: upgraded.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+      return res.status(201).json({ token, user: sanitizeUser(upgraded), message: 'Registration successful' });
+    }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
-
-    // Generate referral code
-    const myReferralCode = 'BRX-' + Math.random().toString(36).slice(2,7).toUpperCase();
 
     // Find referrer
     let referredBy = null;
@@ -180,21 +239,29 @@ app.post('/api/auth/register', async (req, res) => {
       if (referrer) referredBy = referrer.id;
     }
 
-    // Create user
-    const { data: user, error } = await supabase.from('users').insert({
-      first_name:    firstName,
-      last_name:     lastName,
-      email:         email.toLowerCase(),
-      password_hash: passwordHash,
-      country:       country || '',
-      kyc_status:    'not_started',
-      referral_code: myReferralCode,
-      referred_by:   referredBy,
-      is_active:     true,
-      is_admin:      false,
-    }).select().single();
+    // Create user — retry up to 3x on referral_code unique-violation (23505)
+    let user = null;
+    let myReferralCode = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      myReferralCode = generateReferralCode();
+      const { data, error } = await supabase.from('users').insert({
+        first_name:    firstName,
+        last_name:     lastName,
+        email:         email.toLowerCase(),
+        password_hash: passwordHash,
+        country:       country || '',
+        kyc_status:    'not_started',
+        referral_code: myReferralCode,
+        referred_by:   referredBy,
+        is_active:     true,
+        is_admin:      false,
+      }).select().single();
 
-    if (error) throw error;
+      if (!error) { user = data; break; }
+      if (error.code === '23505' && /referral_code/.test(error.message || '')) continue; // collision — regenerate
+      throw error;
+    }
+    if (!user) throw new Error('Failed to generate unique referral code after 3 attempts');
 
     // Send welcome email
     await sendEmail(email, 'Welcome to BRICKX Protocol — Seed Sale Access', `
@@ -318,8 +385,35 @@ app.post('/api/kyc/init', auth, async (req, res) => {
 });
 
 // POST /api/kyc/webhook — Sumsub sends result here
+// Verified via x-payload-digest = HMAC-SHA256(rawBody, SUMSUB_WEBHOOK_SECRET)
 app.post('/api/kyc/webhook', async (req, res) => {
   try {
+    // ── Webhook signature verification ──
+    const webhookSecret = process.env.SUMSUB_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      // Missing secret: only acceptable outside production (local/dev testing)
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[KYC] Webhook rejected — SUMSUB_WEBHOOK_SECRET not configured in production');
+        return res.status(401).json({ error: 'Webhook verification not configured' });
+      }
+      console.warn('[KYC] SUMSUB_WEBHOOK_SECRET not set — skipping signature verification (non-production only)');
+    } else {
+      const digestHeader = req.headers['x-payload-digest'];
+      if (!digestHeader || !req.rawBody) {
+        return res.status(401).json({ error: 'Missing webhook signature' });
+      }
+      const expected = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(req.rawBody)
+        .digest('hex');
+      const expectedBuf = Buffer.from(expected, 'utf8');
+      const receivedBuf = Buffer.from(String(digestHeader), 'utf8');
+      if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+        console.error('[KYC] Webhook rejected — invalid x-payload-digest signature');
+        return res.status(401).json({ error: 'Invalid webhook signature' });
+      }
+    }
+
     const { type, applicantId, reviewResult } = req.body;
 
     if (type === 'applicantReviewed' || type === 'applicantWorkflowCompleted') {
@@ -378,9 +472,13 @@ app.get('/api/ico/info', async (req, res) => {
     const totalRaised = (roundStats || []).reduce((s, o) => s + (o.usd_amount || 0), 0);
     const totalBrx    = (roundStats || []).reduce((s, o) => s + (o.brx_allocated || 0), 0);
 
+    // Percent filled is measured against the ACTIVE round's hard cap
+    const activeRound = settings?.active_round || 'seed';
+    const activeCap   = PHASE.ICO_ROUNDS[activeRound]?.cap || PHASE.ICO_TOTAL_TARGET;
+
     res.json({
       phase:          'Phase 1 — BRX ICO',
-      activeRound:    settings?.active_round || 'seed',
+      activeRound,
       seedPrice:      PHASE.ICO_ROUNDS.seed.price,
       round1Price:    PHASE.ICO_ROUNDS.round1.price,
       round2Price:    PHASE.ICO_ROUNDS.round2.price,
@@ -390,8 +488,9 @@ app.get('/api/ico/info', async (req, res) => {
       totalRaised,
       totalTarget:    PHASE.ICO_TOTAL_TARGET,
       seedHardCap:    PHASE.ICO_ROUNDS.seed.cap,
+      activeRoundCap: activeCap,
       totalBrxSold:   totalBrx,
-      percentFilled:  ((totalRaised / PHASE.ICO_ROUNDS.seed.cap) * 100).toFixed(1),
+      percentFilled:  ((totalRaised / activeCap) * 100).toFixed(1),
       treasuryWallets: TREASURY,
       // Phase 2 info
       phase2: {
@@ -428,24 +527,41 @@ app.post('/api/ico/order', auth, async (req, res) => {
       return res.status(400).json({ error: `Maximum investment is $${PHASE.MAX_INVESTMENT.toLocaleString()} USDC per wallet` });
     }
 
-    // Check wallet investment total for this round
+    // Get active round price + cap first (limits are enforced per round)
+    const { data: settings } = await supabase.from('ico_settings').select('*').single();
+    const activeRound = settings?.active_round || 'seed';
+    const pricePerBrx = PHASE.ICO_ROUNDS[activeRound]?.price || PHASE.ICO_ROUNDS.seed.price;
+    const roundCap    = PHASE.ICO_ROUNDS[activeRound]?.cap || PHASE.ICO_ROUNDS.seed.cap;
+
+    // Check wallet investment total for this round (max $50,000 per wallet PER ROUND)
     const { data: existingOrders } = await supabase
       .from('ico_orders')
       .select('usd_amount')
       .eq('user_id', req.user.id)
+      .eq('round', activeRound)
       .in('status', ['pending_payment', 'confirmed', 'distributed']);
 
     const alreadyInvested = (existingOrders || []).reduce((s, o) => s + o.usd_amount, 0);
     if (alreadyInvested + amount > PHASE.MAX_INVESTMENT) {
       return res.status(400).json({
-        error: `Maximum $${PHASE.MAX_INVESTMENT.toLocaleString()} per wallet. You have already invested $${alreadyInvested.toLocaleString()}.`
+        error: `Maximum $${PHASE.MAX_INVESTMENT.toLocaleString()} per wallet per round. You have already invested $${alreadyInvested.toLocaleString()} in the ${activeRound} round.`
       });
     }
 
-    // Get active round price
-    const { data: settings } = await supabase.from('ico_settings').select('*').single();
-    const activeRound = settings?.active_round || 'seed';
-    const pricePerBrx = PHASE.ICO_ROUNDS[activeRound]?.price || PHASE.ICO_ROUNDS.seed.price;
+    // Enforce the active round's hard cap (pending orders count to prevent oversell)
+    const { data: roundOrders } = await supabase
+      .from('ico_orders')
+      .select('usd_amount')
+      .eq('round', activeRound)
+      .in('status', ['pending_payment', 'confirmed', 'distributed']);
+
+    const roundRaised = (roundOrders || []).reduce((s, o) => s + o.usd_amount, 0);
+    if (roundRaised + amount > roundCap) {
+      const remaining = Math.max(roundCap - roundRaised, 0);
+      return res.status(400).json({
+        error: `The ${activeRound} round hard cap of $${roundCap.toLocaleString()} would be exceeded. Remaining capacity: $${remaining.toLocaleString()}.`
+      });
+    }
 
     // Calculate BRX allocation
     const brxAllocated = Math.floor(amount / pricePerBrx);
@@ -628,12 +744,12 @@ app.post('/api/marketplace/list', auth, async (req, res) => {
     }
 
     // Price is ALWAYS fixed at $10.00 — no speculative pricing allowed
+    // (total_value is a GENERATED column in Postgres — never insert it)
     const { data: listing, error } = await supabase.from('market_listings').insert({
       seller_id:       req.user.id,
       property_id:     propertyId,
       token_amount:    tokenAmount,
       price_per_token: PHASE.BRICK_TOKEN_PRICE, // Enforced fixed price
-      total_value:     tokenAmount * PHASE.BRICK_TOKEN_PRICE,
       status:          'active',
     }).select().single();
 
@@ -641,6 +757,76 @@ app.post('/api/marketplace/list', auth, async (req, res) => {
     res.status(201).json({ listing, message: `Listed ${tokenAmount} BRICK tokens at $${PHASE.BRICK_TOKEN_PRICE.toFixed(2)} each` });
   } catch (e) {
     res.status(500).json({ error: 'Failed to create listing' });
+  }
+});
+
+// POST /api/marketplace/buy — Buy a marketplace listing at the fixed $10.00 price
+// Off-chain bookkeeping for Phase 2; on-chain settlement happens via BRICKToken.buyListing.
+app.post('/api/marketplace/buy', auth, async (req, res) => {
+  try {
+    if (req.user.kyc_status !== 'approved') {
+      return res.status(403).json({ error: 'KYC required to buy tokens' });
+    }
+    const { listingId } = req.body;
+    if (!listingId) return res.status(400).json({ error: 'Listing ID required' });
+
+    const { data: listing } = await supabase
+      .from('market_listings').select('*').eq('id', listingId).single();
+    if (!listing || listing.status !== 'active') {
+      return res.status(404).json({ error: 'Listing not found or no longer active' });
+    }
+    if (listing.seller_id === req.user.id) {
+      return res.status(400).json({ error: 'Cannot buy your own listing' });
+    }
+
+    const totalCost = listing.token_amount * PHASE.BRICK_TOKEN_PRICE; // always $10.00/token
+    const fee       = totalCost * PHASE.PLATFORM_FEE_RATE;            // 0.5% marketplace fee
+
+    // Mark listing sold (guard against double-buy via the status filter)
+    const { data: sold, error: sellErr } = await supabase
+      .from('market_listings')
+      .update({ status: 'sold', buyer_id: req.user.id, sold_at: new Date().toISOString() })
+      .eq('id', listingId)
+      .eq('status', 'active')
+      .select().single();
+    if (sellErr || !sold) return res.status(409).json({ error: 'Listing was just sold' });
+
+    // Move balances: decrement seller, increment buyer
+    const { data: sellerHolding } = await supabase
+      .from('token_holdings').select('*')
+      .eq('user_id', listing.seller_id).eq('property_id', listing.property_id).single();
+    if (sellerHolding) {
+      await supabase.from('token_holdings')
+        .update({ balance: Math.max(sellerHolding.balance - listing.token_amount, 0) })
+        .eq('id', sellerHolding.id);
+    }
+    const { data: buyerHolding } = await supabase
+      .from('token_holdings').select('*')
+      .eq('user_id', req.user.id).eq('property_id', listing.property_id).single();
+    if (buyerHolding) {
+      await supabase.from('token_holdings')
+        .update({ balance: buyerHolding.balance + listing.token_amount })
+        .eq('id', buyerHolding.id);
+    } else {
+      await supabase.from('token_holdings').insert({
+        user_id:     req.user.id,
+        property_id: listing.property_id,
+        balance:     listing.token_amount,
+        cost_basis:  PHASE.BRICK_TOKEN_PRICE,
+      });
+    }
+
+    res.json({
+      success:   true,
+      tokens:    listing.token_amount,
+      pricePerToken: PHASE.BRICK_TOKEN_PRICE,
+      totalCost,
+      platformFee: fee,
+      message:   `Purchased ${listing.token_amount.toLocaleString()} BRICK tokens at $${PHASE.BRICK_TOKEN_PRICE.toFixed(2)} each`,
+    });
+  } catch (e) {
+    console.error('Marketplace buy error:', e.message);
+    res.status(500).json({ error: 'Purchase failed' });
   }
 });
 
@@ -741,7 +927,7 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       totalRaised,
       seedTarget:     PHASE.ICO_ROUNDS.seed.cap,
       totalRaiseTarget: PHASE.ICO_TOTAL_TARGET,
-      percentFilled:  ((totalRaised / PHASE.ICO_ROUNDS.seed.cap) * 100).toFixed(1) + '%',
+      percentFilled:  ((totalRaised / (PHASE.ICO_ROUNDS[settings.data?.active_round || 'seed']?.cap || PHASE.ICO_ROUNDS.seed.cap)) * 100).toFixed(1) + '%',
       totalBrxSold,
       pendingOrders:  (orders.data || []).filter(o => o.status === 'pending_payment').length,
       confirmedOrders: confirmedOrders.length,
@@ -752,6 +938,26 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Dashboard error' });
+  }
+});
+
+// GET /api/admin/orders — paginated order list for the admin panel
+app.get('/api/admin/orders', adminAuth, async (req, res) => {
+  try {
+    const page  = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
+    let query = supabase
+      .from('ico_orders')
+      .select('*, users(first_name, last_name, email)', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
+    if (req.query.status) query = query.eq('status', req.query.status);
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+    res.json({ orders: data || [], total: count || 0, page, limit });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
@@ -1205,6 +1411,59 @@ async function createSumsubToken(applicantId, email) {
   );
   return response.data.token;
 }
+
+// ════════════════════════════════════════════════════════════════
+// PUBLIC WHITELIST CAPTURE (landing + whitelist pages POST here)
+// ════════════════════════════════════════════════════════════════
+app.post('/api/whitelist', async (req, res) => {
+  try {
+    const { email, name, country, referral } = req.body || {};
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      return res.status(400).json({ error: 'Valid email required' });
+    }
+    // Store as a pre-registration user row (no password yet)
+    const cleanEmail = String(email).toLowerCase().slice(0, 254);
+    const { data: existing } = await supabase
+      .from('users').select('id, referral_code').eq('email', cleanEmail).single();
+    if (existing) {
+      return res.json({ success: true, message: 'You are already on the whitelist.', referralCode: existing.referral_code });
+    }
+    const referralCode = 'BRX-' + require('crypto').randomBytes(4).toString('hex').toUpperCase();
+    const { error } = await supabase.from('users').insert({
+      first_name:    String(name || 'Whitelist').slice(0, 80),
+      last_name:     '-',
+      email:         cleanEmail,
+      password_hash: 'WHITELIST_PENDING', // replaced when the user completes registration
+      country:       String(country || '').slice(0, 80),
+      kyc_status:    'not_started',
+      referral_code: referralCode,
+      is_active:     false, // activated when full registration completes
+      is_admin:      false,
+    });
+    if (error) throw error;
+    await sendEmail(cleanEmail, 'You are on the BRICKX whitelist', `
+      <h2>Welcome to the BRICKX whitelist!</h2>
+      <p>You have priority access to the BRX seed sale at $0.008/BRX.</p>
+      <p><strong>Your referral code: ${referralCode}</strong></p>
+      <p>We will email you when the seed sale opens. Complete registration and KYC to purchase.</p>
+    `);
+    res.status(201).json({ success: true, referralCode });
+  } catch (e) {
+    console.error('Whitelist error:', e.message);
+    res.status(500).json({ error: 'Could not join whitelist. Please try again.' });
+  }
+});
+
+// ── 404 + CENTRAL ERROR HANDLERS (keep last, before listen) ───
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[Error]', req.method, req.path, err.message);
+  res.status(err.status || 500).json({ error: 'Internal server error' }); // never expose stack traces
+});
 
 // ── START SERVER ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
