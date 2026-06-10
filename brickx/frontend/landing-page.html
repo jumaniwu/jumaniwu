@@ -696,23 +696,88 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 </footer>
 
 <script>
+// Backend API base — override by setting window.BRICKX_API_URL before this script
+var API = window.BRICKX_API_URL || 'https://brickx-api.railway.app';
+
 function scrollToReg(){
   document.getElementById('register').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
+var regBusy = false;
 function doRegister(){
-  var email = document.getElementById('reg-email').value.trim();
+  if(regBusy) return;
   var inp = document.getElementById('reg-email');
+  var btn = document.getElementById('reg-btn');
+  var email = inp.value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     inp.style.borderColor = 'var(--red)';
+    showRegError('Please enter a valid email address.');
     setTimeout(function(){ inp.style.borderColor = ''; }, 2000);
     return;
   }
-  var t = document.getElementById('toast');
-  t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); }, 3500);
-  inp.value = '';
+  regBusy = true;
+  var prevLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Registering…';
+  fetch(API + '/api/whitelist', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email: email })
+  }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.j && res.j.error ? res.j.error : 'Registration failed');
+      var t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(function(){ t.classList.remove('show'); }, 3500);
+      inp.value = '';
+      clearRegError();
+    })
+    .catch(function(){
+      showRegError('Could not register right now — please try again or email seed@brickxprotocol.io');
+    })
+    .finally(function(){
+      regBusy = false;
+      btn.disabled = false;
+      btn.textContent = prevLabel;
+    });
 }
+
+function showRegError(msg){
+  var el = document.getElementById('reg-error');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'reg-error';
+    el.style.cssText = 'color:var(--red);font-size:12px;margin-top:8px;';
+    document.getElementById('reg-btn').parentElement.appendChild(el);
+  }
+  el.textContent = msg;
+}
+function clearRegError(){
+  var el = document.getElementById('reg-error');
+  if(el) el.textContent = '';
+}
+
+// Live ICO stats from the API — placeholders stay as "—" if unavailable.
+function fmtUsd(n){ return '$' + Number(n).toLocaleString('en-US'); }
+fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function(d){
+  if(!d || typeof d.totalRaised !== 'number') return;
+  var cap = d.seedHardCap || 640000;
+  var pct = Math.min((d.totalRaised / cap) * 100, 100);
+  var ids = {
+    'seed-raised': fmtUsd(d.totalRaised) + ' raised',
+    'seed-cap':    fmtUsd(cap) + ' hard cap',
+    'tok-seed-pct':'Seed sold: ' + pct.toFixed(1) + '%',
+    'tok-seed-amt': fmtUsd(d.totalRaised) + ' of ' + fmtUsd(cap)
+  };
+  Object.keys(ids).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = ids[id];
+  });
+  ['seed-bar','tok-seed-bar'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.width = pct.toFixed(1) + '%';
+  });
+}).catch(function(){ /* keep placeholders */ });
 
 function toggleFaq(el){
   var item = el.parentElement;

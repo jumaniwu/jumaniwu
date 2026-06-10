@@ -173,15 +173,15 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
     </h1>
     <p class="sub fu" style="animation-delay:.15s">
       BRICKX tokenizes real estate into fractional ownership tokens.
-      Buy properties. Earn monthly yield. Sell anytime at fixed price.
+      Buy property tokens at a fixed price. Earn annual dividends, paid each June.
       Seed price: <strong style="color:var(--gold)">$0.008/BRX</strong> — lowest ever.
     </p>
 
     <!-- STATS -->
     <div class="stats-row fu" style="animation-delay:.2s">
       <div class="stat">
-        <div class="sv" id="stat-joined">847</div>
-        <div class="sl">Whitelisted</div>
+        <div class="sv" id="stat-raised">—</div>
+        <div class="sl">Seed Raised</div>
       </div>
       <div class="stat-div"></div>
       <div class="stat">
@@ -195,18 +195,18 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
       </div>
       <div class="stat-div"></div>
       <div class="stat">
-        <div class="sv">12.5%</div>
-        <div class="sl">Hotel APY</div>
+        <div class="sv">~5.1%</div>
+        <div class="sl">Est. Hotel APY</div>
       </div>
     </div>
 
-    <!-- SLOTS REMAINING -->
+    <!-- SEED PROGRESS (live from API) -->
     <div class="slots-bar fu" style="animation-delay:.22s">
       <div class="slots-label">
-        <span>Whitelist spots taken</span>
-        <span>153 spots remaining!</span>
+        <span>Seed round progress</span>
+        <span id="seed-progress-label">—</span>
       </div>
-      <div class="pb"><div class="pf" id="slots-bar" style="width:84.7%"></div></div>
+      <div class="pb"><div class="pf" id="slots-bar" style="width:0%"></div></div>
     </div>
 
     <!-- SOCIAL PROOF -->
@@ -220,7 +220,7 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
         <div class="avatar" style="background:#6366F1">+</div>
       </div>
       <div class="joined-text">
-        <strong>847 investors</strong> from 28 countries already registered
+        Investors across Southeast Asia and beyond are joining the whitelist
       </div>
     </div>
 
@@ -232,9 +232,9 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 
     <!-- BENEFITS -->
     <div class="benefit-list fu" style="animation-delay:.28s">
-      <div class="benefit"><span class="ic">🌱</span><div><strong>Lowest Price Guaranteed:</strong> $0.008/BRX seed — 275% below DEX launch price of $0.030</div></div>
-      <div class="benefit"><span class="ic">🏨</span><div><strong>Hotel Batam Priority:</strong> First access to The Horizon Hotel Batam BRICK tokens before public</div></div>
-      <div class="benefit"><span class="ic">💰</span><div><strong>Monthly Yield:</strong> Earn 70% of hotel & property revenue in USDC — auto-distributed</div></div>
+      <div class="benefit"><span class="ic">🌱</span><div><strong>Lowest Price Guaranteed:</strong> $0.008/BRX seed — +275% upside to the $0.030 DEX launch price</div></div>
+      <div class="benefit"><span class="ic">🏨</span><div><strong>Hotel Batam Priority:</strong> First access to Project Hotel Batam (Confidential) BRICK tokens before public</div></div>
+      <div class="benefit"><span class="ic">💰</span><div><strong>Annual Dividend:</strong> 70% of audited Net Operating Income, paid in USDC each June</div></div>
       <div class="benefit"><span class="ic">🔒</span><div><strong>Fixed Token Price:</strong> BRICK tokens priced permanently — zero speculation, pure yield income</div></div>
       <div class="benefit"><span class="ic">🎁</span><div><strong>500 BRX Referral Bonus:</strong> Share your unique code and earn 500 BRX per friend who joins seed</div></div>
     </div>
@@ -314,9 +314,9 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
       </div>
 
       <div class="ref-code" style="background:rgba(26,86,219,.06);border-color:rgba(26,86,219,.25);margin-bottom:16px">
-        <div class="label">YOUR WHITELIST NUMBER</div>
-        <div style="font-size:28px;font-weight:900;color:var(--blueL);font-family:var(--mono)" id="whitelist-num">#848</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">of 1,000 maximum whitelist spots</div>
+        <div class="label">WHITELIST STATUS</div>
+        <div style="font-size:28px;font-weight:900;color:var(--blueL);font-family:var(--mono)">Reserved ✓</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Your spot is confirmed — details sent to your email</div>
       </div>
 
       <div style="background:var(--bg1);border-radius:11px;padding:14px;margin-bottom:16px;text-align:left">
@@ -331,7 +331,7 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Share with your network and earn 500 BRX per referral:</p>
       <div class="share-row">
-        <button class="share-btn" style="background:#0088cc;color:#fff" onclick="shareTwitter()">𝕏 Share on X</button>
+        <button class="share-btn" style="background:#000;color:#fff;border:1px solid var(--border)" onclick="shareTwitter()">𝕏 Share on X</button>
         <button class="share-btn" style="background:#25D366;color:#fff" onclick="shareWhatsApp()">WhatsApp</button>
         <button class="share-btn" style="background:#0866FF;color:#fff" onclick="shareTelegram()">Telegram</button>
         <button class="share-btn" style="background:rgba(255,255,255,.08);color:var(--off);border:1px solid var(--border)" onclick="copyRefLink()">📋 Copy Link</button>
@@ -350,42 +350,46 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 <footer>
   <div style="font-size:16px;font-weight:900;color:var(--white);font-family:var(--serif);margin-bottom:8px">BRICK<span style="color:var(--blueL)">X</span> Protocol</div>
   <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:10px">
-    <a href="#" style="color:var(--muted);text-decoration:none;font-size:12px">Main Site</a>
-    <a href="#" style="color:var(--muted);text-decoration:none;font-size:12px">Whitepaper</a>
-    <a href="#" style="color:var(--muted);text-decoration:none;font-size:12px">Telegram</a>
-    <a href="#" style="color:var(--muted);text-decoration:none;font-size:12px">Twitter/X</a>
+    <a href="./landing-page.html" style="color:var(--muted);text-decoration:none;font-size:12px">Main Site</a>
+    <a href="https://docs.brickxprotocol.io" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:12px">Whitepaper</a>
+    <a href="https://t.me/brickxprotocol" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:12px">Telegram</a>
+    <a href="https://twitter.com/brickxprotocol" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:12px">Twitter/X</a>
   </div>
   <div>© 2026 BRICKX Protocol · Not financial advice · seed@brickxprotocol.io</div>
 </footer>
 
 <script>
-// ── LIVE COUNTER ────────────────────────────────────────────────
-let count = 847;
-setInterval(() => {
-  if (Math.random() < 0.3) {
-    count++;
-    const el = document.getElementById('stat-joined');
-    if (el) { el.textContent = count; el.style.animation = 'none'; el.offsetHeight; el.style.animation = 'count .3s ease'; }
-    // Update slots
-    const pct = Math.min(((count / 1000) * 100), 99.5);
-    const bar = document.getElementById('slots-bar');
-    if (bar) bar.style.width = pct + '%';
-    const remaining = 1000 - count;
-    document.querySelectorAll('.slots-label span:last-child').forEach(el => { el.textContent = remaining + ' spots remaining!'; });
-  }
-}, 8000 + Math.random() * 12000);
+// ── API + LIVE STATS ─────────────────────────────────────────────
+// Backend API base — override by setting window.BRICKX_API_URL before this script
+const API = window.BRICKX_API_URL || 'https://brickx-api.railway.app';
 
-// ── COUNTDOWN ────────────────────────────────────────────────────
+fetch(API + '/api/ico/info').then(r => r.json()).then(d => {
+  if (!d || typeof d.totalRaised !== 'number') return;
+  const cap = d.seedHardCap || 640000;
+  const pct = Math.min((d.totalRaised / cap) * 100, 100);
+  const raised = document.getElementById('stat-raised');
+  if (raised) raised.textContent = '$' + (d.totalRaised >= 1000 ? (d.totalRaised/1000).toFixed(0) + 'K' : d.totalRaised);
+  const lbl = document.getElementById('seed-progress-label');
+  if (lbl) lbl.textContent = '$' + d.totalRaised.toLocaleString('en-US') + ' of $' + cap.toLocaleString('en-US');
+  const bar = document.getElementById('slots-bar');
+  if (bar) bar.style.width = pct.toFixed(1) + '%';
+}).catch(() => { /* keep placeholders */ });
+
+// ── COUNTDOWN (single fixed close date — edit here) ─────────────
+const WHITELIST_CLOSE = new Date('2026-07-01T23:59:59Z');
 function tick() {
-  const end = new Date(); end.setDate(end.getDate() + 7); end.setHours(23, 59, 59, 0);
-  const diff = end - new Date();
-  const d = Math.floor(diff / 86400000);
-  const h = Math.floor((diff % 86400000) / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
+  const diff = WHITELIST_CLOSE - new Date();
   const el = document.getElementById('urgency-timer');
-  if (el) el.textContent = `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
-  // Clock
+  if (el) {
+    if (diff <= 0) { el.textContent = 'Whitelist closed'; }
+    else {
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      el.textContent = `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    }
+  }
   const clk = document.getElementById('clock');
   if (clk) clk.textContent = new Date().toUTCString().slice(17, 25) + ' UTC';
 }
@@ -409,38 +413,48 @@ function submitForm() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div> Registering...';
 
-  // Simulate API call
-  setTimeout(() => {
+  // Real API call — referral code is issued by the backend, never client-side
+  const country = document.getElementById('f-country').value;
+  const referral = document.getElementById('f-ref').value.trim();
+
+  fetch(API + '/api/whitelist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: fn + ' ' + ln, email, country, referral })
+  })
+  .then(r => r.json().then(j => ({ ok: r.ok, j })))
+  .then(res => {
+    if (!res.ok) throw new Error(res.j && res.j.error ? res.j.error : 'Registration failed');
     submitted = true;
-    const refCode = 'BRX-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-    const wlNum = count + 1;
+    const refCode = (res.j && res.j.referralCode) || null;
 
-    // Update success card
     document.getElementById('success-name').textContent = fn;
-    document.getElementById('your-ref-code').textContent = refCode;
-    document.getElementById('whitelist-num').textContent = '#' + wlNum;
+    document.getElementById('your-ref-code').textContent = refCode || 'Check your email';
 
-    // Swap views
     document.getElementById('form-section').style.display = 'none';
     const sc = document.getElementById('success-section');
     sc.style.display = 'block';
     sc.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // Increment counter
-    count++;
-
-    // Store for sharing
     window._refCode = refCode;
     window._userName = fn;
 
     showToast('✅ You\'re on the whitelist! Check your email.', 'success');
-  }, 1500);
+  })
+  .catch(err => {
+    errEl.textContent = '⚠ ' + (err.message || 'Could not register — please try again or email seed@brickxprotocol.io');
+    errEl.style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 RESERVE MY WHITELIST SPOT →';
+  });
 }
 
 // ── SHARING ──────────────────────────────────────────────────────
 const refCode = () => window._refCode || 'BRX-XXXXX';
 const shareUrl = () => `https://brickxprotocol.io?ref=${refCode()}`;
-const shareMsg = () => `🚀 I just joined the @BRICKXProtocol whitelist!\n\nBRICKX tokenizes real estate — buy property fractions, earn monthly yield, sell anytime at fixed price.\n\nSeed sale price: $0.008/BRX (275% below DEX launch 🔥)\n\nJoin with my link and we both get 500 BRX:\n${shareUrl()}`;
+const shareMsg = () => `🚀 I just joined the @BRICKXProtocol whitelist!\n\nBRICKX tokenizes real estate — buy property tokens at a fixed price and earn annual dividends paid each June.\n\nSeed sale price: $0.008/BRX (+275% upside to DEX launch 🔥)\n\nJoin with my link and we both get 500 BRX:\n${shareUrl()}`;
 
 function shareTwitter() {
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg())}`,'_blank');
@@ -449,7 +463,7 @@ function shareWhatsApp() {
   window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg())}`,'_blank');
 }
 function shareTelegram() {
-  window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl())}&text=${encodeURIComponent('🚀 Join BRICKX seed sale! Real estate tokenization — fixed price, monthly yield.')}`, '_blank');
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl())}&text=${encodeURIComponent('🚀 Join BRICKX seed sale! Real estate tokenization — fixed price, annual dividends each June.')}`, '_blank');
 }
 function copyRefLink() {
   navigator.clipboard.writeText(shareUrl()).then(() => showToast('✅ Referral link copied!', 'success')).catch(() => {});
