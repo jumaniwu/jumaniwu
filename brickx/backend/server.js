@@ -72,9 +72,16 @@ const app     = express();
 const resend  = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_key'
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
+// supabase-js eagerly builds a Realtime client and requires a WebSocket
+// implementation: native on Node >= 22, the `ws` package otherwise. We don't
+// use Realtime, but without a transport the constructor throws on Node 20.
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_KEY,
+  {
+    auth: { persistSession: false },
+    realtime: { transport: require('ws') },
+  }
 );
 
 // ── CONSTANTS ─────────────────────────────────────────────────
