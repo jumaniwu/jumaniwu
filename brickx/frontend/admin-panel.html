@@ -772,6 +772,11 @@ function renderOrders(orders, total) {
   }
 }
 
+function field(lbl, el) {
+  var row = d('margin-bottom:12px');
+  ap(row, mk('label',{css:'font-size:11px;color:var(--muted);display:block;margin-bottom:5px',txt:lbl}), el);
+  return row;
+}
 function pgRounds() {
   add(loadingCard('Loading rounds…'));
   Promise.all([api('/api/admin/settings'), api('/api/admin/dashboard')])
@@ -1026,11 +1031,6 @@ function renderYield(props) {
   var fc = mk('div',{cls:'card glow',css:'margin-bottom:16px'});
   ap(fc, t('div','font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px','💰 Distribute Annual Dividend'));
 
-  function field(lbl, el) {
-    var row = d('margin-bottom:12px');
-    ap(row, mk('label',{css:'font-size:11px;color:var(--muted);display:block;margin-bottom:5px',txt:lbl}), el);
-    return row;
-  }
   var sel = mk('select',{cls:'inp',id:'dv-prop'});
   if (props.length) {
     props.forEach(function(p) {
