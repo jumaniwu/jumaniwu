@@ -58,7 +58,11 @@ RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
 
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
-const resend  = new Resend(process.env.RESEND_API_KEY);
+// Only construct the Resend client when a key is present — the SDK throws on
+// an empty/undefined key. sendEmail() already no-ops when the key is missing.
+const resend  = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_key'
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
