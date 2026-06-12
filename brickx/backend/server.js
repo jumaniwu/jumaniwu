@@ -40,10 +40,19 @@ require('dotenv').config();
 // ── ENV VALIDATION (fail fast) ────────────────────────────────
 // Required: server cannot run safely without these.
 const REQUIRED_ENV = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+// Normalize common paste mistakes (surrounding quotes, stray whitespace).
+for (const k of REQUIRED_ENV) {
+  if (process.env[k]) process.env[k] = process.env[k].trim().replace(/^['"]+|['"]+$/g, '');
+}
 const missingRequired = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missingRequired.length) {
   console.error(`[Startup] FATAL — missing required environment variables: ${missingRequired.join(', ')}`);
   console.error('[Startup] Set them in your .env file or hosting environment, then restart.');
+  process.exit(1);
+}
+if (!/^https:\/\/[^\s/]+\.supabase\.co\/?$/i.test(process.env.SUPABASE_URL)) {
+  console.error(`[Startup] FATAL — SUPABASE_URL is not a valid Supabase project URL (got: "${process.env.SUPABASE_URL}").`);
+  console.error('[Startup] It must look like https://xxxxxxxx.supabase.co — copy "Project URL" from Supabase Dashboard → Settings → API. Do NOT paste a key here.');
   process.exit(1);
 }
 // Recommended: warn only — features degrade gracefully without these.
