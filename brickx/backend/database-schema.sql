@@ -168,11 +168,16 @@ CREATE TABLE IF NOT EXISTS ico_settings (
   id                          INTEGER PRIMARY KEY DEFAULT 1,
   -- Phase 1: BRX ICO
   active_round                TEXT DEFAULT 'seed',
+  sale_status                 TEXT NOT NULL DEFAULT 'upcoming'
+                              CHECK (sale_status IN ('upcoming','live','paused')),
+  sale_starts_at              TIMESTAMPTZ,
   seed_price_usd              NUMERIC(8,6) DEFAULT 0.008000,
   round1_price_usd            NUMERIC(8,6) DEFAULT 0.015000,
   round2_price_usd            NUMERIC(8,6) DEFAULT 0.022000,
   dex_target_price_usd        NUMERIC(8,6) DEFAULT 0.030000,
   seed_hard_cap_usd           INTEGER DEFAULT 640000,
+  round1_hard_cap_usd         INTEGER NOT NULL DEFAULT 1500000,
+  round2_hard_cap_usd         INTEGER NOT NULL DEFAULT 1100000,
   ico_total_target_usd        INTEGER DEFAULT 2000000,
   min_investment_usd          INTEGER DEFAULT 100,
   max_investment_usd          INTEGER DEFAULT 50000,

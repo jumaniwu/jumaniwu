@@ -488,11 +488,38 @@ app.get('/api/kyc/status', auth, async (req, res) => {
 // ICO ORDER ROUTES (PHASE 1 — BRX)
 // ════════════════════════════════════════════════════════════════
 
+// Round config comes from ico_settings (admin-editable) with PHASE constants
+// as fallbacks, so prices/caps/schedule can be changed without a redeploy.
+function liveRoundConfig(settings) {
+  const s = settings || {};
+  const num = (v, fb) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0 ? n : fb; };
+  const rounds = {
+    seed:   { price: num(s.seed_price_usd,   PHASE.ICO_ROUNDS.seed.price),
+              cap:   num(s.seed_hard_cap_usd, PHASE.ICO_ROUNDS.seed.cap) },
+    round1: { price: num(s.round1_price_usd,  PHASE.ICO_ROUNDS.round1.price),
+              cap:   num(s.round1_hard_cap_usd, PHASE.ICO_ROUNDS.round1.cap) },
+    round2: { price: num(s.round2_price_usd,  PHASE.ICO_ROUNDS.round2.price),
+              cap:   num(s.round2_hard_cap_usd, PHASE.ICO_ROUNDS.round2.cap) },
+    dex:    { price: num(s.dex_target_price_usd, PHASE.ICO_ROUNDS.dex.price), cap: 0 },
+  };
+  const activeRound = rounds[s.active_round] ? s.active_round : 'seed';
+  const saleStatus  = ['live', 'paused', 'upcoming'].includes(s.sale_status) ? s.sale_status : 'upcoming';
+  const startsAt    = s.sale_starts_at ? new Date(s.sale_starts_at) : null;
+  const saleOpen    = saleStatus === 'live' && (!startsAt || Date.now() >= startsAt.getTime());
+  return {
+    rounds, activeRound, saleStatus, saleStartsAt: startsAt ? startsAt.toISOString() : null, saleOpen,
+    minInvestment: num(s.min_investment_usd, PHASE.MIN_INVESTMENT),
+    maxInvestment: num(s.max_investment_usd, PHASE.MAX_INVESTMENT),
+    totalTarget:   num(s.ico_total_target_usd, PHASE.ICO_TOTAL_TARGET),
+  };
+}
+
 // GET /api/ico/info — Current round info
 app.get('/api/ico/info', async (req, res) => {
   try {
     const { data: settings } = await supabase
       .from('ico_settings').select('*').single();
+    const cfg = liveRoundConfig(settings);
 
     const { data: roundStats } = await supabase
       .from('ico_orders')
@@ -503,21 +530,25 @@ app.get('/api/ico/info', async (req, res) => {
     const totalBrx    = (roundStats || []).reduce((s, o) => s + (o.brx_allocated || 0), 0);
 
     // Percent filled is measured against the ACTIVE round's hard cap
-    const activeRound = settings?.active_round || 'seed';
-    const activeCap   = PHASE.ICO_ROUNDS[activeRound]?.cap || PHASE.ICO_TOTAL_TARGET;
+    const activeRound = cfg.activeRound;
+    const activeCap   = cfg.rounds[activeRound].cap || cfg.totalTarget;
 
     res.json({
       phase:          'Phase 1 — BRX ICO',
       activeRound,
-      seedPrice:      PHASE.ICO_ROUNDS.seed.price,
-      round1Price:    PHASE.ICO_ROUNDS.round1.price,
-      round2Price:    PHASE.ICO_ROUNDS.round2.price,
-      dexTargetPrice: PHASE.ICO_ROUNDS.dex.price,
-      minInvestment:  PHASE.MIN_INVESTMENT,
-      maxInvestment:  PHASE.MAX_INVESTMENT,
+      saleStatus:     cfg.saleStatus,
+      saleStartsAt:   cfg.saleStartsAt,
+      saleOpen:       cfg.saleOpen,
+      seedPrice:      cfg.rounds.seed.price,
+      round1Price:    cfg.rounds.round1.price,
+      round2Price:    cfg.rounds.round2.price,
+      dexTargetPrice: cfg.rounds.dex.price,
+      activeRoundPrice: cfg.rounds[activeRound].price,
+      minInvestment:  cfg.minInvestment,
+      maxInvestment:  cfg.maxInvestment,
       totalRaised,
-      totalTarget:    PHASE.ICO_TOTAL_TARGET,
-      seedHardCap:    PHASE.ICO_ROUNDS.seed.cap,
+      totalTarget:    cfg.totalTarget,
+      seedHardCap:    cfg.rounds.seed.cap,
       activeRoundCap: activeCap,
       totalBrxSold:   totalBrx,
       percentFilled:  ((totalRaised / activeCap) * 100).toFixed(1),
@@ -549,19 +580,27 @@ app.post('/api/ico/order', auth, async (req, res) => {
       return res.status(400).json({ error: 'Please register your Polygon wallet address before purchasing.' });
     }
 
-    const amount = parseFloat(usdAmount);
-    if (isNaN(amount) || amount < PHASE.MIN_INVESTMENT) {
-      return res.status(400).json({ error: `Minimum investment is $${PHASE.MIN_INVESTMENT} USDC` });
-    }
-    if (amount > PHASE.MAX_INVESTMENT) {
-      return res.status(400).json({ error: `Maximum investment is $${PHASE.MAX_INVESTMENT.toLocaleString()} USDC per wallet` });
+    // Sale gate + active round price/cap come from admin-managed settings
+    const { data: settings } = await supabase.from('ico_settings').select('*').single();
+    const cfg = liveRoundConfig(settings);
+    if (!cfg.saleOpen) {
+      const when = cfg.saleStartsAt
+        ? ` The sale opens at ${cfg.saleStartsAt}.`
+        : '';
+      return res.status(403).json({ error: `The token sale is not open yet.${when} Join the whitelist to be notified.` });
     }
 
-    // Get active round price + cap first (limits are enforced per round)
-    const { data: settings } = await supabase.from('ico_settings').select('*').single();
-    const activeRound = settings?.active_round || 'seed';
-    const pricePerBrx = PHASE.ICO_ROUNDS[activeRound]?.price || PHASE.ICO_ROUNDS.seed.price;
-    const roundCap    = PHASE.ICO_ROUNDS[activeRound]?.cap || PHASE.ICO_ROUNDS.seed.cap;
+    const amount = parseFloat(usdAmount);
+    if (isNaN(amount) || amount < cfg.minInvestment) {
+      return res.status(400).json({ error: `Minimum investment is $${cfg.minInvestment} USDC` });
+    }
+    if (amount > cfg.maxInvestment) {
+      return res.status(400).json({ error: `Maximum investment is $${cfg.maxInvestment.toLocaleString()} USDC per wallet` });
+    }
+
+    const activeRound = cfg.activeRound;
+    const pricePerBrx = cfg.rounds[activeRound].price;
+    const roundCap    = cfg.rounds[activeRound].cap;
 
     // Check wallet investment total for this round (max $50,000 per wallet PER ROUND)
     const { data: existingOrders } = await supabase
@@ -572,9 +611,9 @@ app.post('/api/ico/order', auth, async (req, res) => {
       .in('status', ['pending_payment', 'confirmed', 'distributed']);
 
     const alreadyInvested = (existingOrders || []).reduce((s, o) => s + o.usd_amount, 0);
-    if (alreadyInvested + amount > PHASE.MAX_INVESTMENT) {
+    if (alreadyInvested + amount > cfg.maxInvestment) {
       return res.status(400).json({
-        error: `Maximum $${PHASE.MAX_INVESTMENT.toLocaleString()} per wallet per round. You have already invested $${alreadyInvested.toLocaleString()} in the ${activeRound} round.`
+        error: `Maximum $${cfg.maxInvestment.toLocaleString()} per wallet per round. You have already invested $${alreadyInvested.toLocaleString()} in the ${activeRound} round.`
       });
     }
 
@@ -1212,6 +1251,16 @@ app.patch('/api/admin/settings', adminAuth, async (req, res) => {
       'treasury_eth','treasury_bnb','brx_token_address','brick_token_address',
       'ico_vault_address','yield_distributor_address','kyc_required',
       'platform_fee_rate','tge_date','referral_bonus_brx',
+      // Dynamic sale management (round pricing, caps, limits, schedule)
+      'sale_status','sale_starts_at',
+      'seed_price_usd','round1_price_usd','round2_price_usd','dex_target_price_usd',
+      'seed_hard_cap_usd','round1_hard_cap_usd','round2_hard_cap_usd',
+      'min_investment_usd','max_investment_usd','ico_total_target_usd',
+    ];
+    const NUMERIC_POSITIVE = [
+      'seed_price_usd','round1_price_usd','round2_price_usd','dex_target_price_usd',
+      'seed_hard_cap_usd','round1_hard_cap_usd','round2_hard_cap_usd',
+      'min_investment_usd','max_investment_usd','ico_total_target_usd','referral_bonus_brx',
     ];
 
     const updates = {};
@@ -1219,6 +1268,29 @@ app.patch('/api/admin/settings', adminAuth, async (req, res) => {
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    // Validate before touching the database
+    for (const k of Object.keys(updates)) {
+      if (NUMERIC_POSITIVE.includes(k)) {
+        const n = parseFloat(updates[k]);
+        if (!Number.isFinite(n) || n <= 0) {
+          return res.status(400).json({ error: `${k} must be a positive number` });
+        }
+        updates[k] = n;
+      }
+    }
+    if (updates.sale_status && !['upcoming','live','paused'].includes(updates.sale_status)) {
+      return res.status(400).json({ error: "sale_status must be 'upcoming', 'live', or 'paused'" });
+    }
+    if (updates.active_round && !['seed','round1','round2','dex'].includes(updates.active_round)) {
+      return res.status(400).json({ error: "active_round must be 'seed', 'round1', 'round2', or 'dex'" });
+    }
+    if (updates.sale_starts_at) {
+      const d = new Date(updates.sale_starts_at);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: 'sale_starts_at must be a valid date/time' });
+      updates.sale_starts_at = d.toISOString();
+    } else if (updates.sale_starts_at === '' || updates.sale_starts_at === null) {
+      updates.sale_starts_at = null; // clear the schedule
     }
 
     const { error } = await supabase.from('ico_settings').update(updates).eq('id', 1);

@@ -260,7 +260,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 <section class="hero">
   <div class="live-badge">
     <span class="blink" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
-    BRX SEED SALE LIVE — $0.008 / BRX
+    <span id="hero-banner">BRX SEED SALE — $0.008 / BRX</span>
   </div>
 
   <h1>Real Estate.<br><span class="gr">Tokenized.</span><br>For <span class="gold">Everyone.</span></h1>
@@ -280,14 +280,14 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
   </div>
 
   <div class="cta-row">
-    <button class="btn-main" onclick="scrollToReg()">🌱 Join Seed Sale — $0.008 / BRX</button>
+    <button class="btn-main" id="cta-join" onclick="scrollToReg()">🌱 Join Seed Sale — $0.008 / BRX</button>
     <button class="btn-sec" onclick="window.open('https://docs.brickxprotocol.io','_blank','noopener')">Read Whitepaper →</button>
   </div>
 
   <!-- STATS -->
   <div class="stats-grid">
     <div class="scard">
-      <div class="sval" style="color:var(--gold)">$0.008</div>
+      <div class="sval" style="color:var(--gold)" id="stat-seed-price">$0.008</div>
       <div class="slbl">Seed Price / BRX</div>
     </div>
     <div class="scard">
@@ -494,25 +494,25 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
     <div class="tok-box">
       <h4>Price Progression</h4>
       <div class="price-ladder">
-        <div class="pstep cur">
+        <div class="pstep cur" id="ps-seed">
           <div class="pr">Seed</div>
-          <div class="pv">$0.008</div>
+          <div class="pv" id="pv-seed">$0.008</div>
           <div class="pc">YOU ARE HERE</div>
         </div>
-        <div class="pstep up">
+        <div class="pstep up" id="ps-round1">
           <div class="pr">Round 1</div>
-          <div class="pv">$0.015</div>
-          <div class="pc">+87.5%</div>
+          <div class="pv" id="pv-round1">$0.015</div>
+          <div class="pc" id="pc-round1">+87.5%</div>
         </div>
-        <div class="pstep up">
+        <div class="pstep up" id="ps-round2">
           <div class="pr">Round 2</div>
-          <div class="pv">$0.022</div>
-          <div class="pc">+175%</div>
+          <div class="pv" id="pv-round2">$0.022</div>
+          <div class="pc" id="pc-round2">+175%</div>
         </div>
-        <div class="pstep up">
+        <div class="pstep up" id="ps-dex">
           <div class="pr">DEX</div>
-          <div class="pv">$0.030</div>
-          <div class="pc">+275%</div>
+          <div class="pv" id="pv-dex">$0.030</div>
+          <div class="pc" id="pc-dex">+275%</div>
         </div>
       </div>
       <div style="margin-top:16px;display:flex;flex-direction:column;gap:5px">
@@ -759,11 +759,14 @@ function clearRegError(){
   if(el) el.textContent = '';
 }
 
-// Live ICO stats from the API — placeholders stay as "—" if unavailable.
+// Live ICO stats from the API — prices, status, and progress all follow
+// the backend, so the admin panel controls what this page shows.
 function fmtUsd(n){ return '$' + Number(n).toLocaleString('en-US'); }
+function fmtPrice(n){ return '$' + parseFloat(n); }
+function setTxt(id, txt){ var el = document.getElementById(id); if(el) el.textContent = txt; }
 fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function(d){
   if(!d || typeof d.totalRaised !== 'number') return;
-  var cap = d.seedHardCap || 640000;
+  var cap = d.activeRoundCap || d.seedHardCap || 640000;
   var pct = Math.min((d.totalRaised / cap) * 100, 100);
   var ids = {
     'seed-raised': fmtUsd(d.totalRaised) + ' raised',
@@ -771,14 +774,54 @@ fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function
     'tok-seed-pct':'Seed sold: ' + pct.toFixed(1) + '%',
     'tok-seed-amt': fmtUsd(d.totalRaised) + ' of ' + fmtUsd(cap)
   };
-  Object.keys(ids).forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.textContent = ids[id];
-  });
+  Object.keys(ids).forEach(function(id){ setTxt(id, ids[id]); });
   ['seed-bar','tok-seed-bar'].forEach(function(id){
     var el = document.getElementById(id);
     if(el) el.style.width = pct.toFixed(1) + '%';
   });
+
+  // Dynamic prices (admin-editable via the panel)
+  if (d.seedPrice) {
+    setTxt('stat-seed-price', fmtPrice(d.seedPrice));
+    setTxt('pv-seed',   fmtPrice(d.seedPrice));
+    setTxt('pv-round1', fmtPrice(d.round1Price));
+    setTxt('pv-round2', fmtPrice(d.round2Price));
+    setTxt('pv-dex',    fmtPrice(d.dexTargetPrice));
+    var upPct = function(p){ return '+' + (((p / d.seedPrice) - 1) * 100).toFixed(1).replace(/\.0$/,'') + '%'; };
+    setTxt('pc-round1', upPct(d.round1Price));
+    setTxt('pc-round2', upPct(d.round2Price));
+    setTxt('pc-dex',    upPct(d.dexTargetPrice));
+  }
+  // Highlight the active round on the price ladder
+  if (d.activeRound) {
+    ['seed','round1','round2','dex'].forEach(function(k){
+      var el = document.getElementById('ps-' + k);
+      if (!el) return;
+      el.classList.remove('cur'); el.classList.add('up');
+      var pcEl = el.querySelector('.pc');
+      if (k === d.activeRound) {
+        el.classList.remove('up'); el.classList.add('cur');
+        if (pcEl) pcEl.textContent = 'YOU ARE HERE';
+      }
+    });
+  }
+  // Sale status banner + CTA
+  var activeName = { seed:'Seed Sale', round1:'Round 1', round2:'Round 2', dex:'DEX' }[d.activeRound] || 'Seed Sale';
+  var activePrice = d.activeRoundPrice || d.seedPrice;
+  if (d.saleStatus === 'live' && d.saleOpen) {
+    setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' LIVE — ' + fmtPrice(activePrice) + ' / BRX');
+    setTxt('cta-join', '🌱 Join ' + activeName + ' — ' + fmtPrice(activePrice) + ' / BRX');
+  } else if (d.saleStatus === 'live' && d.saleStartsAt) {
+    var dtTxt = new Date(d.saleStartsAt).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
+    setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' OPENS ' + dtTxt.toUpperCase());
+    setTxt('cta-join', '🔔 Join the Whitelist — Be First In');
+  } else if (d.saleStatus === 'paused') {
+    setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' — TEMPORARILY PAUSED');
+    setTxt('cta-join', '🔔 Join the Whitelist for Updates');
+  } else {
+    setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' — OPENING SOON · ' + fmtPrice(activePrice) + ' / BRX');
+    setTxt('cta-join', '🔔 Join the Whitelist — Be First In');
+  }
 }).catch(function(){ /* keep placeholders */ });
 
 function toggleFaq(el){

@@ -774,44 +774,132 @@ function renderOrders(orders, total) {
 
 function pgRounds() {
   add(loadingCard('Loading rounds…'));
-  api('/api/admin/dashboard')
-    .then(function(dx) { if (PAGE !== 'rounds') return; clearPg(); renderRounds(dx || {}); })
+  Promise.all([api('/api/admin/settings'), api('/api/admin/dashboard')])
+    .then(function(rs) { if (PAGE !== 'rounds') return; clearPg(); renderRounds((rs[0] && rs[0].settings) || {}, rs[1] || {}); })
     .catch(function(e) { if (PAGE !== 'rounds') return; clearPg(); add(errCard(e.message, pgRounds)); });
 }
-function renderRounds(dx) {
-  add(secHdr('ICO Rounds','Round pricing is fixed by protocol — activation is managed via System Settings'));
-  var activeKey = String(dx.activeRound || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function toLocalDT(iso) {
+  if (!iso) return '';
+  var d2 = new Date(iso); if (isNaN(d2.getTime())) return '';
+  var p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d2.getFullYear() + '-' + p(d2.getMonth()+1) + '-' + p(d2.getDate()) + 'T' + p(d2.getHours()) + ':' + p(d2.getMinutes());
+}
+function renderRounds(st, dx) {
+  add(secHdr('ICO Rounds','Manage sale status, schedule, pricing, and caps — saved changes apply to the live site immediately'));
+
+  // ── Sale Control ────────────────────────────────────────────
+  var sc = mk('div',{cls:'card glow',css:'margin-bottom:14px'});
+  var stVal = st.sale_status || 'upcoming';
+  var stColor = stVal === 'live' ? 'var(--green)' : stVal === 'paused' ? 'var(--gold)' : 'var(--muted)';
+  var hd = d('display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px');
+  ap(hd, t('div','font-size:15px;font-weight:800;color:var(--white)','Sale Control'),
+         s('font-size:11px;font-weight:700;color:'+stColor,'STATUS: ' + stVal.toUpperCase()));
+  ap(sc, hd);
+  var grid = d('display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end');
+  var selSt = mk('select',{cls:'inp',id:'rc-status'});
+  [['upcoming','UPCOMING — not open yet'],['live','LIVE — accepting orders'],['paused','PAUSED — temporarily closed']].forEach(function(o){
+    var op = mk('option',{value:o[0],txt:o[1]}); if (o[0] === stVal) op.selected = true; ap(selSt, op);
+  });
+  var selRd = mk('select',{cls:'inp',id:'rc-active'});
+  [['seed','Seed Sale'],['round1','ICO Round 1'],['round2','ICO Round 2'],['dex','DEX Listing']].forEach(function(o){
+    var op = mk('option',{value:o[0],txt:o[1]}); if (o[0] === (st.active_round || 'seed')) op.selected = true; ap(selRd, op);
+  });
+  var inpDt  = mk('input',{cls:'inp',id:'rc-starts',type:'datetime-local'}); inpDt.value = toLocalDT(st.sale_starts_at);
+  var inpMin = mk('input',{cls:'inp',id:'rc-min',type:'number'}); inpMin.value = st.min_investment_usd != null ? st.min_investment_usd : 100;
+  var inpMax = mk('input',{cls:'inp',id:'rc-max',type:'number'}); inpMax.value = st.max_investment_usd != null ? st.max_investment_usd : 50000;
+  ap(grid,
+    field('Sale Status', selSt),
+    field('Active Round', selRd),
+    field('Opens At (your local time — leave empty for manual start)', inpDt),
+    field('Min Investment ($)', inpMin),
+    field('Max per Wallet ($)', inpMax));
+  ap(sc, grid);
+  var ctr = d('display:flex;gap:10px;margin-top:14px;flex-wrap:wrap');
+  ap(ctr, mk('button',{cls:'btn bs',txt:'💾 Save Sale Control',on:saveSaleControl}));
+  ap(ctr, t('div','font-size:10px;color:var(--muted);align-self:center','Orders are only accepted when status is LIVE and the opens-at time (if set) has passed.'));
+  ap(sc, ctr);
+  add(sc);
+
+  // ── Per-round cards (price + cap editable) ──────────────────
+  var activeKey = st.active_round || 'seed';
   var defs = [
-    {key:'seed', name:'Seed Sale', price:0.008, supply:'80M BRX', target:dx.seedTarget != null ? Number(dx.seedTarget) : 640000, lock:'12mo', vest:'24mo'},
-    {key:'round1', name:'ICO Round 1', price:0.015, supply:'100M BRX', target:null, lock:'3mo', vest:'12mo'},
-    {key:'round2', name:'ICO Round 2', price:0.022, supply:'50M BRX', target:null, lock:'3mo', vest:'9mo'},
-    {key:'dex', name:'DEX Listing', price:0.030, supply:'—', target:null, lock:'—', vest:'—'}
+    {key:'seed',   name:'Seed Sale',   pField:'seed_price_usd',       cField:'seed_hard_cap_usd',   supply:'80M BRX',  lock:'12mo', vest:'24mo'},
+    {key:'round1', name:'ICO Round 1', pField:'round1_price_usd',     cField:'round1_hard_cap_usd', supply:'100M BRX', lock:'3mo',  vest:'12mo'},
+    {key:'round2', name:'ICO Round 2', pField:'round2_price_usd',     cField:'round2_hard_cap_usd', supply:'50M BRX',  lock:'3mo',  vest:'9mo'},
+    {key:'dex',    name:'DEX Listing', pField:'dex_target_price_usd', cField:null,                  supply:'—',        lock:'—',    vest:'—'}
   ];
   defs.forEach(function(r) {
-    var isActive = activeKey && (activeKey === r.key || activeKey.indexOf(r.key) !== -1 || r.key.indexOf(activeKey) !== -1);
+    var isActive = activeKey === r.key;
     var c = mk('div',{cls:'card'+(isActive?' glow':''),css:'margin-bottom:12px'});
     var hdr = d('display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px');
     var nd = d('');
     ap(nd, t('div','font-size:16px;font-weight:800;color:var(--white)', r.name),
-           t('div','font-size:12px;color:var(--muted)','Lock: ' + r.lock + ' · Vest: ' + r.vest + ' · Min: $100'));
+           t('div','font-size:12px;color:var(--muted)','Lock: ' + r.lock + ' · Vest: ' + r.vest));
     ap(hdr, nd, isActive ? bdg('● ACTIVE','bg-green') : bdg('Inactive','bg-muted'));
     ap(c, hdr);
-    ap(c, miniGrid([
-      ['Price','$' + r.price.toFixed(3),'var(--gold)'],
-      ['Supply', r.supply, 'var(--white)'],
-      ['Target', r.target != null ? usd(r.target) : '—', 'var(--blueL)'],
-      ['Raised', isActive ? usd(dx.totalRaised) : '—', 'var(--green)']
-    ]));
-    if (isActive && r.target > 0 && dx.totalRaised != null) {
+    var g2 = d('display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end');
+    var pi = mk('input',{cls:'inp',id:'rp-'+r.key,type:'number',step:'0.001'});
+    pi.value = st[r.pField] != null ? parseFloat(st[r.pField]) : '';
+    ap(g2, field('Price ($/BRX)', pi));
+    if (r.cField) {
+      var ci = mk('input',{cls:'inp',id:'rcap-'+r.key,type:'number'});
+      ci.value = st[r.cField] != null ? parseFloat(st[r.cField]) : '';
+      ap(g2, field('Hard Cap ($)', ci));
+    }
+    var supEl = d(''); ap(supEl, t('div','font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px','Supply'),
+                          t('div','font-size:15px;font-weight:700;color:var(--white)', r.supply));
+    var rsEl = d(''); ap(rsEl, t('div','font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px','Raised'),
+                         t('div','font-size:15px;font-weight:700;color:var(--green)', isActive ? usd(dx.totalRaised || 0) : '—'));
+    ap(g2, supEl, rsEl);
+    ap(c, g2);
+    var bb = d('display:flex;gap:8px;margin-top:14px');
+    ap(bb, mk('button',{cls:'btn bs bsm',txt:'💾 Save ' + r.name,on:(function(rr){return function(){saveRound(rr);};})(r)}));
+    if (!isActive) ap(bb, mk('button',{cls:'btn bo bsm',txt:'Set as Active Round',on:(function(k){return function(){setActiveRound(k);};})(r.key)}));
+    ap(c, bb);
+    if (isActive && st[r.cField] > 0 && dx.totalRaised != null) {
       var pg2 = d('margin-top:12px');
-      ap(pg2, pb(Number(dx.totalRaised) / r.target * 100, 'linear-gradient(90deg,var(--blue),var(--accent))', 7));
+      ap(pg2, pb(Number(dx.totalRaised) / parseFloat(st[r.cField]) * 100, 'linear-gradient(90deg,var(--blue),var(--accent))', 7));
       ap(c, pg2);
     }
     add(c);
   });
   var note = mk('div',{cls:'card',css:'background:rgba(26,86,219,.05)'});
-  ap(note, t('div','font-size:11px;color:var(--muted)','ICO total raise target: ' + usd(dx.totalRaiseTarget != null ? dx.totalRaiseTarget : 2000000) + ' · Total BRX supply: 1,000,000,000 (fixed) · Min $100 / Max $50,000 per wallet.'));
+  ap(note, t('div','font-size:11px;color:var(--muted)','ICO total raise target: ' + usd(st.ico_total_target_usd != null ? st.ico_total_target_usd : 2000000) + ' · Total BRX supply: 1,000,000,000 (fixed forever) · The landing page, app, and Telegram bot all read these values live from the API.'));
   add(note);
+}
+function saveSaleControl() {
+  var body = {
+    sale_status:        document.getElementById('rc-status').value,
+    active_round:       document.getElementById('rc-active').value,
+    min_investment_usd: document.getElementById('rc-min').value,
+    max_investment_usd: document.getElementById('rc-max').value,
+  };
+  var dtv = document.getElementById('rc-starts').value;
+  body.sale_starts_at = dtv ? new Date(dtv).toISOString() : null;
+  if (body.sale_status === 'live' && !confirm('Set the sale to LIVE? Users will be able to place orders' + (dtv ? ' once the opens-at time passes.' : ' immediately.'))) return;
+  api('/api/admin/settings', { method: 'PATCH', body: body })
+    .then(function() { toast('✅ Sale control saved.', 'success'); nav('rounds'); })
+    .catch(function(e) { toast('Save failed: ' + e.message, 'error'); });
+}
+function saveRound(r) {
+  var body = {};
+  var pv = document.getElementById('rp-' + r.key).value;
+  if (!pv || parseFloat(pv) <= 0) { toast('Price must be a positive number.','warn'); return; }
+  body[r.pField] = pv;
+  if (r.cField) {
+    var cv = document.getElementById('rcap-' + r.key).value;
+    if (!cv || parseFloat(cv) <= 0) { toast('Hard cap must be a positive number.','warn'); return; }
+    body[r.cField] = cv;
+  }
+  api('/api/admin/settings', { method: 'PATCH', body: body })
+    .then(function() { toast('✅ ' + r.name + ' saved.', 'success'); nav('rounds'); })
+    .catch(function(e) { toast('Save failed: ' + e.message, 'error'); });
+}
+function setActiveRound(key) {
+  if (!confirm('Make "' + key + '" the active round? New orders will use its price and cap.')) return;
+  api('/api/admin/settings', { method: 'PATCH', body: { active_round: key } })
+    .then(function() { toast('✅ Active round: ' + key, 'success'); nav('rounds'); })
+    .catch(function(e) { toast('Update failed: ' + e.message, 'error'); });
 }
 
 function pgDistribute() {
