@@ -996,7 +996,7 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
   try {
     const { data: users, error } = await supabase
       .from('users')
-      .select('id, first_name, last_name, email, country, kyc_status, wallet_address, referral_code, created_at, last_login')
+      .select('id, first_name, last_name, email, country, kyc_status, wallet_address, referral_code, created_at, last_login, is_active')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

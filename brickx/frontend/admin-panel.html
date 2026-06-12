@@ -620,10 +620,14 @@ function pgUsers() {
 }
 function renderUsers() {
   var U2 = USERS_CACHE;
-  add(secHdr('All Users', U2.length + ' registered · ' + U2.filter(function(u){return u.kyc_status==='approved';}).length + ' approved'));
+  var wl = U2.filter(function(u){return u.is_active === false;});
+  add(secHdr('All Users',
+    (U2.length - wl.length) + ' registered · ' + wl.length + ' whitelist · ' +
+    U2.filter(function(u){return u.kyc_status==='approved';}).length + ' approved',
+    '⬇ Export CSV', exportUsersCSV));
 
   var fw = d('display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap');
-  [['all','All'],['approved','Approved'],['pending','Pending'],['not_started','Unverified'],['rejected','Rejected']].forEach(function(v) {
+  [['all','All'],['whitelist','Whitelist'],['approved','Approved'],['pending','Pending'],['not_started','Unverified'],['rejected','Rejected']].forEach(function(v) {
     var active = UFILT === v[0];
     ap(fw, mk('button',{
       cls:'btn bsm',
@@ -634,11 +638,16 @@ function renderUsers() {
   });
   add(fw);
 
-  var filtered = UFILT === 'all' ? U2 : U2.filter(function(u){return u.kyc_status===UFILT;});
+  var filtered = UFILT === 'all' ? U2
+    : UFILT === 'whitelist' ? wl
+    : U2.filter(function(u){return u.kyc_status===UFILT;});
   if (!filtered.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No users match this filter.'})); return; }
   var rows = filtered.map(function(u) {
     var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || '—';
     var nc = d(''); ap(nc, t('div','font-weight:600;color:var(--white)', name), t('div','font-size:10px;color:var(--muted)', u.email || ''));
+    if (u.is_active === false) {
+      ap(nc, t('div','font-size:9px;color:var(--gold);letter-spacing:.5px','WHITELIST — not registered yet'));
+    }
     var wc = s('font-family:var(--mono);font-size:10px;color:'+(u.wallet_address?'var(--blueL)':'var(--muted)'), u.wallet_address ? u.wallet_address.slice(0,12)+'...' : '-');
     var ac = d('display:flex;gap:5px');
     ap(ac, btn('View','bg',(function(id){return function(){viewUser(id);};})(u.id)));
@@ -1167,6 +1176,26 @@ function exportWallets() {
   });
   var blob = new Blob([rows.join('\n')],{type:'text/csv'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'brickx_wallets.csv'; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✅ Exported ' + USERS_CACHE.length + ' rows.','success');
+}
+function exportUsersCSV() {
+  if (!USERS_CACHE.length) { toast('No user data loaded yet.','warn'); return; }
+  var rows = ['Name,Email,Country,Status,KYC,Referral,Wallet,Joined'];
+  USERS_CACHE.forEach(function(u) {
+    rows.push([
+      csvCell(((u.first_name||'') + ' ' + (u.last_name||'')).trim()),
+      csvCell(u.email),
+      csvCell(u.country),
+      csvCell(u.is_active === false ? 'whitelist' : 'registered'),
+      csvCell(u.kyc_status),
+      csvCell(u.referral_code),
+      csvCell(u.wallet_address),
+      csvCell(u.created_at)
+    ].join(','));
+  });
+  var blob = new Blob([rows.join('\n')],{type:'text/csv'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'brickx_users_whitelist.csv'; a.click();
   URL.revokeObjectURL(a.href);
   toast('✅ Exported ' + USERS_CACHE.length + ' rows.','success');
 }
