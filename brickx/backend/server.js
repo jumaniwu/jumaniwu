@@ -1543,11 +1543,38 @@ app.post('/api/whitelist', async (req, res) => {
       is_admin:      false,
     });
     if (error) throw error;
-    await sendEmail(cleanEmail, 'You are on the BRICKX whitelist', `
-      <h2>Welcome to the BRICKX whitelist!</h2>
-      <p>You have priority access to the BRX seed sale at $0.008/BRX.</p>
-      <p><strong>Your referral code: ${referralCode}</strong></p>
-      <p>We will email you when the seed sale opens. Complete registration and KYC to purchase.</p>
+
+    // Thank-you email with live sale details (price/schedule follow admin settings)
+    const { data: icoSettings } = await supabase.from('ico_settings').select('*').single();
+    const cfg = liveRoundConfig(icoSettings);
+    const seedPrice = cfg.rounds.seed.price;
+    const opensTxt = cfg.saleStartsAt
+      ? new Date(cfg.saleStartsAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC'
+      : null;
+    const firstName = String(name || '').trim().split(/\s+/)[0];
+    await sendEmail(cleanEmail, 'Thank you for joining the BRICKX whitelist 🎉', `
+      <h2 style="color:#fff;margin-bottom:14px">You're on the whitelist — thank you!</h2>
+      <p>Hi ${firstName || 'there'},</p>
+      <p>Thank you for joining the <strong>BRICKX Protocol whitelist</strong>. You're officially early —
+      and that comes with <strong>priority access</strong> to the BRX Seed Sale at
+      <strong>$${seedPrice}/BRX</strong>, the lowest price the token will ever be offered at.</p>
+      <div style="background:#0A1628;border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:16px 20px;margin:20px 0;text-align:center">
+        <div style="font-size:11px;color:#94A3B8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Your referral code</div>
+        <div style="font-size:24px;font-weight:800;color:#F59E0B;font-family:'Courier New',monospace;letter-spacing:1px">${referralCode}</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:6px">Share it with friends — you earn bonus BRX when they invest.</div>
+      </div>
+      <h3 style="color:#fff">What happens next</h3>
+      <ol style="line-height:1.9">
+        <li>${opensTxt
+          ? `The seed sale opens on <strong>${opensTxt}</strong> — mark your calendar.`
+          : 'We will email you the moment the seed sale opens.'}</li>
+        <li>Create your account at <a href="https://app.brickxprotocol.io" style="color:#3B82F6">app.brickxprotocol.io</a> using this same email address.</li>
+        <li>Complete KYC verification — it takes about 5 minutes.</li>
+        <li>Invest from as little as <strong>$100</strong> — USDT, USDC, ETH, and BNB accepted.</li>
+      </ol>
+      <p>Questions? Our community is here:
+      <a href="https://t.me/brickxprotocol" style="color:#3B82F6">t.me/brickxprotocol</a></p>
+      <p style="margin-top:18px">— The BRICKX Protocol Team</p>
     `);
     res.status(201).json({ success: true, referralCode });
   } catch (e) {

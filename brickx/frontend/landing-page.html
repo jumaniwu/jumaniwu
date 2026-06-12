@@ -232,6 +232,9 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 #toast.show{display:flex;animation:fadeUp .3s ease}
 .reg-err{font-size:12px;color:var(--red);margin:-6px auto 12px;max-width:440px;text-align:left;display:none}
 .reg-form button:disabled{opacity:.7;cursor:not-allowed;filter:none}
+.cd-box{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:12px 0 9px;min-width:78px;flex:1;max-width:100px}
+.cd-num{font-size:26px;font-weight:800;color:var(--gold);font-family:var(--mono);line-height:1;text-align:center}
+.cd-lbl{font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:5px}
 </style>
 <!-- BRICKX API — requires the api.brickxprotocol.io CNAME pointing to Railway -->
 <script>window.BRICKX_API_URL='https://api.brickxprotocol.io';</script>
@@ -261,6 +264,17 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
   <div class="live-badge">
     <span class="blink" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
     <span id="hero-banner">BRX SEED SALE — $0.008 / BRX</span>
+  </div>
+
+  <!-- COUNTDOWN — shown automatically when a sale start time is scheduled -->
+  <div id="countdown" style="display:none;margin:20px auto 8px;max-width:460px">
+    <div id="cd-label" style="font-size:10px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;text-align:center">Seed Sale Opens In</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-lbl">Days</div></div>
+      <div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-lbl">Hours</div></div>
+      <div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-lbl">Min</div></div>
+      <div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-lbl">Sec</div></div>
+    </div>
   </div>
 
   <h1>Real Estate.<br><span class="gr">Tokenized.</span><br>For <span class="gold">Everyone.</span></h1>
@@ -655,11 +669,8 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 <!-- REGISTER -->
 <div class="reg-section" id="register">
   <div class="scan-line"></div>
-  <h2>Join the Seed Sale</h2>
-  <p>Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).</p>
-  <!-- NOTE: This form POSTs to {API}/api/whitelist. That backend route must exist
-       (it is NOT in the current server.js endpoint list) — until it is deployed,
-       submissions will show the fallback error message below. -->
+  <h2 id="reg-title">Join the Whitelist</h2>
+  <p id="reg-sub">Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).</p>
   <div class="reg-form">
     <input type="email" id="reg-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doRegister()">
     <button id="reg-btn" onclick="doRegister()">Register Now →</button>
@@ -771,6 +782,7 @@ fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function
   var ids = {
     'seed-raised': fmtUsd(d.totalRaised) + ' raised',
     'seed-cap':    fmtUsd(cap) + ' hard cap',
+    'seed-pct':    pct.toFixed(1) + '% Filled',
     'tok-seed-pct':'Seed sold: ' + pct.toFixed(1) + '%',
     'tok-seed-amt': fmtUsd(d.totalRaised) + ' of ' + fmtUsd(cap)
   };
@@ -822,7 +834,51 @@ fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function
     setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' — OPENING SOON · ' + fmtPrice(activePrice) + ' / BRX');
     setTxt('cta-join', '🔔 Join the Whitelist — Be First In');
   }
+
+  // Register section copy follows the sale state and live prices
+  if (d.saleOpen) {
+    setTxt('reg-title', 'Join the ' + activeName);
+  } else {
+    setTxt('reg-title', 'Join the Whitelist — Early Access');
+  }
+  if (d.seedPrice && d.round1Price) {
+    var up1 = (((d.round1Price / d.seedPrice) - 1) * 100).toFixed(1).replace(/\.0$/,'');
+    setTxt('reg-sub', 'Lock in ' + fmtPrice(d.seedPrice) + '/BRX before Round 1 opens at ' + fmtPrice(d.round1Price) + ' (+' + up1 + '%).');
+  }
+
+  // Countdown to the scheduled opening (shown only when a future time is set)
+  startCountdown(d.saleStartsAt, activeName, d.saleStatus);
 }).catch(function(){ /* keep placeholders */ });
+
+var cdTimer = null;
+function startCountdown(startsAt, roundName, status){
+  var box = document.getElementById('countdown');
+  if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+  if (!box || !startsAt) return;
+  var target = new Date(startsAt).getTime();
+  if (isNaN(target) || target <= Date.now()) return;
+  setTxt('cd-label', (roundName || 'Seed Sale').toUpperCase() + ' OPENS IN');
+  box.style.display = 'block';
+  function tick(){
+    var ms = target - Date.now();
+    if (ms <= 0) {
+      clearInterval(cdTimer); cdTimer = null;
+      box.style.display = 'none';
+      if (status === 'live') {
+        setTxt('hero-banner', 'BRX ' + (roundName || 'SEED SALE').toUpperCase() + ' IS NOW LIVE');
+        setTxt('cta-join', '🌱 Join the ' + (roundName || 'Seed Sale') + ' Now');
+      }
+      return;
+    }
+    var sec = Math.floor(ms / 1000);
+    setTxt('cd-d', Math.floor(sec / 86400));
+    setTxt('cd-h', ('0' + Math.floor((sec % 86400) / 3600)).slice(-2));
+    setTxt('cd-m', ('0' + Math.floor((sec % 3600) / 60)).slice(-2));
+    setTxt('cd-s', ('0' + (sec % 60)).slice(-2));
+  }
+  tick();
+  cdTimer = setInterval(tick, 1000);
+}
 
 function toggleFaq(el){
   var item = el.parentElement;
