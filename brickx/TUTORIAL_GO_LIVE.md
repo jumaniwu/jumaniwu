@@ -10,11 +10,11 @@
 | Komponen | Hosting | Biaya | Alamat nanti |
 |---|---|---|---|
 | Database | **Supabase** | Gratis | (internal) |
-| Backend API (`server.js`) | **Railway** | ± $5/bln | `api.domainanda.com` |
-| Landing page | **Vercel** | Gratis | `domainanda.com` |
-| Whitelist page | **Vercel** | Gratis | `whitelist.domainanda.com` |
-| Admin panel | **Vercel** (project terpisah) | Gratis | `panel-xyz123.domainanda.com` (rahasia) |
-| Aplikasi React (platform) | **Vercel** | Gratis | `app.domainanda.com` |
+| Backend API (`server.js`) | **Railway** | ± $5/bln | `api.brickxprotocol.io` |
+| Landing page | **Vercel** | Gratis | `brickxprotocol.io` |
+| Whitelist page | **Vercel** | Gratis | `whitelist.brickxprotocol.io` |
+| Admin panel | **Vercel** (project terpisah) | Gratis | `panel-xyz123.brickxprotocol.io` (rahasia) |
+| Aplikasi React (platform) | **Vercel** | Gratis | `app.brickxprotocol.io` |
 
 Urutan pengerjaan WAJIB: **Database → Backend → Frontend → Domain → Tes**.
 
@@ -54,7 +54,7 @@ Urutan pengerjaan WAJIB: **Database → Backend → Frontend → Domain → Tes*
 5. Tab **Variables** → isi env (lihat `brickx/ENV_TEMPLATE.env`). Minimal WAJIB:
    ```
    NODE_ENV=production
-   FRONTEND_URL=https://domainanda.com
+   FRONTEND_URL=https://brickxprotocol.io
    SUPABASE_URL=(dari Langkah 1)
    SUPABASE_SERVICE_KEY=(dari Langkah 1)
    JWT_SECRET=(string acak panjang — generate di https://generate-secret.vercel.app/32)
@@ -85,16 +85,16 @@ Daftar dulu di https://vercel.com pakai GitHub.
    ```html
    <script>window.BRICKX_API_URL='https://URL-railway-anda';</script>
    ```
-   (ganti dengan URL Railway dari Langkah 2 — nanti diganti `https://api.domainanda.com` setelah Langkah 4)
+   (ganti dengan URL Railway dari Langkah 2 — nanti diganti `https://api.brickxprotocol.io` setelah Langkah 4)
 4. File `brickx/frontend/vercel.json` sudah disediakan: domain utama otomatis
-   membuka landing page. **Edit satu hal**: ganti `whitelist.domainanda.com`
+   membuka landing page. **Edit satu hal**: ganti `whitelist.brickxprotocol.io`
    di dalamnya dengan subdomain whitelist Anda yang sebenarnya.
 5. Deploy. Tes URL `.vercel.app`-nya: angka progress seed harus tampil
    (bukan "—") dan form email berfungsi.
 
 ### 3b. Whitelist page
 Tidak perlu project terpisah — cukup tambahkan domain
-`whitelist.domainanda.com` ke project yang sama (Langkah 4). `vercel.json`
+`whitelist.brickxprotocol.io` ke project yang sama (Langkah 4). `vercel.json`
 sudah mengarahkan host whitelist ke `/whitelist-page.html` otomatis.
 
 ### 3c. Admin panel — RAHASIA
@@ -123,7 +123,7 @@ sebelum pembelian ICO dibuka.
 1. Chat @BotFather di Telegram → `/newbot` → simpan token.
 2. Railway → project yang sama → **New Service → GitHub repo** →
    Root Directory: `brickx/bot` → Start Command: `node brickx-telegram-bot.js`.
-3. Variables: `TELEGRAM_BOT_TOKEN`, `BRICKX_API_URL=https://api.domainanda.com`,
+3. Variables: `TELEGRAM_BOT_TOKEN`, `BRICKX_API_URL=https://api.brickxprotocol.io`,
    `TELEGRAM_CHANNEL_ID=@ChannelAnda`, `ADMIN_TELEGRAM_IDS=<id Telegram Anda>`
    (cek ID Anda via bot @userinfobot).
 4. Jadikan bot **admin di channel** Anda supaya posting harian 9 pagi WIB jalan.
@@ -134,23 +134,23 @@ sebelum pembelian ICO dibuka.
 
 ### 4a. Domain utama → landing page
 1. Di Vercel project landing → **Settings → Domains → Add** →
-   ketik `domainanda.com` (dan `www.domainanda.com`).
+   ketik `brickxprotocol.io` (dan `www.brickxprotocol.io`).
 2. Vercel menampilkan record DNS yang harus dibuat. Buka dashboard tempat
    Anda beli domain (Namecheap/GoDaddy/Niagahoster dll) → menu **DNS**:
    - Type `A`, Host `@`, Value `76.76.21.21`
    - Type `CNAME`, Host `www`, Value `cname.vercel-dns.com`
 3. Subdomain whitelist: di project whitelist → Add Domain
-   `whitelist.domainanda.com` → tambah `CNAME whitelist → cname.vercel-dns.com`.
-4. Admin: Add Domain `panel-x7k2m9.domainanda.com` → CNAME serupa.
+   `whitelist.brickxprotocol.io` → tambah `CNAME whitelist → cname.vercel-dns.com`.
+4. Admin: Add Domain `panel-x7k2m9.brickxprotocol.io` → CNAME serupa.
 
 ### 4b. Subdomain API → Railway
 1. Railway → service backend → **Settings → Networking → Custom Domain** →
-   masukkan `api.domainanda.com`.
+   masukkan `api.brickxprotocol.io`.
 2. Railway memberi target CNAME → tambahkan di DNS:
    `CNAME api → (nilai dari Railway)`.
 3. Setelah aktif: ganti semua `window.BRICKX_API_URL` di halaman frontend
-   menjadi `https://api.domainanda.com`, dan ubah env `FRONTEND_URL` di
-   Railway menjadi `https://domainanda.com` (penting untuk CORS!).
+   menjadi `https://api.brickxprotocol.io`, dan ubah env `FRONTEND_URL` di
+   Railway menjadi `https://brickxprotocol.io` (penting untuk CORS!).
 4. DNS butuh 5 menit – 24 jam untuk menyebar. SSL/HTTPS otomatis dari
    Vercel & Railway — tidak perlu beli sertifikat.
 
@@ -158,10 +158,10 @@ sebelum pembelian ICO dibuka.
 
 ## LANGKAH 5 — TES AKHIR SEBELUM PROMOSI
 
-- [ ] `https://api.domainanda.com/api/health` → `db: ok`
-- [ ] `https://domainanda.com` terbuka dengan HTTPS, angka seed tampil
+- [ ] `https://api.brickxprotocol.io/api/health` → `db: ok`
+- [ ] `https://brickxprotocol.io` terbuka dengan HTTPS, angka seed tampil
 - [ ] Form whitelist → muncul toast sukses → email konfirmasi masuk
-- [ ] `https://whitelist.domainanda.com` → daftar → dapat kode referral asli
+- [ ] `https://whitelist.brickxprotocol.io` → daftar → dapat kode referral asli
 - [ ] Admin panel → login akun admin → dashboard menampilkan angka live
 - [ ] Tidak ada nama hotel asli di halaman mana pun (hanya "Project Hotel
       Batam (Confidential)")

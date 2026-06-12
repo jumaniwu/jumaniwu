@@ -361,7 +361,7 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 <script>
 // ── API + LIVE STATS ─────────────────────────────────────────────
 // Backend API base — override by setting window.BRICKX_API_URL before this script
-const API = window.BRICKX_API_URL || 'https://brickx-api.railway.app';
+const API = window.BRICKX_API_URL || 'https://api.brickxprotocol.io';
 
 fetch(API + '/api/ico/info').then(r => r.json()).then(d => {
   if (!d || typeof d.totalRaised !== 'number') return;

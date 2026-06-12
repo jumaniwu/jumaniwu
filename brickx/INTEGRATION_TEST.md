@@ -22,7 +22,7 @@ below require a deployed stack (Supabase + Railway) and must be run once
 ## B. End-to-end tests — run after deploy (use Sumsub sandbox + small amounts)
 
 ### TEST 1 — Registration flow
-1. Open `https://domainanda.com` → submit whitelist email →
+1. Open `https://brickxprotocol.io` → submit whitelist email →
    **expect**: success toast + welcome email with referral code.
 2. Register full account via the React app (or `POST /api/auth/register`) using
    the same email → **expect**: 201, JWT returned, the whitelist row upgrades

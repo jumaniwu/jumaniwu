@@ -37,7 +37,7 @@ require("dotenv").config();
 const BOT_TOKEN     = process.env.TELEGRAM_BOT_TOKEN;
 const CHANNEL_ID    = process.env.TELEGRAM_CHANNEL_ID   || "@BRICKXProtocol";
 const ADMIN_IDS     = (process.env.ADMIN_TELEGRAM_IDS || "").split(",").map(Number).filter(Boolean);
-const API_URL       = process.env.BRICKX_API_URL        || "https://brickx-api.railway.app";
+const API_URL       = process.env.BRICKX_API_URL        || "https://api.brickxprotocol.io";
 const SUPPORT_EMAIL = "support@brickxprotocol.io";
 const WEBSITE       = "https://brickxprotocol.io";
 const WHITEPAPER    = "https://docs.brickxprotocol.io";

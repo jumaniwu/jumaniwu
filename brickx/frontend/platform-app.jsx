@@ -99,7 +99,7 @@ const GS = () => (
 );
 
 // ── API LAYER ─────────────────────────────────────────────────
-const API_URL = (typeof window!=='undefined' && window.BRICKX_API_URL) || 'https://brickx-api.railway.app';
+const API_URL = (typeof window!=='undefined' && window.BRICKX_API_URL) || 'https://api.brickxprotocol.io';
 const TOKEN_KEY = 'brickx_token';
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
 const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };

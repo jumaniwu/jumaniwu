@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "whitelist.domainanda.com" }],
+      "has": [{ "type": "host", "value": "whitelist.brickxprotocol.io" }],
       "destination": "/whitelist-page.html"
     },
     { "source": "/", "destination": "/landing-page.html" }

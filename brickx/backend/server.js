@@ -64,6 +64,8 @@ const RECOMMENDED_ENV = [
 RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
   console.warn(`[Startup] WARN — environment variable ${k} not set (related feature disabled or degraded)`);
 });
+// Default to the production site so email links never render "undefined".
+process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'https://brickxprotocol.io';
 
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
@@ -133,15 +135,23 @@ app.use(helmet());
 
 // CORS — explicit allowlist; reject unknown browser origins.
 // Requests with no Origin header (curl, health checks, server-to-server) are allowed.
+// brickxprotocol.io and all its subdomains (www, whitelist, app, admin panel)
+// are always allowed; EXTRA_CORS_ORIGINS covers temporary *.vercel.app URLs
+// during setup (comma-separated).
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
+  ...(process.env.EXTRA_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
   'http://localhost:3000',
   'http://localhost:5173',
 ].filter(Boolean);
+const ALLOWED_ORIGIN_PATTERN = /^https:\/\/([a-z0-9-]+\.)*brickxprotocol\.io$/i;
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // curl / health checks / same-origin
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGIN_PATTERN.test(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`[CORS] Blocked origin: ${origin}`);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
