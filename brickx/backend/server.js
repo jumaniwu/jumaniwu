@@ -55,6 +55,19 @@ if (!/^https:\/\/[^\s/]+\.supabase\.co\/?$/i.test(process.env.SUPABASE_URL)) {
   console.error('[Startup] It must look like https://xxxxxxxx.supabase.co — copy "Project URL" from Supabase Dashboard → Settings → API. Do NOT paste a key here.');
   process.exit(1);
 }
+// JWT_SECRET strength — a weak/placeholder secret lets an attacker forge tokens
+// (including admin tokens). Reject obviously insecure values; warn on short ones.
+{
+  const s = process.env.JWT_SECRET;
+  const PLACEHOLDERS = ['secret','changeme','change_me','your_jwt_secret','jwt_secret','your_key','password','test'];
+  if (PLACEHOLDERS.includes(s.toLowerCase()) || s.length < 16) {
+    console.error('[Startup] FATAL — JWT_SECRET is too weak. Generate a strong one with: openssl rand -hex 32');
+    process.exit(1);
+  }
+  if (s.length < 32) {
+    console.warn('[Startup] WARN — JWT_SECRET is shorter than 32 characters. Use at least 32 (openssl rand -hex 32) for production.');
+  }
+}
 // Recommended: warn only — features degrade gracefully without these.
 const RECOMMENDED_ENV = [
   'RESEND_API_KEY',
@@ -1248,10 +1261,14 @@ app.get('/api/admin/settings', adminAuth, async (req, res) => {
 // PATCH /api/admin/settings
 app.patch('/api/admin/settings', adminAuth, async (req, res) => {
   try {
+    // SECURITY: treasury wallet addresses and contract addresses are intentionally
+    // NOT editable here. They come from environment variables (TREASURY / CONTRACTS)
+    // and are the source of truth for where payments are sent. Keeping them out of
+    // the API means a compromised admin account can never redirect incoming funds —
+    // the only way to change a payout address is via the hosting env (Railway), which
+    // requires separate credentials.
     const allowed = [
-      'active_round','treasury_usdt_polygon','treasury_usdc_polygon',
-      'treasury_eth','treasury_bnb','brx_token_address','brick_token_address',
-      'ico_vault_address','yield_distributor_address','kyc_required',
+      'active_round','kyc_required',
       'platform_fee_rate','tge_date','referral_bonus_brx',
       // Dynamic sale management (round pricing, caps, limits, schedule)
       'sale_status','sale_starts_at',
