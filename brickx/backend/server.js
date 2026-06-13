@@ -673,8 +673,10 @@ app.post('/api/ico/order', auth, async (req, res) => {
       </table>
       <h3>Send ${cryptoCurrency} to:</h3>
       <p><strong>${payToAddress}</strong></p>
-      <p>After sending, your transaction will be auto-detected on-chain (usually within 5 minutes).
-      You will receive a confirmation email once confirmed.</p>
+      <p><strong>Important:</strong> pay from your registered wallet
+      (<strong>${req.user.wallet_address}</strong>) so we can auto-confirm your payment on-chain
+      within ~5 minutes. Payments sent from an exchange or a different wallet are still credited,
+      but are confirmed manually within 24 hours.</p>
       <p>BRX tokens will be distributed to wallet: <strong>${req.user.wallet_address}</strong> at TGE.</p>
     `);
 
@@ -1341,10 +1343,13 @@ const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 ];
 
-const POLYGON_TOKENS = {
-  USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // Polygon USDT
-  USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon USDC (bridged)
-};
+// Each entry is one ERC-20 contract to watch. Both USDC variants are listed
+// because most wallets now send native USDC, not the older bridged USDC.e.
+const POLYGON_TOKENS = [
+  { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6 }, // USDT
+  { symbol: 'USDC', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6 }, // bridged USDC.e
+  { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359', decimals: 6 }, // native USDC
+];
 
 async function checkPendingPayments() {
   try {
@@ -1360,8 +1365,8 @@ async function checkPendingPayments() {
     const currentBlock = await polygonProvider.getBlockNumber();
     const fromBlock = currentBlock - 150; // ~5 minutes of blocks
 
-    for (const tokenSymbol of ['USDT', 'USDC']) {
-      const tokenAddress = POLYGON_TOKENS[tokenSymbol];
+    for (const token of POLYGON_TOKENS) {
+      const { symbol: tokenSymbol, address: tokenAddress, decimals } = token;
       const contract = new ethers.Contract(tokenAddress, ERC20_ABI, polygonProvider);
 
       const treasuryAddr = tokenSymbol === 'USDT'
@@ -1376,13 +1381,18 @@ async function checkPendingPayments() {
       for (const event of events) {
         const fromAddr  = event.args.from.toLowerCase();
         const valueRaw  = event.args.value;
-        const decimals  = tokenSymbol === 'USDT' ? 6 : 6;
         const valueUSD  = parseFloat(ethers.utils.formatUnits(valueRaw, decimals));
 
-        // Find matching pending order by amount (±1% tolerance)
+        // Match on amount (±1%) AND the sender wallet equalling the order's
+        // registered wallet. Amount alone is unsafe: round numbers like $100
+        // collide across users and would confirm the wrong order. Payments that
+        // match the amount but come from a different address (e.g. an exchange)
+        // are deliberately left pending for the admin to confirm manually.
         const matchingOrder = pending.find(o => {
+          if (!o.crypto_currency.includes(tokenSymbol)) return false;
           const pct = Math.abs(o.usd_amount - valueUSD) / o.usd_amount;
-          return pct < 0.01 && o.crypto_currency.includes(tokenSymbol);
+          if (pct >= 0.01) return false;
+          return o.wallet_address && o.wallet_address.toLowerCase() === fromAddr;
         });
 
         if (matchingOrder) {

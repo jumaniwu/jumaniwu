@@ -779,8 +779,14 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
           <CopyBtn text={order.payTo} notify={notify}/>
         </div>
       </div>
+      {user.wallet_address&&(
+        <div style={{background:"rgba(26,86,219,.06)",border:`1px solid ${C.border}`,borderRadius:9,padding:11,marginBottom:11,fontSize:11,color:C.off,lineHeight:1.6}}>
+          ✅ For instant auto-confirmation, pay from your registered wallet:
+          <div style={{color:C.white,fontWeight:600,wordBreak:"break-all",marginTop:4}}>{user.wallet_address}</div>
+        </div>
+      )}
       <div style={{background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:11,marginBottom:16,fontSize:11,color:C.gold,lineHeight:1.6}}>
-        ⏱ Polygon USDT/USDC payments are auto-detected within ~5 minutes. ETH/BNB payments are confirmed manually within 24 hours.
+        ⏱ Polygon USDT/USDC payments from your registered wallet are auto-detected within ~5 minutes. Payments from an exchange/other wallet, and ETH/BNB, are confirmed manually within 24 hours.
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn ch="View Orders" full v="o" onClick={()=>onNav("portfolio")}/>
