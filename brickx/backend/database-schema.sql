@@ -331,7 +331,10 @@ ALTER TABLE audit_logs         ENABLE ROW LEVEL SECURITY;
 
 -- Service role (backend) bypasses RLS — never expose service key to frontend
 -- anon role gets SELECT only (no INSERT/UPDATE/DELETE policies anywhere)
+-- DROP first so the whole schema is safe to re-run (CREATE POLICY has no IF NOT EXISTS).
+DROP POLICY IF EXISTS "Public read properties" ON properties;
 CREATE POLICY "Public read properties" ON properties FOR SELECT TO anon USING (TRUE);
+DROP POLICY IF EXISTS "Public read distributions" ON yield_distributions;
 CREATE POLICY "Public read distributions" ON yield_distributions FOR SELECT TO anon USING (TRUE);
 -- NOTE: ico_settings has NO anon policy on purpose — it holds treasury wallets and
 -- contract addresses. Public ICO info (round, prices, caps) is served by the backend
