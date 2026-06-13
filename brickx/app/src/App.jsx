@@ -150,6 +150,7 @@ const CURRENCIES=["USDT/Polygon","USDC/Polygon","ETH","BNB"];
 const ROUND_ORDER=["seed","round1","round2","dex"];
 const ROUND_LABEL={seed:"Seed",round1:"Round 1",round2:"Round 2",dex:"DEX Listing"};
 const ORDER_BADGE={pending_payment:{l:"PENDING PAYMENT",c:C.gold},confirmed:{l:"CONFIRMED",c:C.green},distributed:{l:"DISTRIBUTED",c:C.teal}};
+const SALE_BADGE={live:{l:"LIVE",c:C.green},upcoming:{l:"UPCOMING",c:C.gold},paused:{l:"PAUSED",c:C.muted}};
 const WALLET_RX=/^0x[a-fA-F0-9]{40}$/;
 const DIVIDEND_LINE="Annual dividend · 70% of audited NOI · paid each June · Dec 31 snapshot";
 
@@ -600,7 +601,7 @@ function Home({user,onNav,onKYC}) {
         <div className="card glow" style={{marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
             <div><Lbl ch={`BRX ICO — ${ROUND_LABEL[active]||"…"}`} mb={3}/><div style={{fontSize:21,fontWeight:800,color:C.white,fontFamily:serif}}>{price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"}</div></div>
-            <Bdg ch={<><Dot c={C.green} s={5}/> LIVE</>} c={C.green}/>
+            {(()=>{const b=SALE_BADGE[i.saleStatus]||SALE_BADGE.upcoming;return <Bdg ch={<><Dot c={b.c} s={5}/> {b.l}</>} c={b.c}/>;})()}
           </div>
           <PBar pct={i.percentFilled} h={8}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginTop:4,marginBottom:12}}>
@@ -637,6 +638,67 @@ function Home({user,onNav,onKYC}) {
   );
 }
 
+// ── COUNTDOWN ─────────────────────────────────────────────────
+function useCountdown(targetIso) {
+  const calc=()=>{
+    if(!targetIso)return null;
+    const diff=new Date(targetIso).getTime()-Date.now();
+    if(!Number.isFinite(diff))return null;
+    if(diff<=0)return {d:0,h:0,m:0,s:0,done:true};
+    return {
+      d:Math.floor(diff/86400000),
+      h:Math.floor(diff/3600000)%24,
+      m:Math.floor(diff/60000)%60,
+      s:Math.floor(diff/1000)%60,
+      done:false,
+    };
+  };
+  const [t,setT]=useState(calc);
+  useEffect(()=>{
+    if(!targetIso){setT(null);return;}
+    setT(calc());
+    const id=setInterval(()=>setT(calc()),1000);
+    return()=>clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[targetIso]);
+  return t;
+}
+function Countdown({iso,onDone}) {
+  const t=useCountdown(iso);
+  useEffect(()=>{if(t&&t.done&&onDone)onDone();},[t,onDone]);
+  if(!t)return null;
+  const cell=(v,l)=>(
+    <div key={l} style={{background:C.bg1,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 0",textAlign:"center",flex:1}}>
+      <div style={{fontSize:24,fontWeight:800,color:C.white,fontFamily:serif,lineHeight:1}}>{String(v).padStart(2,"0")}</div>
+      <div style={{fontSize:9,color:C.muted,letterSpacing:1.5,marginTop:5}}>{l}</div>
+    </div>
+  );
+  return <div style={{display:"flex",gap:8}}>{cell(t.d,"DAYS")}{cell(t.h,"HRS")}{cell(t.m,"MIN")}{cell(t.s,"SEC")}</div>;
+}
+
+// Shown in place of the buy form when the sale is not open yet
+function SaleGate({status,startsAt,onOpen}) {
+  if(status==="paused")return(
+    <div style={{textAlign:"center",padding:"18px 6px"}}>
+      <div style={{fontSize:38,marginBottom:8}}>⏸</div>
+      <div style={{fontSize:16,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:6}}>Sale Temporarily Paused</div>
+      <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:14}}>The token sale is paused for a brief moment. Your KYC and wallet stay ready — please check back shortly.</p>
+      <Btn ch="Refresh ↻" v="o" sz="md" onClick={onOpen}/>
+    </div>
+  );
+  return(
+    <div style={{textAlign:"center",padding:"14px 4px"}}>
+      <div style={{marginBottom:10}}><Bdg ch="UPCOMING" c={C.gold}/></div>
+      <div style={{fontSize:18,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:6}}>Seed Sale Opens Soon</div>
+      <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:16}}>
+        {startsAt?"Get ready — the sale goes live at the time below. Make sure your KYC is approved and your Polygon wallet is set so you can invest the moment it opens.":"We'll announce the exact start time shortly. Complete your KYC and set your wallet now so you're ready the moment the sale opens."}
+      </p>
+      {startsAt&&<><Countdown iso={startsAt} onDone={onOpen}/>
+        <div style={{fontSize:10,color:C.muted,marginTop:10}}>Opens {new Date(startsAt).toLocaleString()}</div></>}
+    </div>
+  );
+}
+
 // ── ICO PAGE ──────────────────────────────────────────────────
 function ICOPage({user,notify,onKYC,onNav}) {
   const info=useLoad(()=>api('/api/ico/info',{auth:false}));
@@ -653,6 +715,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   const minInv=i?.minInvestment??100;
   const maxInv=i?.maxInvestment??50000;
   const brx=price?Math.floor(amt/price):0;
+  const saleStatus=i?.saleStatus||"upcoming";
+  const saleOpen=!!i?.saleOpen;
+  const saleStartsAt=i?.saleStartsAt||null;
 
   const kycOk=user.kyc_status==="approved";
   const walletOk=!!user.wallet_address&&WALLET_RX.test(user.wallet_address);
@@ -704,7 +769,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   return(
     <div className="fu">
       <div style={{marginBottom:13,paddingTop:4}}>
-        <div style={{fontSize:10,color:C.green,letterSpacing:3,marginBottom:5,display:"flex",gap:5,alignItems:"center"}}><Dot c={C.green} s={5}/>ICO {ROUND_LABEL[active]?ROUND_LABEL[active].toUpperCase():""} — LIVE</div>
+        {(()=>{const b=SALE_BADGE[saleStatus]||SALE_BADGE.upcoming;return(
+          <div style={{fontSize:10,color:b.c,letterSpacing:3,marginBottom:5,display:"flex",gap:5,alignItems:"center"}}><Dot c={b.c} s={5}/>ICO {ROUND_LABEL[active]?ROUND_LABEL[active].toUpperCase()+" — ":""}{b.l}</div>
+        );})()}
         <div style={{fontSize:21,fontWeight:900,color:C.white,fontFamily:serif}}>Buy BRX Token</div>
         <div style={{fontSize:11,color:C.muted,marginTop:2}}>BRX funds the Batam hotel acquisition · $2,000,000 total target</div>
       </div>
@@ -712,7 +779,7 @@ function ICOPage({user,notify,onKYC,onNav}) {
       <div className="hscroll" style={{marginBottom:13}}>
         {ROUND_ORDER.map(r=>{
           const idx=ROUND_ORDER.indexOf(r), aIdx=ROUND_ORDER.indexOf(active);
-          const st=r===active?"live":aIdx>-1&&idx<aIdx?"closed":"upcoming";
+          const st=r===active?(saleOpen?"live":"upcoming"):aIdx>-1&&idx<aIdx?"closed":"upcoming";
           const p=roundPrice(i,r);
           return(
             <div key={r} style={{flexShrink:0,width:128,background:C.bg2,border:`1px solid ${st==="live"?C.borderH:C.border}`,borderRadius:13,padding:13}}>
@@ -729,6 +796,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
       <div className="card glow" style={{marginBottom:13}}>
         {!kycOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ KYC approval required — <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={onKYC}>Verify now →</span></div>}
         {kycOk&&!walletOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ Set your Polygon wallet address on the <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={()=>onNav("account")}>Account page →</span> before investing</div>}
+        {!saleOpen ? (
+          <SaleGate status={saleStatus} startsAt={saleStartsAt} onOpen={info.reload}/>
+        ) : (<>
         {step==="form"&&<>
           <Lbl ch="INVESTMENT AMOUNT (USD)"/>
           <input type="range" min={minInv} max={maxInv} value={amt} step={50} onChange={e=>setAmt(Number(e.target.value))} style={{marginBottom:9}}/>
@@ -767,6 +837,7 @@ function ICOPage({user,notify,onKYC,onNav}) {
             <Btn ch="CREATE ORDER →" full v="s" sz="lg" ld={ld} onClick={doBuy}/>
           </div>
         </>}
+        </>)}
       </div>
 
       <div className="card">
@@ -919,7 +990,7 @@ function Portfolio({user}) {
                   return(
                     <div key={ord.order_id||ord.orderId||ord.id} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
                       <div>
-                        <div style={{fontSize:11,color:C.white,fontWeight:700}}>{Number(ord.brx_amount||ord.brxAllocated||0).toLocaleString()} BRX</div>
+                        <div style={{fontSize:11,color:C.white,fontWeight:700}}>{Number(ord.brx_allocated||ord.brx_amount||ord.brxAllocated||0).toLocaleString()} BRX</div>
                         <div style={{fontSize:9,color:C.dim}}>{ord.crypto_currency||ord.currency||""}{ord.created_at?` · ${new Date(ord.created_at).toLocaleDateString()}`:""}</div>
                       </div>
                       <div style={{textAlign:"right"}}>
