@@ -237,7 +237,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 .cd-lbl{font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:5px}
 </style>
 <!-- BRICKX API — requires the api.brickxprotocol.io CNAME pointing to Railway -->
-<script>window.BRICKX_API_URL='https://api.brickxprotocol.io';</script>
+<script>window.BRICKX_API_URL='https://api.brickxprotocol.io';window.BRICKX_APP_URL='https://app.brickxprotocol.io';</script>
 </head>
 <body>
 <div class="bg-grid"></div>
@@ -294,7 +294,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
   </div>
 
   <div class="cta-row">
-    <button class="btn-main" id="cta-join" onclick="scrollToReg()">🌱 Join Seed Sale — $0.008 / BRX</button>
+    <button class="btn-main" id="cta-join" onclick="ctaAction()">🌱 Join Seed Sale — $0.008 / BRX</button>
     <button class="btn-sec" onclick="window.open('https://docs.brickxprotocol.io','_blank','noopener')">Read Whitepaper →</button>
   </div>
 
@@ -711,7 +711,16 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 <script>
 // Backend API base — override by setting window.BRICKX_API_URL before this script
 var API = window.BRICKX_API_URL || 'https://api.brickxprotocol.io';
+var APP_URL = window.BRICKX_APP_URL || 'https://app.brickxprotocol.io';
 
+// When the sale is open, the CTA sends people to the purchase app where they
+// fill the buy form, set their wallet, and get the treasury address to send to.
+// Before the sale opens it scrolls to the whitelist form instead.
+var saleIsOpen = false;
+function ctaAction(){
+  if (saleIsOpen) { window.location.href = APP_URL; return; }
+  scrollToReg();
+}
 function scrollToReg(){
   document.getElementById('register').scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -821,8 +830,9 @@ fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function
   var activeName = { seed:'Seed Sale', round1:'Round 1', round2:'Round 2', dex:'DEX' }[d.activeRound] || 'Seed Sale';
   var activePrice = d.activeRoundPrice || d.seedPrice;
   if (d.saleStatus === 'live' && d.saleOpen) {
+    saleIsOpen = true;
     setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' LIVE — ' + fmtPrice(activePrice) + ' / BRX');
-    setTxt('cta-join', '🌱 Join ' + activeName + ' — ' + fmtPrice(activePrice) + ' / BRX');
+    setTxt('cta-join', '🚀 Buy ' + activeName + ' — ' + fmtPrice(activePrice) + ' / BRX');
   } else if (d.saleStatus === 'live' && d.saleStartsAt) {
     var dtTxt = new Date(d.saleStartsAt).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
     setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' OPENS ' + dtTxt.toUpperCase());
@@ -865,8 +875,9 @@ function startCountdown(startsAt, roundName, status){
       clearInterval(cdTimer); cdTimer = null;
       box.style.display = 'none';
       if (status === 'live') {
+        saleIsOpen = true;
         setTxt('hero-banner', 'BRX ' + (roundName || 'SEED SALE').toUpperCase() + ' IS NOW LIVE');
-        setTxt('cta-join', '🌱 Join the ' + (roundName || 'Seed Sale') + ' Now');
+        setTxt('cta-join', '🚀 Buy ' + (roundName || 'Seed Sale') + ' Now');
       }
       return;
     }

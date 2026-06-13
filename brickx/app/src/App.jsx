@@ -519,7 +519,7 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
 
       <div className="wrap main">
         {page==="home"&&<Home user={user} onNav={setPage} onKYC={()=>setShowKYC(true)}/>}
-        {page==="ico"&&<ICOPage user={user} notify={notify} onKYC={()=>setShowKYC(true)} onNav={setPage}/>}
+        {page==="ico"&&<ICOPage user={user} notify={notify} onKYC={()=>setShowKYC(true)} onNav={setPage} refreshUser={refreshUser}/>}
         {page==="market"&&<Market/>}
         {page==="portfolio"&&<Portfolio user={user}/>}
         {page==="account"&&<Account user={user} refreshUser={refreshUser} onKYC={()=>setShowKYC(true)} notify={notify} onLogout={onLogout}/>}
@@ -700,7 +700,7 @@ function SaleGate({status,startsAt,onOpen}) {
 }
 
 // ── ICO PAGE ──────────────────────────────────────────────────
-function ICOPage({user,notify,onKYC,onNav}) {
+function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
   const info=useLoad(()=>api('/api/ico/info',{auth:false}));
   const [amt,setAmt]=useState(100);
   const [currency,setCurrency]=useState(CURRENCIES[0]);
@@ -708,6 +708,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   const [ld,setLd]=useState(false);
   const [orderErr,setOrderErr]=useState(null);
   const [order,setOrder]=useState(null);
+  const [wallet,setWallet]=useState(user.wallet_address||"");
+  const [wErr,setWErr]=useState(null);
+  const [wSaving,setWSaving]=useState(false);
 
   const i=info.data;
   const active=i?String(i.activeRound||"").toLowerCase():null;
@@ -730,6 +733,26 @@ function ICOPage({user,notify,onKYC,onNav}) {
       setOrder(d);setStep("payment");
     }catch(e){setOrderErr(e.message);}
     setLd(false);
+  };
+
+  // Save the wallet inline (no need to leave the buy form), then advance to confirm.
+  const proceed=async()=>{
+    if(!kycOk){onKYC();return;}
+    if(amt<minInv||amt>maxInv)return;
+    if(!walletOk){
+      const w=wallet.trim();
+      if(!WALLET_RX.test(w)){setWErr("Invalid address — must be 0x + 40 hex characters");return;}
+      setWSaving(true);setWErr(null);
+      try{
+        await api('/api/auth/wallet',{method:'PUT',body:{walletAddress:w}});
+        if(refreshUser)await refreshUser();
+        notify&&notify("Wallet saved");
+        setStep("confirm");
+      }catch(e){setWErr(e.message);}
+      setWSaving(false);
+      return;
+    }
+    setStep("confirm");
   };
 
   if(info.ld)return<div className="fu"><Loading msg="Loading ICO data…"/></div>;
@@ -795,7 +818,6 @@ function ICOPage({user,notify,onKYC,onNav}) {
 
       <div className="card glow" style={{marginBottom:13}}>
         {!kycOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ KYC approval required — <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={onKYC}>Verify now →</span></div>}
-        {kycOk&&!walletOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ Set your Polygon wallet address on the <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={()=>onNav("account")}>Account page →</span> before investing</div>}
         {!saleOpen ? (
           <SaleGate status={saleStatus} startsAt={saleStartsAt} onOpen={info.reload}/>
         ) : (<>
@@ -810,6 +832,18 @@ function ICOPage({user,notify,onKYC,onNav}) {
             {[100,1000,5000,50000].map(n=><Btn key={n} ch={`$${n>=1000?n/1000+"K":n}`} v={amt===n?"p":"g"} sz="sm" onClick={()=>setAmt(n)}/>)}
           </div>
           <SelField label="Pay With" val={currency} set={setCurrency} opts={CURRENCIES}/>
+          {kycOk&&!walletOk&&(
+            <div style={{marginBottom:13}}>
+              <Field label="Your Polygon Wallet Address" val={wallet} set={v=>{setWallet(v);setWErr(null);}} ph="0x… (where your BRX will be sent)" icon="🔗" err={wErr} req
+                note="BRX and future BRICK dividends are sent to this address. Double-check it — it cannot be changed per order."/>
+            </div>
+          )}
+          {kycOk&&walletOk&&(
+            <div style={{background:C.bg1,borderRadius:11,padding:"10px 13px",marginBottom:13,fontSize:11,display:"flex",justifyContent:"space-between",gap:10}}>
+              <span style={{color:C.muted}}>BRX sent to</span>
+              <span style={{color:C.white,fontWeight:600,wordBreak:"break-all",textAlign:"right"}}>{user.wallet_address}</span>
+            </div>
+          )}
           <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
             {[["Price",price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"],["You pay",`$${amt.toLocaleString()} (${currency})`],["You receive",`${brx.toLocaleString()} BRX`],["Min / Max",`$${minInv.toLocaleString()} / $${maxInv.toLocaleString()}`],["Network","Polygon"]].map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12}}>
@@ -817,9 +851,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
               </div>
             ))}
           </div>
-          <Btn ch={can?`BUY ${brx.toLocaleString()} BRX →`:!kycOk?"🔒 COMPLETE KYC FIRST":"🔒 SET WALLET FIRST"} full v="p" sz="lg"
-            dis={can&&(amt<minInv||amt>maxInv)}
-            onClick={()=>can?setStep("confirm"):(!kycOk?onKYC():onNav("account"))}/>
+          <Btn ch={!kycOk?"🔒 COMPLETE KYC FIRST":`BUY ${brx.toLocaleString()} BRX →`} full v="p" sz="lg"
+            dis={kycOk&&(amt<minInv||amt>maxInv)} ld={wSaving}
+            onClick={proceed}/>
         </>}
         {step==="confirm"&&<>
           <div style={{fontSize:15,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:13}}>Confirm Order</div>
