@@ -1201,6 +1201,16 @@ function Root() {
   useEffect(()=>{
     let on=true;
     (async()=>{
+      // Accept a session handed off via URL fragment (#token=…) from the
+      // account-creation page, store it, then strip it from the URL so the
+      // token never lingers in the address bar or history.
+      try{
+        const m=(window.location.hash||"").match(/token=([^&]+)/);
+        if(m){
+          setToken(decodeURIComponent(m[1]));
+          window.history.replaceState(null,"",window.location.pathname+window.location.search);
+        }
+      }catch{/* ignore */}
       if(!getToken()){if(on)setBoot(false);return;}
       try{
         const d=await api('/api/auth/me');

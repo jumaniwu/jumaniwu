@@ -244,8 +244,8 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
       <div class="scan-line"></div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div style="font-size:15px;font-weight:800;color:var(--white)">Reserve Your Spot</div>
-        <div style="font-size:10px;color:var(--muted)">Step 1 of 2 — Free</div>
+        <div style="font-size:15px;font-weight:800;color:var(--white)">Create Your Account</div>
+        <div style="font-size:10px;color:var(--muted)">Free · KYC next</div>
       </div>
 
       <div class="form-row">
@@ -261,6 +261,17 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 
       <label class="form-label">Email Address <span style="color:var(--red)">*</span></label>
       <input id="f-email" type="email" class="form-input" placeholder="you@email.com">
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">Password <span style="color:var(--red)">*</span></label>
+          <input id="f-pw" type="password" class="form-input" placeholder="Min 8 characters" autocomplete="new-password">
+        </div>
+        <div>
+          <label class="form-label">Confirm Password <span style="color:var(--red)">*</span></label>
+          <input id="f-pw2" type="password" class="form-input" placeholder="Repeat password" autocomplete="new-password">
+        </div>
+      </div>
 
       <label class="form-label">Country</label>
       <select id="f-country" class="form-input" style="margin-bottom:10px">
@@ -290,7 +301,7 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
       <div id="form-err" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:10px;margin-top:10px;font-size:12px;color:var(--red);display:none"></div>
 
       <button class="btn-join" id="join-btn" onclick="submitForm()" style="margin-top:14px">
-        🚀 RESERVE MY WHITELIST SPOT →
+        🚀 CREATE ACCOUNT & JOIN →
       </button>
 
       <div class="trust-row" style="margin-top:14px;margin-bottom:0">
@@ -304,8 +315,12 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
     <!-- SUCCESS CARD (hidden until form submit) -->
     <div class="success-card fu" id="success-section">
       <span class="success-icon float">🎉</span>
-      <h2>You're on the Whitelist!</h2>
-      <p>Welcome to BRICKX, <span id="success-name">there</span>! You've secured your spot in the seed sale. Check your email for confirmation and next steps.</p>
+      <h2>Account Created!</h2>
+      <p>Welcome to BRICKX, <span id="success-name">there</span>! Your account is ready. Continue to your dashboard to complete KYC and unlock the seed sale.</p>
+
+      <button class="btn-join" id="continue-btn" onclick="continueToApp()" style="display:none;margin-bottom:16px">
+        ✅ CONTINUE TO DASHBOARD — COMPLETE KYC →
+      </button>
 
       <div class="ref-code">
         <div class="label">YOUR REFERRAL CODE</div>
@@ -314,18 +329,18 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
       </div>
 
       <div class="ref-code" style="background:rgba(26,86,219,.06);border-color:rgba(26,86,219,.25);margin-bottom:16px">
-        <div class="label">WHITELIST STATUS</div>
-        <div style="font-size:28px;font-weight:900;color:var(--blueL);font-family:var(--mono)">Reserved ✓</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Your spot is confirmed — details sent to your email</div>
+        <div class="label">ACCOUNT STATUS</div>
+        <div style="font-size:28px;font-weight:900;color:var(--blueL);font-family:var(--mono)">Active ✓</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Sign in any time with your email and password</div>
       </div>
 
       <div style="background:var(--bg1);border-radius:11px;padding:14px;margin-bottom:16px;text-align:left">
         <div style="font-size:12px;font-weight:700;color:var(--white);margin-bottom:10px">What happens next:</div>
         <div style="display:flex;flex-direction:column;gap:7px">
-          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">1.</span> Check your email for confirmation + KYC instructions</div>
+          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">1.</span> Continue to your dashboard (button above) — you're already signed in</div>
           <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">2.</span> Complete KYC (5 mins) to unlock purchase access</div>
-          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">3.</span> Seed sale opens — whitelist gets 24hr early access</div>
-          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">4.</span> Send USDT/USDC to treasury → BRX allocated to your wallet</div>
+          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">3.</span> Add your Polygon wallet address</div>
+          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">4.</span> Seed sale opens → send USDT/USDC to treasury → BRX allocated</div>
         </div>
       </div>
 
@@ -362,6 +377,8 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 // ── API + LIVE STATS ─────────────────────────────────────────────
 // Backend API base — override by setting window.BRICKX_API_URL before this script
 const API = window.BRICKX_API_URL || 'https://api.brickxprotocol.io';
+// Platform app — users continue here (already logged in) to finish KYC and buy.
+const APP_URL = window.BRICKX_APP_URL || 'https://app.brickxprotocol.io';
 
 fetch(API + '/api/ico/info').then(r => r.json()).then(d => {
   if (!d || typeof d.totalRaised !== 'number') return;
@@ -402,34 +419,39 @@ function submitForm() {
   const fn = document.getElementById('f-fn').value.trim();
   const ln = document.getElementById('f-ln').value.trim();
   const email = document.getElementById('f-email').value.trim();
+  const pw = document.getElementById('f-pw').value;
+  const pw2 = document.getElementById('f-pw2').value;
   const errEl = document.getElementById('form-err');
 
   if (!fn || !ln) { errEl.textContent = '⚠ Please enter your first and last name.'; errEl.style.display = 'block'; return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = '⚠ Please enter a valid email address.'; errEl.style.display = 'block'; return; }
+  if (pw.length < 8) { errEl.textContent = '⚠ Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+  if (pw !== pw2) { errEl.textContent = '⚠ Passwords do not match.'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
 
   // Show loading
   const btn = document.getElementById('join-btn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Registering...';
+  btn.innerHTML = '<div class="spinner"></div> Creating account...';
 
-  // Real API call — referral code is issued by the backend, never client-side
+  // Full account creation — referral code is issued by the backend, never client-side
   const country = document.getElementById('f-country').value;
   const referral = document.getElementById('f-ref').value.trim();
 
-  fetch(API + '/api/whitelist', {
+  fetch(API + '/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: fn + ' ' + ln, email, country, referral })
+    body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pw, country, referralCode: referral || undefined })
   })
   .then(r => r.json().then(j => ({ ok: r.ok, j })))
   .then(res => {
     if (!res.ok) throw new Error(res.j && res.j.error ? res.j.error : 'Registration failed');
     submitted = true;
-    const refCode = (res.j && res.j.referralCode) || null;
+    const refCode = (res.j && res.j.user && res.j.user.referral_code) || null;
+    const token = res.j && res.j.token;
 
     document.getElementById('success-name').textContent = fn;
-    document.getElementById('your-ref-code').textContent = refCode || 'Check your email';
+    document.getElementById('your-ref-code').textContent = refCode || 'See your dashboard';
 
     document.getElementById('form-section').style.display = 'none';
     const sc = document.getElementById('success-section');
@@ -438,17 +460,26 @@ function submitForm() {
 
     window._refCode = refCode;
     window._userName = fn;
+    // Hand the session to the app so the user lands already logged in for KYC.
+    // The token is passed in the URL fragment (#), which is never sent to servers.
+    window._continueUrl = token ? (APP_URL + '/#token=' + encodeURIComponent(token)) : APP_URL;
+    const contBtn = document.getElementById('continue-btn');
+    if (contBtn) contBtn.style.display = 'block';
 
-    showToast('✅ You\'re on the whitelist! Check your email.', 'success');
+    showToast('✅ Account created! Continue to complete your KYC.', 'success');
   })
   .catch(err => {
-    errEl.textContent = '⚠ ' + (err.message || 'Could not register — please try again or email seed@brickxprotocol.io');
+    errEl.textContent = '⚠ ' + (err.message || 'Could not create account — please try again or email seed@brickxprotocol.io');
     errEl.style.display = 'block';
   })
   .finally(() => {
     btn.disabled = false;
-    btn.innerHTML = '🚀 RESERVE MY WHITELIST SPOT →';
+    btn.innerHTML = '🚀 CREATE ACCOUNT & JOIN →';
   });
+}
+
+function continueToApp() {
+  window.location.href = window._continueUrl || APP_URL;
 }
 
 // ── SHARING ──────────────────────────────────────────────────────

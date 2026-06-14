@@ -79,6 +79,8 @@ RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
 });
 // Default to the production site so email links never render "undefined".
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'https://brickxprotocol.io';
+// The platform app (register/login/KYC/buy/portfolio) lives on its own subdomain.
+process.env.APP_URL = process.env.APP_URL || 'https://app.brickxprotocol.io';
 
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
@@ -322,7 +324,7 @@ app.post('/api/auth/register', async (req, res) => {
       <h3>Phase 2 — Hotel Token (After ICO)</h3>
       <p>We are acquiring an existing operating hotel in Batam, Indonesia (budget up to $18.5M USD).
       BRICK tokens at $10.00 fixed price. Annual dividend paid each June — 70% of Net Operating Income to holders.</p>
-      <p><a href="${process.env.FRONTEND_URL}/kyc">Complete KYC Now →</a></p>
+      <p><a href="${process.env.APP_URL}">Complete KYC Now →</a></p>
     `);
 
     // Grant referral bonus if applicable
@@ -474,7 +476,7 @@ app.post('/api/kyc/webhook', async (req, res) => {
           : 'KYC Requires Attention — Action Needed';
 
         const body = newStatus === 'approved'
-          ? `<h2>KYC Approved!</h2><p>You are now cleared to purchase BRX at $0.008/BRX seed price. Minimum $100. Log in to complete your purchase.</p><p><a href="${process.env.FRONTEND_URL}/buy">Buy BRX Now →</a></p>`
+          ? `<h2>KYC Approved!</h2><p>You are now cleared to purchase BRX at $0.008/BRX seed price. Minimum $100. Log in to complete your purchase.</p><p><a href="${process.env.APP_URL}">Buy BRX Now →</a></p>`
           : `<h2>KYC Requires Attention</h2><p>Your verification could not be completed. Please re-submit with a clear photo of your ID and a live selfie. Contact support@brickxprotocol.io if you need help.</p>`;
 
         await sendEmail(user.email, subject, body);
