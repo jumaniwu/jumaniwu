@@ -5,6 +5,11 @@
       "has": [{ "type": "host", "value": "whitelist.brickxprotocol.io" }],
       "destination": "/whitelist-page.html"
     },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "panel-xyz123.brickxprotocol.io" }],
+      "destination": "/admin-panel.html"
+    },
     { "source": "/", "destination": "/landing-page.html" }
   ]
 }
