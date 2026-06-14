@@ -1529,15 +1529,19 @@ async function sendEmail(to, subject, htmlBody) {
 async function createSumsubToken(applicantId, email) {
   if (!process.env.SUMSUB_APP_TOKEN) return 'demo_token_' + Date.now();
   // Full Sumsub implementation: https://developers.sumsub.com/api-reference
+  // The level name must match a verification level configured in the Sumsub
+  // dashboard. Override with SUMSUB_LEVEL_NAME if yours differs.
+  const levelName = process.env.SUMSUB_LEVEL_NAME || 'basic-kyc-level';
   const ts = Math.floor(Date.now() / 1000);
+  const path = `/resources/accessTokens?userId=${encodeURIComponent(applicantId)}&levelName=${encodeURIComponent(levelName)}`;
   const crypto = require('crypto');
   const sig = crypto
     .createHmac('sha256', process.env.SUMSUB_SECRET_KEY)
-    .update(ts + 'POST' + `/resources/accessTokens?userId=${applicantId}&levelName=basic-kyc-level`)
+    .update(ts + 'POST' + path)
     .digest('hex');
 
   const response = await axios.post(
-    `https://api.sumsub.com/resources/accessTokens?userId=${applicantId}&levelName=basic-kyc-level`,
+    `https://api.sumsub.com${path}`,
     {},
     { headers: { 'X-App-Token': process.env.SUMSUB_APP_TOKEN, 'X-App-Access-Sig': sig, 'X-App-Access-Ts': ts } }
   );
