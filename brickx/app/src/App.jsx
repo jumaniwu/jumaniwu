@@ -469,10 +469,18 @@ function KYCScreen({user,onStatus,onBack}) {
             </div>
             {err&&<FormErr msg={err}/>}
             {session?(
-              <>
-                <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:10}}>Complete the steps below. Your status updates here automatically when the review finishes.</div>
-                <div id="sumsub-websdk-container" ref={containerRef} style={{minHeight:480,background:C.bg1,borderRadius:11,overflow:"hidden"}}/>
-              </>
+              session.configured===false?(
+                <div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:11,padding:18,textAlign:"center"}}>
+                  <div style={{fontSize:26,marginBottom:6}}>🛠️</div>
+                  <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:4}}>Verification opening soon</div>
+                  <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>{session.message||"Identity verification isn't available just yet. We'll email you the moment it's ready."}</div>
+                </div>
+              ):(
+                <>
+                  <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:10}}>Complete the steps below. Your status updates here automatically when the review finishes.</div>
+                  <div id="sumsub-websdk-container" ref={containerRef} style={{minHeight:480,background:C.bg1,borderRadius:11,overflow:"hidden"}}/>
+                </>
+              )
             ):(
               <Btn ch={status==="rejected"?"RESTART VERIFICATION →":"START VERIFICATION →"} full v="p" sz="lg" ld={ld} onClick={startKyc}/>
             )}

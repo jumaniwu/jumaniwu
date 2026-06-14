@@ -427,6 +427,12 @@ app.post('/api/kyc/init', auth, async (req, res) => {
       return res.json({ status: 'approved', message: 'KYC already approved' });
     }
 
+    // If Sumsub isn't configured yet, don't hand the real WebSDK a fake token
+    // (it throws a confusing "session expired"). Tell the client it's not ready.
+    if (!process.env.SUMSUB_APP_TOKEN || !process.env.SUMSUB_SECRET_KEY) {
+      return res.json({ configured: false, message: 'Identity verification is not available yet. Please check back soon.' });
+    }
+
     // Reuse the existing applicant id if the user already has one. This keeps the
     // same Sumsub applicant across token refreshes and resumed/restarted sessions —
     // generating a fresh id each call would orphan the in-progress verification.
@@ -437,10 +443,10 @@ app.post('/api/kyc/init', auth, async (req, res) => {
     if (req.user.kyc_status === 'not_started') updates.kyc_status = 'in_progress';
     await supabase.from('users').update(updates).eq('id', req.user.id);
 
-    res.json({ accessToken, applicantId, expiresAt: Date.now() + 3600000 });
+    res.json({ configured: true, accessToken, applicantId, expiresAt: Date.now() + 3600000 });
   } catch (e) {
-    console.error('KYC init error:', e);
-    res.status(500).json({ error: 'Failed to initialize KYC' });
+    console.error('KYC init error:', e?.response?.data || e.message);
+    res.status(500).json({ error: 'Failed to initialize KYC. Please try again shortly.' });
   }
 });
 
