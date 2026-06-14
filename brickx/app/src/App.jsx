@@ -1,4 +1,4 @@
-import { Component, useState, useEffect, useCallback } from "react";
+import { Component, useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 // ── COLORS ───────────────────────────────────────────────────
@@ -122,6 +122,23 @@ async function api(path,{method='GET',body,auth=true}={}) {
   return data;
 }
 
+// Loads the Sumsub WebSDK builder script once and resolves with the global.
+let _sumsubPromise = null;
+function loadSumsubSdk() {
+  if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
+  if (window.snsWebSdk) return Promise.resolve(window.snsWebSdk);
+  if (_sumsubPromise) return _sumsubPromise;
+  _sumsubPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js';
+    s.async = true;
+    s.onload = () => window.snsWebSdk ? resolve(window.snsWebSdk) : reject(new Error('Sumsub SDK failed to load'));
+    s.onerror = () => { _sumsubPromise = null; reject(new Error('Could not load the verification module. Check your connection and retry.')); };
+    document.head.appendChild(s);
+  });
+  return _sumsubPromise;
+}
+
 // Generic loader hook: loading + error + retry on every call
 function useLoad(loader, enabled=true) {
   const [st,setSt]=useState({data:null,ld:enabled,err:null});
@@ -150,6 +167,7 @@ const CURRENCIES=["USDT/Polygon","USDC/Polygon","ETH","BNB"];
 const ROUND_ORDER=["seed","round1","round2","dex"];
 const ROUND_LABEL={seed:"Seed",round1:"Round 1",round2:"Round 2",dex:"DEX Listing"};
 const ORDER_BADGE={pending_payment:{l:"PENDING PAYMENT",c:C.gold},confirmed:{l:"CONFIRMED",c:C.green},distributed:{l:"DISTRIBUTED",c:C.teal}};
+const SALE_BADGE={live:{l:"LIVE",c:C.green},upcoming:{l:"UPCOMING",c:C.gold},paused:{l:"PAUSED",c:C.muted}};
 const WALLET_RX=/^0x[a-fA-F0-9]{40}$/;
 const DIVIDEND_LINE="Annual dividend · 70% of audited NOI · paid each June · Dec 31 snapshot";
 
@@ -262,7 +280,7 @@ function Auth({onAuth}) {
   const [step,setStep]=useState(1);
   const [ld,setLd]=useState(false);
   const [errs,setErrs]=useState({});
-  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:""});
+  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:"",accept:false});
   const s=(k,v)=>{setF(p=>({...p,[k]:v}));setErrs(p=>({...p,[k]:"",form:""}));};
 
   const chk1=()=>{
@@ -276,6 +294,7 @@ function Auth({onAuth}) {
     const e={};
     if(!f.fn.trim())e.fn="Required";
     if(!f.ln.trim())e.ln="Required";
+    if(!f.accept)e.accept="You must accept the Terms & Risk Disclosure";
     setErrs(e);return !Object.keys(e).length;
   };
 
@@ -295,7 +314,7 @@ function Auth({onAuth}) {
     try{
       const d=await api('/api/auth/register',{method:'POST',auth:false,body:{
         firstName:f.fn.trim(),lastName:f.ln.trim(),email:f.email,password:f.pw,
-        country:f.country,referralCode:f.ref.trim()||undefined,
+        country:f.country,referralCode:f.ref.trim()||undefined,acceptedTerms:f.accept,
       }});
       setToken(d.token);
       onAuth(d.user);
@@ -342,6 +361,11 @@ function Auth({onAuth}) {
               <Field label="Last Name" val={f.ln} set={v=>s("ln",v)} ph="Doe" err={errs.ln} req/>
             </div>
             <SelField label="Country" val={f.country} set={v=>s("country",v)} opts={COUNTRIES} req/>
+            <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:11,color:C.muted,lineHeight:1.5,margin:"4px 0 12px",cursor:"pointer"}}>
+              <input type="checkbox" checked={f.accept} onChange={e=>s("accept",e.target.checked)} style={{marginTop:2,accentColor:C.blue,flexShrink:0}}/>
+              <span>I have read and accept the <a href="https://brickxprotocol.io/terms.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Terms of Sale</a>, <a href="https://brickxprotocol.io/privacy.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Privacy Policy</a>, and <a href="https://brickxprotocol.io/risk.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Risk Disclosure</a>. I confirm I am not in a restricted jurisdiction.</span>
+            </label>
+            {errs.accept&&<div style={{fontSize:11,color:C.red,marginBottom:8}}>⚠ {errs.accept}</div>}
             <div style={{display:"flex",gap:8}}>
               <Btn ch="← Back" v="o" onClick={()=>setStep(1)}/>
               <Btn ch="CREATE ACCOUNT ✓" full v="s" sz="lg" ld={ld} onClick={doReg}/>
@@ -354,25 +378,29 @@ function Auth({onAuth}) {
 }
 
 // ── KYC (Sumsub-backed) ───────────────────────────────────────
-const KYC_C={not_started:C.muted,pending:C.gold,approved:C.green,rejected:C.red};
-const KYC_LBL={not_started:"Not Started",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
+const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red};
+const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
 
 function KYCScreen({user,onStatus,onBack}) {
   const [ld,setLd]=useState(false);
   const [err,setErr]=useState(null);
   const [session,setSession]=useState(null);
   const status=user.kyc_status||"not_started";
+  const containerRef=useRef(null);
+  const launchedRef=useRef(false);
+
+  const recheckStatus=useCallback(async()=>{
+    try{
+      const d=await api('/api/kyc/status');
+      if(d&&d.status&&d.status!==status)onStatus(d.status);
+    }catch{/* ignore */}
+  },[status,onStatus]);
 
   // Poll KYC status every 15s while this screen is mounted
   useEffect(()=>{
-    const t=setInterval(async()=>{
-      try{
-        const d=await api('/api/kyc/status');
-        if(d&&d.status&&d.status!==status)onStatus(d.status);
-      }catch{/* keep polling */}
-    },15000);
+    const t=setInterval(recheckStatus,15000);
     return()=>clearInterval(t);
-  },[status,onStatus]);
+  },[recheckStatus]);
 
   const startKyc=async()=>{
     setLd(true);setErr(null);
@@ -382,6 +410,25 @@ function KYCScreen({user,onStatus,onBack}) {
     }catch(e){setErr(e.message);}
     setLd(false);
   };
+
+  // Mount the Sumsub WebSDK once a session (access token) exists.
+  useEffect(()=>{
+    if(!session||!session.accessToken||!containerRef.current||launchedRef.current)return;
+    launchedRef.current=true;
+    let instance=null;
+    loadSumsubSdk().then(snsWebSdk=>{
+      instance=snsWebSdk
+        .init(session.accessToken,()=>api('/api/kyc/init',{method:'POST'}).then(d=>d.accessToken))
+        .withConf({lang:'en'})
+        .withOptions({addViewportTag:false,adaptIosWebView:true})
+        .on('idCheck.onStepCompleted',()=>recheckStatus())
+        .on('idCheck.onApplicantStatusChanged',()=>recheckStatus())
+        .on('idCheck.onError',(e)=>setErr((e&&e.reason)||'Verification error — please retry.'))
+        .build();
+      instance.launch('#sumsub-websdk-container');
+    }).catch(e=>{setErr(e.message);launchedRef.current=false;});
+    return()=>{ try{ instance&&instance.destroy&&instance.destroy(); }catch{/* ignore */} };
+  },[session,recheckStatus]);
 
   return(
     <div style={{minHeight:"100vh",background:C.bg0}}>
@@ -394,10 +441,11 @@ function KYCScreen({user,onStatus,onBack}) {
         <div className="card fu" style={{marginBottom:13}}>
           <Lbl ch="VERIFICATION STATUS"/>
           <div style={{background:`${KYC_C[status]}10`,border:`1px solid ${KYC_C[status]}33`,borderRadius:11,padding:18,textAlign:"center"}}>
-            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":status==="pending"?"⏳":status==="approved"?"✅":"❌"}</div>
-            <div style={{fontSize:14,fontWeight:800,color:KYC_C[status],marginBottom:3}}>{KYC_LBL[status]}</div>
+            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":(status==="pending"||status==="in_progress")?"⏳":status==="approved"?"✅":"❌"}</div>
+            <div style={{fontSize:14,fontWeight:800,color:KYC_C[status]||C.muted,marginBottom:3}}>{KYC_LBL[status]||"Unknown"}</div>
             <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>
               {status==="not_started"&&"Identity verification is required before investing."}
+              {status==="in_progress"&&"Continue the verification steps below. This page updates automatically when the review finishes."}
               {status==="pending"&&"Your documents are being reviewed. This page refreshes automatically every 15 seconds."}
               {status==="approved"&&"You are fully verified and can invest in the ICO."}
               {status==="rejected"&&"Verification was rejected. Please start a new session and resubmit clearer documents."}
@@ -421,12 +469,10 @@ function KYCScreen({user,onStatus,onBack}) {
             </div>
             {err&&<FormErr msg={err}/>}
             {session?(
-              <div style={{background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.25)",borderRadius:11,padding:14,textAlign:"center"}}>
-                <div style={{fontSize:26,marginBottom:6}}>📧</div>
-                <div style={{fontSize:13,fontWeight:700,color:C.green,marginBottom:4}}>Verification session created</div>
-                <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>Complete your verification via the emailed link. Status updates here automatically.</div>
-                {session.applicantId&&<div style={{fontSize:9,color:C.dim,marginTop:7,wordBreak:"break-all"}}>Applicant ID: {session.applicantId}</div>}
-              </div>
+              <>
+                <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:10}}>Complete the steps below. Your status updates here automatically when the review finishes.</div>
+                <div id="sumsub-websdk-container" ref={containerRef} style={{minHeight:480,background:C.bg1,borderRadius:11,overflow:"hidden"}}/>
+              </>
             ):(
               <Btn ch={status==="rejected"?"RESTART VERIFICATION →":"START VERIFICATION →"} full v="p" sz="lg" ld={ld} onClick={startKyc}/>
             )}
@@ -518,7 +564,7 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
 
       <div className="wrap main">
         {page==="home"&&<Home user={user} onNav={setPage} onKYC={()=>setShowKYC(true)}/>}
-        {page==="ico"&&<ICOPage user={user} notify={notify} onKYC={()=>setShowKYC(true)} onNav={setPage}/>}
+        {page==="ico"&&<ICOPage user={user} notify={notify} onKYC={()=>setShowKYC(true)} onNav={setPage} refreshUser={refreshUser}/>}
         {page==="market"&&<Market/>}
         {page==="portfolio"&&<Portfolio user={user}/>}
         {page==="account"&&<Account user={user} refreshUser={refreshUser} onKYC={()=>setShowKYC(true)} notify={notify} onLogout={onLogout}/>}
@@ -600,7 +646,7 @@ function Home({user,onNav,onKYC}) {
         <div className="card glow" style={{marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
             <div><Lbl ch={`BRX ICO — ${ROUND_LABEL[active]||"…"}`} mb={3}/><div style={{fontSize:21,fontWeight:800,color:C.white,fontFamily:serif}}>{price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"}</div></div>
-            <Bdg ch={<><Dot c={C.green} s={5}/> LIVE</>} c={C.green}/>
+            {(()=>{const b=SALE_BADGE[i.saleStatus]||SALE_BADGE.upcoming;return <Bdg ch={<><Dot c={b.c} s={5}/> {b.l}</>} c={b.c}/>;})()}
           </div>
           <PBar pct={i.percentFilled} h={8}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginTop:4,marginBottom:12}}>
@@ -637,8 +683,69 @@ function Home({user,onNav,onKYC}) {
   );
 }
 
+// ── COUNTDOWN ─────────────────────────────────────────────────
+function useCountdown(targetIso) {
+  const calc=()=>{
+    if(!targetIso)return null;
+    const diff=new Date(targetIso).getTime()-Date.now();
+    if(!Number.isFinite(diff))return null;
+    if(diff<=0)return {d:0,h:0,m:0,s:0,done:true};
+    return {
+      d:Math.floor(diff/86400000),
+      h:Math.floor(diff/3600000)%24,
+      m:Math.floor(diff/60000)%60,
+      s:Math.floor(diff/1000)%60,
+      done:false,
+    };
+  };
+  const [t,setT]=useState(calc);
+  useEffect(()=>{
+    if(!targetIso){setT(null);return;}
+    setT(calc());
+    const id=setInterval(()=>setT(calc()),1000);
+    return()=>clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[targetIso]);
+  return t;
+}
+function Countdown({iso,onDone}) {
+  const t=useCountdown(iso);
+  useEffect(()=>{if(t&&t.done&&onDone)onDone();},[t,onDone]);
+  if(!t)return null;
+  const cell=(v,l)=>(
+    <div key={l} style={{background:C.bg1,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 0",textAlign:"center",flex:1}}>
+      <div style={{fontSize:24,fontWeight:800,color:C.white,fontFamily:serif,lineHeight:1}}>{String(v).padStart(2,"0")}</div>
+      <div style={{fontSize:9,color:C.muted,letterSpacing:1.5,marginTop:5}}>{l}</div>
+    </div>
+  );
+  return <div style={{display:"flex",gap:8}}>{cell(t.d,"DAYS")}{cell(t.h,"HRS")}{cell(t.m,"MIN")}{cell(t.s,"SEC")}</div>;
+}
+
+// Shown in place of the buy form when the sale is not open yet
+function SaleGate({status,startsAt,onOpen}) {
+  if(status==="paused")return(
+    <div style={{textAlign:"center",padding:"18px 6px"}}>
+      <div style={{fontSize:38,marginBottom:8}}>⏸</div>
+      <div style={{fontSize:16,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:6}}>Sale Temporarily Paused</div>
+      <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:14}}>The token sale is paused for a brief moment. Your KYC and wallet stay ready — please check back shortly.</p>
+      <Btn ch="Refresh ↻" v="o" sz="md" onClick={onOpen}/>
+    </div>
+  );
+  return(
+    <div style={{textAlign:"center",padding:"14px 4px"}}>
+      <div style={{marginBottom:10}}><Bdg ch="UPCOMING" c={C.gold}/></div>
+      <div style={{fontSize:18,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:6}}>Seed Sale Opens Soon</div>
+      <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:16}}>
+        {startsAt?"Get ready — the sale goes live at the time below. Make sure your KYC is approved and your Polygon wallet is set so you can invest the moment it opens.":"We'll announce the exact start time shortly. Complete your KYC and set your wallet now so you're ready the moment the sale opens."}
+      </p>
+      {startsAt&&<><Countdown iso={startsAt} onDone={onOpen}/>
+        <div style={{fontSize:10,color:C.muted,marginTop:10}}>Opens {new Date(startsAt).toLocaleString()}</div></>}
+    </div>
+  );
+}
+
 // ── ICO PAGE ──────────────────────────────────────────────────
-function ICOPage({user,notify,onKYC,onNav}) {
+function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
   const info=useLoad(()=>api('/api/ico/info',{auth:false}));
   const [amt,setAmt]=useState(100);
   const [currency,setCurrency]=useState(CURRENCIES[0]);
@@ -646,6 +753,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   const [ld,setLd]=useState(false);
   const [orderErr,setOrderErr]=useState(null);
   const [order,setOrder]=useState(null);
+  const [wallet,setWallet]=useState(user.wallet_address||"");
+  const [wErr,setWErr]=useState(null);
+  const [wSaving,setWSaving]=useState(false);
 
   const i=info.data;
   const active=i?String(i.activeRound||"").toLowerCase():null;
@@ -653,6 +763,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   const minInv=i?.minInvestment??100;
   const maxInv=i?.maxInvestment??50000;
   const brx=price?Math.floor(amt/price):0;
+  const saleStatus=i?.saleStatus||"upcoming";
+  const saleOpen=!!i?.saleOpen;
+  const saleStartsAt=i?.saleStartsAt||null;
 
   const kycOk=user.kyc_status==="approved";
   const walletOk=!!user.wallet_address&&WALLET_RX.test(user.wallet_address);
@@ -665,6 +778,26 @@ function ICOPage({user,notify,onKYC,onNav}) {
       setOrder(d);setStep("payment");
     }catch(e){setOrderErr(e.message);}
     setLd(false);
+  };
+
+  // Save the wallet inline (no need to leave the buy form), then advance to confirm.
+  const proceed=async()=>{
+    if(!kycOk){onKYC();return;}
+    if(amt<minInv||amt>maxInv)return;
+    if(!walletOk){
+      const w=wallet.trim();
+      if(!WALLET_RX.test(w)){setWErr("Invalid address — must be 0x + 40 hex characters");return;}
+      setWSaving(true);setWErr(null);
+      try{
+        await api('/api/auth/wallet',{method:'PUT',body:{walletAddress:w}});
+        if(refreshUser)await refreshUser();
+        notify&&notify("Wallet saved");
+        setStep("confirm");
+      }catch(e){setWErr(e.message);}
+      setWSaving(false);
+      return;
+    }
+    setStep("confirm");
   };
 
   if(info.ld)return<div className="fu"><Loading msg="Loading ICO data…"/></div>;
@@ -691,8 +824,14 @@ function ICOPage({user,notify,onKYC,onNav}) {
           <CopyBtn text={order.payTo} notify={notify}/>
         </div>
       </div>
+      {user.wallet_address&&(
+        <div style={{background:"rgba(26,86,219,.06)",border:`1px solid ${C.border}`,borderRadius:9,padding:11,marginBottom:11,fontSize:11,color:C.off,lineHeight:1.6}}>
+          ✅ For instant auto-confirmation, pay from your registered wallet:
+          <div style={{color:C.white,fontWeight:600,wordBreak:"break-all",marginTop:4}}>{user.wallet_address}</div>
+        </div>
+      )}
       <div style={{background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:11,marginBottom:16,fontSize:11,color:C.gold,lineHeight:1.6}}>
-        ⏱ Polygon USDT/USDC payments are auto-detected within ~5 minutes. ETH/BNB payments are confirmed manually within 24 hours.
+        ⏱ Polygon USDT/USDC payments from your registered wallet are auto-detected within ~5 minutes. Payments from an exchange/other wallet, and ETH/BNB, are confirmed manually within 24 hours.
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn ch="View Orders" full v="o" onClick={()=>onNav("portfolio")}/>
@@ -704,7 +843,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
   return(
     <div className="fu">
       <div style={{marginBottom:13,paddingTop:4}}>
-        <div style={{fontSize:10,color:C.green,letterSpacing:3,marginBottom:5,display:"flex",gap:5,alignItems:"center"}}><Dot c={C.green} s={5}/>ICO {ROUND_LABEL[active]?ROUND_LABEL[active].toUpperCase():""} — LIVE</div>
+        {(()=>{const b=SALE_BADGE[saleStatus]||SALE_BADGE.upcoming;return(
+          <div style={{fontSize:10,color:b.c,letterSpacing:3,marginBottom:5,display:"flex",gap:5,alignItems:"center"}}><Dot c={b.c} s={5}/>ICO {ROUND_LABEL[active]?ROUND_LABEL[active].toUpperCase()+" — ":""}{b.l}</div>
+        );})()}
         <div style={{fontSize:21,fontWeight:900,color:C.white,fontFamily:serif}}>Buy BRX Token</div>
         <div style={{fontSize:11,color:C.muted,marginTop:2}}>BRX funds the Batam hotel acquisition · $2,000,000 total target</div>
       </div>
@@ -712,7 +853,7 @@ function ICOPage({user,notify,onKYC,onNav}) {
       <div className="hscroll" style={{marginBottom:13}}>
         {ROUND_ORDER.map(r=>{
           const idx=ROUND_ORDER.indexOf(r), aIdx=ROUND_ORDER.indexOf(active);
-          const st=r===active?"live":aIdx>-1&&idx<aIdx?"closed":"upcoming";
+          const st=r===active?(saleOpen?"live":"upcoming"):aIdx>-1&&idx<aIdx?"closed":"upcoming";
           const p=roundPrice(i,r);
           return(
             <div key={r} style={{flexShrink:0,width:128,background:C.bg2,border:`1px solid ${st==="live"?C.borderH:C.border}`,borderRadius:13,padding:13}}>
@@ -728,7 +869,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
 
       <div className="card glow" style={{marginBottom:13}}>
         {!kycOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ KYC approval required — <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={onKYC}>Verify now →</span></div>}
-        {kycOk&&!walletOk&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:9,padding:11,marginBottom:13,fontSize:12,color:C.gold}}>⚠ Set your Polygon wallet address on the <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={()=>onNav("account")}>Account page →</span> before investing</div>}
+        {!saleOpen ? (
+          <SaleGate status={saleStatus} startsAt={saleStartsAt} onOpen={info.reload}/>
+        ) : (<>
         {step==="form"&&<>
           <Lbl ch="INVESTMENT AMOUNT (USD)"/>
           <input type="range" min={minInv} max={maxInv} value={amt} step={50} onChange={e=>setAmt(Number(e.target.value))} style={{marginBottom:9}}/>
@@ -740,6 +883,18 @@ function ICOPage({user,notify,onKYC,onNav}) {
             {[100,1000,5000,50000].map(n=><Btn key={n} ch={`$${n>=1000?n/1000+"K":n}`} v={amt===n?"p":"g"} sz="sm" onClick={()=>setAmt(n)}/>)}
           </div>
           <SelField label="Pay With" val={currency} set={setCurrency} opts={CURRENCIES}/>
+          {kycOk&&!walletOk&&(
+            <div style={{marginBottom:13}}>
+              <Field label="Your Polygon Wallet Address" val={wallet} set={v=>{setWallet(v);setWErr(null);}} ph="0x… (where your BRX will be sent)" icon="🔗" err={wErr} req
+                note="BRX and future BRICK dividends are sent to this address. Double-check it — it cannot be changed per order."/>
+            </div>
+          )}
+          {kycOk&&walletOk&&(
+            <div style={{background:C.bg1,borderRadius:11,padding:"10px 13px",marginBottom:13,fontSize:11,display:"flex",justifyContent:"space-between",gap:10}}>
+              <span style={{color:C.muted}}>BRX sent to</span>
+              <span style={{color:C.white,fontWeight:600,wordBreak:"break-all",textAlign:"right"}}>{user.wallet_address}</span>
+            </div>
+          )}
           <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
             {[["Price",price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"],["You pay",`$${amt.toLocaleString()} (${currency})`],["You receive",`${brx.toLocaleString()} BRX`],["Min / Max",`$${minInv.toLocaleString()} / $${maxInv.toLocaleString()}`],["Network","Polygon"]].map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12}}>
@@ -747,9 +902,9 @@ function ICOPage({user,notify,onKYC,onNav}) {
               </div>
             ))}
           </div>
-          <Btn ch={can?`BUY ${brx.toLocaleString()} BRX →`:!kycOk?"🔒 COMPLETE KYC FIRST":"🔒 SET WALLET FIRST"} full v="p" sz="lg"
-            dis={can&&(amt<minInv||amt>maxInv)}
-            onClick={()=>can?setStep("confirm"):(!kycOk?onKYC():onNav("account"))}/>
+          <Btn ch={!kycOk?"🔒 COMPLETE KYC FIRST":`BUY ${brx.toLocaleString()} BRX →`} full v="p" sz="lg"
+            dis={kycOk&&(amt<minInv||amt>maxInv)} ld={wSaving}
+            onClick={proceed}/>
         </>}
         {step==="confirm"&&<>
           <div style={{fontSize:15,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:13}}>Confirm Order</div>
@@ -767,6 +922,7 @@ function ICOPage({user,notify,onKYC,onNav}) {
             <Btn ch="CREATE ORDER →" full v="s" sz="lg" ld={ld} onClick={doBuy}/>
           </div>
         </>}
+        </>)}
       </div>
 
       <div className="card">
@@ -919,7 +1075,7 @@ function Portfolio({user}) {
                   return(
                     <div key={ord.order_id||ord.orderId||ord.id} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
                       <div>
-                        <div style={{fontSize:11,color:C.white,fontWeight:700}}>{Number(ord.brx_amount||ord.brxAllocated||0).toLocaleString()} BRX</div>
+                        <div style={{fontSize:11,color:C.white,fontWeight:700}}>{Number(ord.brx_allocated||ord.brx_amount||ord.brxAllocated||0).toLocaleString()} BRX</div>
                         <div style={{fontSize:9,color:C.dim}}>{ord.crypto_currency||ord.currency||""}{ord.created_at?` · ${new Date(ord.created_at).toLocaleDateString()}`:""}</div>
                       </div>
                       <div style={{textAlign:"right"}}>
@@ -1052,9 +1208,9 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
       <div className="card glow" style={{marginBottom:12}}>
         <Lbl ch="KYC / AML VERIFICATION"/>
         <div style={{background:`${KYC_C[kyc]}10`,border:`1px solid ${KYC_C[kyc]}33`,borderRadius:11,padding:18,textAlign:"center",marginBottom:13}}>
-          <div style={{fontSize:34,marginBottom:5}}>{kyc==="not_started"?"⭕":kyc==="pending"?"⏳":kyc==="approved"?"✅":"❌"}</div>
-          <div style={{fontSize:14,fontWeight:800,color:KYC_C[kyc],marginBottom:3}}>{KYC_LBL[kyc]}</div>
-          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Complete KYC to unlock investing.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest in the ICO.":"Please restart verification."}</div>
+          <div style={{fontSize:34,marginBottom:5}}>{kyc==="not_started"?"⭕":(kyc==="pending"||kyc==="in_progress")?"⏳":kyc==="approved"?"✅":"❌"}</div>
+          <div style={{fontSize:14,fontWeight:800,color:KYC_C[kyc]||C.muted,marginBottom:3}}>{KYC_LBL[kyc]||"Unknown"}</div>
+          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Complete KYC to unlock investing.":kyc==="in_progress"?"Continue your verification to unlock investing.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest in the ICO.":"Please restart verification."}</div>
         </div>
         <div>
           {kyc==="approved"
@@ -1090,6 +1246,16 @@ function Root() {
   useEffect(()=>{
     let on=true;
     (async()=>{
+      // Accept a session handed off via URL fragment (#token=…) from the
+      // account-creation page, store it, then strip it from the URL so the
+      // token never lingers in the address bar or history.
+      try{
+        const m=(window.location.hash||"").match(/token=([^&]+)/);
+        if(m){
+          setToken(decodeURIComponent(m[1]));
+          window.history.replaceState(null,"",window.location.pathname+window.location.search);
+        }
+      }catch{/* ignore */}
       if(!getToken()){if(on)setBoot(false);return;}
       try{
         const d=await api('/api/auth/me');

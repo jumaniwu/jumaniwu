@@ -55,6 +55,19 @@ if (!/^https:\/\/[^\s/]+\.supabase\.co\/?$/i.test(process.env.SUPABASE_URL)) {
   console.error('[Startup] It must look like https://xxxxxxxx.supabase.co — copy "Project URL" from Supabase Dashboard → Settings → API. Do NOT paste a key here.');
   process.exit(1);
 }
+// JWT_SECRET strength — a weak/placeholder secret lets an attacker forge tokens
+// (including admin tokens). Reject obviously insecure values; warn on short ones.
+{
+  const s = process.env.JWT_SECRET;
+  const PLACEHOLDERS = ['secret','changeme','change_me','your_jwt_secret','jwt_secret','your_key','password','test'];
+  if (PLACEHOLDERS.includes(s.toLowerCase()) || s.length < 16) {
+    console.error('[Startup] FATAL — JWT_SECRET is too weak. Generate a strong one with: openssl rand -hex 32');
+    process.exit(1);
+  }
+  if (s.length < 32) {
+    console.warn('[Startup] WARN — JWT_SECRET is shorter than 32 characters. Use at least 32 (openssl rand -hex 32) for production.');
+  }
+}
 // Recommended: warn only — features degrade gracefully without these.
 const RECOMMENDED_ENV = [
   'RESEND_API_KEY',
@@ -66,6 +79,16 @@ RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
 });
 // Default to the production site so email links never render "undefined".
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'https://brickxprotocol.io';
+// The platform app (register/login/KYC/buy/portfolio) lives on its own subdomain.
+process.env.APP_URL = process.env.APP_URL || 'https://app.brickxprotocol.io';
+
+// Jurisdictions blocked from registering (self-reported country, lowercased).
+// Defaults to comprehensively OFAC-sanctioned regions; override/extend via
+// RESTRICTED_COUNTRIES (comma-separated). Add 'united states' if the sale is not
+// registered for US persons.
+const RESTRICTED_COUNTRIES = (process.env.RESTRICTED_COUNTRIES ||
+  'north korea,iran,syria,cuba,crimea')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
@@ -225,7 +248,7 @@ app.get('/api/health', async (req, res) => {
 // POST /api/auth/register
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, country, referralCode } = req.body;
+    const { firstName, lastName, email, password, country, referralCode, acceptedTerms } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'All fields required' });
@@ -235,6 +258,12 @@ app.post('/api/auth/register', async (req, res) => {
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password minimum 8 characters' });
+    }
+    if (acceptedTerms !== true) {
+      return res.status(400).json({ error: 'You must accept the Terms of Sale and Risk Disclosure to register' });
+    }
+    if (country && RESTRICTED_COUNTRIES.includes(String(country).trim().toLowerCase())) {
+      return res.status(403).json({ error: 'Registration is not available in your jurisdiction.' });
     }
 
     // Check duplicate email — neutral message to limit email enumeration.
@@ -309,7 +338,7 @@ app.post('/api/auth/register', async (req, res) => {
       <h3>Phase 2 — Hotel Token (After ICO)</h3>
       <p>We are acquiring an existing operating hotel in Batam, Indonesia (budget up to $18.5M USD).
       BRICK tokens at $10.00 fixed price. Annual dividend paid each June — 70% of Net Operating Income to holders.</p>
-      <p><a href="${process.env.FRONTEND_URL}/kyc">Complete KYC Now →</a></p>
+      <p><a href="${process.env.APP_URL}">Complete KYC Now →</a></p>
     `);
 
     // Grant referral bonus if applicable
@@ -398,14 +427,15 @@ app.post('/api/kyc/init', auth, async (req, res) => {
       return res.json({ status: 'approved', message: 'KYC already approved' });
     }
 
-    // Create Sumsub applicant (see Sumsub docs for full implementation)
-    const applicantId = `brickx_${req.user.id}_${Date.now()}`;
+    // Reuse the existing applicant id if the user already has one. This keeps the
+    // same Sumsub applicant across token refreshes and resumed/restarted sessions —
+    // generating a fresh id each call would orphan the in-progress verification.
+    const applicantId = req.user.kyc_applicant_id || `brickx_${req.user.id}_${Date.now()}`;
     const accessToken = await createSumsubToken(applicantId, req.user.email);
 
-    await supabase.from('users').update({
-      kyc_status:      'in_progress',
-      kyc_applicant_id: applicantId,
-    }).eq('id', req.user.id);
+    const updates = { kyc_applicant_id: applicantId };
+    if (req.user.kyc_status === 'not_started') updates.kyc_status = 'in_progress';
+    await supabase.from('users').update(updates).eq('id', req.user.id);
 
     res.json({ accessToken, applicantId, expiresAt: Date.now() + 3600000 });
   } catch (e) {
@@ -461,7 +491,7 @@ app.post('/api/kyc/webhook', async (req, res) => {
           : 'KYC Requires Attention — Action Needed';
 
         const body = newStatus === 'approved'
-          ? `<h2>KYC Approved!</h2><p>You are now cleared to purchase BRX at $0.008/BRX seed price. Minimum $100. Log in to complete your purchase.</p><p><a href="${process.env.FRONTEND_URL}/buy">Buy BRX Now →</a></p>`
+          ? `<h2>KYC Approved!</h2><p>You are now cleared to purchase BRX at $0.008/BRX seed price. Minimum $100. Log in to complete your purchase.</p><p><a href="${process.env.APP_URL}">Buy BRX Now →</a></p>`
           : `<h2>KYC Requires Attention</h2><p>Your verification could not be completed. Please re-submit with a clear photo of your ID and a live selfie. Contact support@brickxprotocol.io if you need help.</p>`;
 
         await sendEmail(user.email, subject, body);
@@ -673,8 +703,10 @@ app.post('/api/ico/order', auth, async (req, res) => {
       </table>
       <h3>Send ${cryptoCurrency} to:</h3>
       <p><strong>${payToAddress}</strong></p>
-      <p>After sending, your transaction will be auto-detected on-chain (usually within 5 minutes).
-      You will receive a confirmation email once confirmed.</p>
+      <p><strong>Important:</strong> pay from your registered wallet
+      (<strong>${req.user.wallet_address}</strong>) so we can auto-confirm your payment on-chain
+      within ~5 minutes. Payments sent from an exchange or a different wallet are still credited,
+      but are confirmed manually within 24 hours.</p>
       <p>BRX tokens will be distributed to wallet: <strong>${req.user.wallet_address}</strong> at TGE.</p>
     `);
 
@@ -1125,6 +1157,51 @@ app.patch('/api/admin/orders/:orderId/confirm', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/orders/:orderId/cancel — Cancel a pending order
+// Frees the reserved capacity (pending orders count toward the round hard cap
+// and the per-wallet limit), so abandoned/fraudulent orders don't block buyers.
+app.patch('/api/admin/orders/:orderId/cancel', adminAuth, async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || 'Cancelled by admin').slice(0, 200);
+
+    const { data: order } = await supabase
+      .from('ico_orders').select('*, users(email, first_name)').eq('order_id', req.params.orderId).single();
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'pending_payment') {
+      return res.status(400).json({ error: 'Only pending_payment orders can be cancelled' });
+    }
+
+    const { data: updated, error } = await supabase
+      .from('ico_orders')
+      .update({ status: 'cancelled' })
+      .eq('order_id', req.params.orderId)
+      .eq('status', 'pending_payment') // guard against a race with the payment monitor
+      .select().single();
+    if (error || !updated) return res.status(409).json({ error: 'Order changed state — refresh and retry' });
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    req.user.id,
+      action:      'order_cancelled',
+      target_type: 'order',
+      target_id:   req.params.orderId,
+      details:     `${reason} | $${order.usd_amount} | ${order.brx_allocated.toLocaleString()} BRX`,
+    });
+
+    if (order.users?.email) {
+      await sendEmail(order.users.email, `Order ${order.order_id} — Cancelled`, `
+        <h2>Your order was cancelled</h2>
+        <p>Order <strong>${order.order_id}</strong> ($${order.usd_amount.toLocaleString()}) has been cancelled and no longer reserves an allocation.</p>
+        <p>Reason: ${reason}</p>
+        <p>If you already sent payment for this order, contact <a href="mailto:support@brickxprotocol.io">support@brickxprotocol.io</a> right away with your transaction hash.</p>
+      `);
+    }
+
+    res.json({ success: true, message: `Order ${req.params.orderId} cancelled.` });
+  } catch (e) {
+    res.status(500).json({ error: 'Order cancellation failed' });
+  }
+});
+
 // POST /api/admin/distribute/batch — Distribute BRX to multiple wallets
 app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
   try {
@@ -1246,10 +1323,14 @@ app.get('/api/admin/settings', adminAuth, async (req, res) => {
 // PATCH /api/admin/settings
 app.patch('/api/admin/settings', adminAuth, async (req, res) => {
   try {
+    // SECURITY: treasury wallet addresses and contract addresses are intentionally
+    // NOT editable here. They come from environment variables (TREASURY / CONTRACTS)
+    // and are the source of truth for where payments are sent. Keeping them out of
+    // the API means a compromised admin account can never redirect incoming funds —
+    // the only way to change a payout address is via the hosting env (Railway), which
+    // requires separate credentials.
     const allowed = [
-      'active_round','treasury_usdt_polygon','treasury_usdc_polygon',
-      'treasury_eth','treasury_bnb','brx_token_address','brick_token_address',
-      'ico_vault_address','yield_distributor_address','kyc_required',
+      'active_round','kyc_required',
       'platform_fee_rate','tge_date','referral_bonus_brx',
       // Dynamic sale management (round pricing, caps, limits, schedule)
       'sale_status','sale_starts_at',
@@ -1341,10 +1422,13 @@ const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 ];
 
-const POLYGON_TOKENS = {
-  USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // Polygon USDT
-  USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon USDC (bridged)
-};
+// Each entry is one ERC-20 contract to watch. Both USDC variants are listed
+// because most wallets now send native USDC, not the older bridged USDC.e.
+const POLYGON_TOKENS = [
+  { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6 }, // USDT
+  { symbol: 'USDC', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6 }, // bridged USDC.e
+  { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359', decimals: 6 }, // native USDC
+];
 
 async function checkPendingPayments() {
   try {
@@ -1360,8 +1444,8 @@ async function checkPendingPayments() {
     const currentBlock = await polygonProvider.getBlockNumber();
     const fromBlock = currentBlock - 150; // ~5 minutes of blocks
 
-    for (const tokenSymbol of ['USDT', 'USDC']) {
-      const tokenAddress = POLYGON_TOKENS[tokenSymbol];
+    for (const token of POLYGON_TOKENS) {
+      const { symbol: tokenSymbol, address: tokenAddress, decimals } = token;
       const contract = new ethers.Contract(tokenAddress, ERC20_ABI, polygonProvider);
 
       const treasuryAddr = tokenSymbol === 'USDT'
@@ -1376,13 +1460,18 @@ async function checkPendingPayments() {
       for (const event of events) {
         const fromAddr  = event.args.from.toLowerCase();
         const valueRaw  = event.args.value;
-        const decimals  = tokenSymbol === 'USDT' ? 6 : 6;
         const valueUSD  = parseFloat(ethers.utils.formatUnits(valueRaw, decimals));
 
-        // Find matching pending order by amount (±1% tolerance)
+        // Match on amount (±1%) AND the sender wallet equalling the order's
+        // registered wallet. Amount alone is unsafe: round numbers like $100
+        // collide across users and would confirm the wrong order. Payments that
+        // match the amount but come from a different address (e.g. an exchange)
+        // are deliberately left pending for the admin to confirm manually.
         const matchingOrder = pending.find(o => {
+          if (!o.crypto_currency.includes(tokenSymbol)) return false;
           const pct = Math.abs(o.usd_amount - valueUSD) / o.usd_amount;
-          return pct < 0.01 && o.crypto_currency.includes(tokenSymbol);
+          if (pct >= 0.01) return false;
+          return o.wallet_address && o.wallet_address.toLowerCase() === fromAddr;
         });
 
         if (matchingOrder) {
@@ -1419,6 +1508,39 @@ async function checkPendingPayments() {
 
 // Run every 3 minutes
 cron.schedule('*/3 * * * *', checkPendingPayments);
+
+// ── AUTO-EXPIRE STALE PENDING ORDERS ──────────────────────────
+// Unpaid orders reserve capacity (they count toward the round hard cap and the
+// per-wallet limit). Expire them after ORDER_EXPIRY_HOURS so abandoned orders
+// don't block real buyers. This is also the window the payment monitor scans.
+const ORDER_EXPIRY_HOURS = parseInt(process.env.ORDER_EXPIRY_HOURS) || 72;
+async function expireStalePendingOrders() {
+  try {
+    const cutoff = new Date(Date.now() - ORDER_EXPIRY_HOURS * 3600000).toISOString();
+    const { data: stale } = await supabase
+      .from('ico_orders')
+      .select('order_id, user_id, usd_amount')
+      .eq('status', 'pending_payment')
+      .lt('created_at', cutoff);
+    if (!stale || !stale.length) return;
+
+    for (const o of stale) {
+      const { data: updated } = await supabase
+        .from('ico_orders')
+        .update({ status: 'cancelled' })
+        .eq('order_id', o.order_id)
+        .eq('status', 'pending_payment') // don't cancel one the monitor just confirmed
+        .select('order_id').single();
+      if (updated) {
+        console.log(`[OrderExpiry] Cancelled stale order ${o.order_id} ($${o.usd_amount})`);
+      }
+    }
+  } catch (e) {
+    console.error('[OrderExpiry] Error:', e.message);
+  }
+}
+// Run hourly
+cron.schedule('15 * * * *', expireStalePendingOrders);
 
 // ════════════════════════════════════════════════════════════════
 // ANNUAL DIVIDEND REMINDER (Cron — runs December 31 and June 1)
@@ -1499,15 +1621,19 @@ async function sendEmail(to, subject, htmlBody) {
 async function createSumsubToken(applicantId, email) {
   if (!process.env.SUMSUB_APP_TOKEN) return 'demo_token_' + Date.now();
   // Full Sumsub implementation: https://developers.sumsub.com/api-reference
+  // The level name must match a verification level configured in the Sumsub
+  // dashboard. Override with SUMSUB_LEVEL_NAME if yours differs.
+  const levelName = process.env.SUMSUB_LEVEL_NAME || 'basic-kyc-level';
   const ts = Math.floor(Date.now() / 1000);
+  const path = `/resources/accessTokens?userId=${encodeURIComponent(applicantId)}&levelName=${encodeURIComponent(levelName)}`;
   const crypto = require('crypto');
   const sig = crypto
     .createHmac('sha256', process.env.SUMSUB_SECRET_KEY)
-    .update(ts + 'POST' + `/resources/accessTokens?userId=${applicantId}&levelName=basic-kyc-level`)
+    .update(ts + 'POST' + path)
     .digest('hex');
 
   const response = await axios.post(
-    `https://api.sumsub.com/resources/accessTokens?userId=${applicantId}&levelName=basic-kyc-level`,
+    `https://api.sumsub.com${path}`,
     {},
     { headers: { 'X-App-Token': process.env.SUMSUB_APP_TOKEN, 'X-App-Access-Sig': sig, 'X-App-Access-Ts': ts } }
   );
