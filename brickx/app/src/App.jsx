@@ -1,4 +1,4 @@
-import { Component, useState, useEffect, useCallback } from "react";
+import { Component, useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 // ── COLORS ───────────────────────────────────────────────────
@@ -120,6 +120,23 @@ async function api(path,{method='GET',body,auth=true}={}) {
   try { data = await res.json(); } catch { /* non-JSON response */ }
   if (!res.ok) throw new Error((data && (data.error || data.message)) || `Request failed (${res.status})`);
   return data;
+}
+
+// Loads the Sumsub WebSDK builder script once and resolves with the global.
+let _sumsubPromise = null;
+function loadSumsubSdk() {
+  if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
+  if (window.snsWebSdk) return Promise.resolve(window.snsWebSdk);
+  if (_sumsubPromise) return _sumsubPromise;
+  _sumsubPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js';
+    s.async = true;
+    s.onload = () => window.snsWebSdk ? resolve(window.snsWebSdk) : reject(new Error('Sumsub SDK failed to load'));
+    s.onerror = () => { _sumsubPromise = null; reject(new Error('Could not load the verification module. Check your connection and retry.')); };
+    document.head.appendChild(s);
+  });
+  return _sumsubPromise;
 }
 
 // Generic loader hook: loading + error + retry on every call
@@ -355,25 +372,29 @@ function Auth({onAuth}) {
 }
 
 // ── KYC (Sumsub-backed) ───────────────────────────────────────
-const KYC_C={not_started:C.muted,pending:C.gold,approved:C.green,rejected:C.red};
-const KYC_LBL={not_started:"Not Started",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
+const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red};
+const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
 
 function KYCScreen({user,onStatus,onBack}) {
   const [ld,setLd]=useState(false);
   const [err,setErr]=useState(null);
   const [session,setSession]=useState(null);
   const status=user.kyc_status||"not_started";
+  const containerRef=useRef(null);
+  const launchedRef=useRef(false);
+
+  const recheckStatus=useCallback(async()=>{
+    try{
+      const d=await api('/api/kyc/status');
+      if(d&&d.status&&d.status!==status)onStatus(d.status);
+    }catch{/* ignore */}
+  },[status,onStatus]);
 
   // Poll KYC status every 15s while this screen is mounted
   useEffect(()=>{
-    const t=setInterval(async()=>{
-      try{
-        const d=await api('/api/kyc/status');
-        if(d&&d.status&&d.status!==status)onStatus(d.status);
-      }catch{/* keep polling */}
-    },15000);
+    const t=setInterval(recheckStatus,15000);
     return()=>clearInterval(t);
-  },[status,onStatus]);
+  },[recheckStatus]);
 
   const startKyc=async()=>{
     setLd(true);setErr(null);
@@ -383,6 +404,25 @@ function KYCScreen({user,onStatus,onBack}) {
     }catch(e){setErr(e.message);}
     setLd(false);
   };
+
+  // Mount the Sumsub WebSDK once a session (access token) exists.
+  useEffect(()=>{
+    if(!session||!session.accessToken||!containerRef.current||launchedRef.current)return;
+    launchedRef.current=true;
+    let instance=null;
+    loadSumsubSdk().then(snsWebSdk=>{
+      instance=snsWebSdk
+        .init(session.accessToken,()=>api('/api/kyc/init',{method:'POST'}).then(d=>d.accessToken))
+        .withConf({lang:'en'})
+        .withOptions({addViewportTag:false,adaptIosWebView:true})
+        .on('idCheck.onStepCompleted',()=>recheckStatus())
+        .on('idCheck.onApplicantStatusChanged',()=>recheckStatus())
+        .on('idCheck.onError',(e)=>setErr((e&&e.reason)||'Verification error — please retry.'))
+        .build();
+      instance.launch('#sumsub-websdk-container');
+    }).catch(e=>{setErr(e.message);launchedRef.current=false;});
+    return()=>{ try{ instance&&instance.destroy&&instance.destroy(); }catch{/* ignore */} };
+  },[session,recheckStatus]);
 
   return(
     <div style={{minHeight:"100vh",background:C.bg0}}>
@@ -395,10 +435,11 @@ function KYCScreen({user,onStatus,onBack}) {
         <div className="card fu" style={{marginBottom:13}}>
           <Lbl ch="VERIFICATION STATUS"/>
           <div style={{background:`${KYC_C[status]}10`,border:`1px solid ${KYC_C[status]}33`,borderRadius:11,padding:18,textAlign:"center"}}>
-            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":status==="pending"?"⏳":status==="approved"?"✅":"❌"}</div>
-            <div style={{fontSize:14,fontWeight:800,color:KYC_C[status],marginBottom:3}}>{KYC_LBL[status]}</div>
+            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":(status==="pending"||status==="in_progress")?"⏳":status==="approved"?"✅":"❌"}</div>
+            <div style={{fontSize:14,fontWeight:800,color:KYC_C[status]||C.muted,marginBottom:3}}>{KYC_LBL[status]||"Unknown"}</div>
             <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>
               {status==="not_started"&&"Identity verification is required before investing."}
+              {status==="in_progress"&&"Continue the verification steps below. This page updates automatically when the review finishes."}
               {status==="pending"&&"Your documents are being reviewed. This page refreshes automatically every 15 seconds."}
               {status==="approved"&&"You are fully verified and can invest in the ICO."}
               {status==="rejected"&&"Verification was rejected. Please start a new session and resubmit clearer documents."}
@@ -422,12 +463,10 @@ function KYCScreen({user,onStatus,onBack}) {
             </div>
             {err&&<FormErr msg={err}/>}
             {session?(
-              <div style={{background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.25)",borderRadius:11,padding:14,textAlign:"center"}}>
-                <div style={{fontSize:26,marginBottom:6}}>📧</div>
-                <div style={{fontSize:13,fontWeight:700,color:C.green,marginBottom:4}}>Verification session created</div>
-                <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>Complete your verification via the emailed link. Status updates here automatically.</div>
-                {session.applicantId&&<div style={{fontSize:9,color:C.dim,marginTop:7,wordBreak:"break-all"}}>Applicant ID: {session.applicantId}</div>}
-              </div>
+              <>
+                <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:10}}>Complete the steps below. Your status updates here automatically when the review finishes.</div>
+                <div id="sumsub-websdk-container" ref={containerRef} style={{minHeight:480,background:C.bg1,borderRadius:11,overflow:"hidden"}}/>
+              </>
             ):(
               <Btn ch={status==="rejected"?"RESTART VERIFICATION →":"START VERIFICATION →"} full v="p" sz="lg" ld={ld} onClick={startKyc}/>
             )}
@@ -1163,9 +1202,9 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
       <div className="card glow" style={{marginBottom:12}}>
         <Lbl ch="KYC / AML VERIFICATION"/>
         <div style={{background:`${KYC_C[kyc]}10`,border:`1px solid ${KYC_C[kyc]}33`,borderRadius:11,padding:18,textAlign:"center",marginBottom:13}}>
-          <div style={{fontSize:34,marginBottom:5}}>{kyc==="not_started"?"⭕":kyc==="pending"?"⏳":kyc==="approved"?"✅":"❌"}</div>
-          <div style={{fontSize:14,fontWeight:800,color:KYC_C[kyc],marginBottom:3}}>{KYC_LBL[kyc]}</div>
-          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Complete KYC to unlock investing.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest in the ICO.":"Please restart verification."}</div>
+          <div style={{fontSize:34,marginBottom:5}}>{kyc==="not_started"?"⭕":(kyc==="pending"||kyc==="in_progress")?"⏳":kyc==="approved"?"✅":"❌"}</div>
+          <div style={{fontSize:14,fontWeight:800,color:KYC_C[kyc]||C.muted,marginBottom:3}}>{KYC_LBL[kyc]||"Unknown"}</div>
+          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Complete KYC to unlock investing.":kyc==="in_progress"?"Continue your verification to unlock investing.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest in the ICO.":"Please restart verification."}</div>
         </div>
         <div>
           {kyc==="approved"

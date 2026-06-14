@@ -413,14 +413,15 @@ app.post('/api/kyc/init', auth, async (req, res) => {
       return res.json({ status: 'approved', message: 'KYC already approved' });
     }
 
-    // Create Sumsub applicant (see Sumsub docs for full implementation)
-    const applicantId = `brickx_${req.user.id}_${Date.now()}`;
+    // Reuse the existing applicant id if the user already has one. This keeps the
+    // same Sumsub applicant across token refreshes and resumed/restarted sessions —
+    // generating a fresh id each call would orphan the in-progress verification.
+    const applicantId = req.user.kyc_applicant_id || `brickx_${req.user.id}_${Date.now()}`;
     const accessToken = await createSumsubToken(applicantId, req.user.email);
 
-    await supabase.from('users').update({
-      kyc_status:      'in_progress',
-      kyc_applicant_id: applicantId,
-    }).eq('id', req.user.id);
+    const updates = { kyc_applicant_id: applicantId };
+    if (req.user.kyc_status === 'not_started') updates.kyc_status = 'in_progress';
+    await supabase.from('users').update(updates).eq('id', req.user.id);
 
     res.json({ accessToken, applicantId, expiresAt: Date.now() + 3600000 });
   } catch (e) {
