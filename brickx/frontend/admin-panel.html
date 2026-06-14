@@ -756,8 +756,9 @@ function renderOrders(orders, total) {
     var txc = s('font-family:var(--mono);font-size:10px;color:'+(o.tx_hash?'var(--muted)':'var(--red)'), o.tx_hash ? o.tx_hash.slice(0,14)+'...' : 'NOT YET');
     var ac = d('display:flex;gap:5px;flex-wrap:wrap');
     if (o.status === 'pending_payment') { ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.order_id))); ap(ac, btn('✕ Cancel','bo',(function(id){return function(){cancelOrder(id);};})(o.order_id))); }
-    else if (o.status === 'confirmed') ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeBatch([id]);};})(o.order_id)));
-    else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
+    else if (o.status === 'confirmed') { ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeBatch([id]);};})(o.order_id))); ap(ac, btn('↩ Refund','bo',(function(id){return function(){refundOrder(id);};})(o.order_id))); }
+    else if (o.status === 'distributed') ap(ac, btn('↩ Refund','bo',(function(id){return function(){refundOrder(id);};})(o.order_id)));
+    else ap(ac, s('font-size:10px;color:var(--muted)', o.status === 'refunded' ? '↩ Refunded' : '✓ Done'));
     return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), txc, sbdg(o.status), dt(o.created_at), ac];
   });
   add(mkTable(['Order','User','USD','BRX','Crypto','Tx Hash','Status','Date','Action'], rows));
@@ -1219,6 +1220,18 @@ function cancelOrder(orderId) {
       nav(PAGE);
     })
     .catch(function(e) { toast('Cancel failed: ' + e.message, 'error'); });
+}
+function refundOrder(orderId) {
+  if (!confirm('Mark order ' + orderId + ' as REFUNDED?\n\nThis is bookkeeping only — send the crypto back from the treasury Safe manually first.')) return;
+  var refundTx = prompt('Refund transaction hash (0x + 64 hex, optional):', '');
+  if (refundTx === null) return;
+  refundTx = refundTx.trim();
+  if (refundTx && !/^0x[0-9a-fA-F]{64}$/.test(refundTx)) { toast('Invalid tx hash.','error'); return; }
+  var reason = prompt('Reason (shown to the user):', 'Refund requested');
+  if (reason === null) return;
+  api('/api/admin/orders/' + encodeURIComponent(orderId) + '/refund', { method: 'PATCH', body: { refundTx: refundTx, reason: reason.trim() } })
+    .then(function() { toast('Order ' + orderId + ' marked refunded.','success'); refreshCounts(); nav(PAGE); })
+    .catch(function(e) { toast('Refund failed: ' + e.message, 'error'); });
 }
 function distributeBatch(orderIds) {
   if (!orderIds || !orderIds.length) { toast('No orders selected.','warn'); return; }

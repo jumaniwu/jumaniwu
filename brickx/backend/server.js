@@ -1208,6 +1208,56 @@ app.patch('/api/admin/orders/:orderId/cancel', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/orders/:orderId/refund — Mark a paid order refunded
+// Bookkeeping only: the actual crypto is returned manually from the treasury
+// Safe. Records the refund tx hash so the ledger stays auditable.
+app.patch('/api/admin/orders/:orderId/refund', adminAuth, async (req, res) => {
+  try {
+    const refundTx = String(req.body?.refundTx || '').trim();
+    const reason = String(req.body?.reason || 'Refunded by admin').slice(0, 200);
+    if (refundTx && !/^0x[0-9a-fA-F]{64}$/.test(refundTx)) {
+      return res.status(400).json({ error: 'refundTx must be a 0x + 64 hex transaction hash' });
+    }
+
+    const { data: order } = await supabase
+      .from('ico_orders').select('*, users(email)').eq('order_id', req.params.orderId).single();
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!['confirmed', 'distributed'].includes(order.status)) {
+      return res.status(400).json({ error: 'Only confirmed/distributed orders can be refunded (use cancel for pending orders)' });
+    }
+
+    const { data: updated, error } = await supabase
+      .from('ico_orders')
+      .update({ status: 'refunded' })
+      .eq('order_id', req.params.orderId)
+      .in('status', ['confirmed', 'distributed'])
+      .select().single();
+    if (error || !updated) return res.status(409).json({ error: 'Order changed state — refresh and retry' });
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    req.user.id,
+      action:      'order_refunded',
+      target_type: 'order',
+      target_id:   req.params.orderId,
+      details:     `${reason} | $${order.usd_amount} | refundTx: ${refundTx || 'n/a'}`,
+    });
+
+    if (order.users?.email) {
+      await sendEmail(order.users.email, `Order ${order.order_id} — Refunded`, `
+        <h2>Your order has been refunded</h2>
+        <p>Order <strong>${order.order_id}</strong> ($${order.usd_amount.toLocaleString()}) has been refunded and its BRX allocation reversed.</p>
+        <p>Reason: ${reason}</p>
+        ${refundTx ? `<p>Refund transaction: <strong>${refundTx}</strong></p>` : ''}
+        <p>Questions? Contact <a href="mailto:support@brickxprotocol.io">support@brickxprotocol.io</a>.</p>
+      `);
+    }
+
+    res.json({ success: true, message: `Order ${req.params.orderId} marked refunded.` });
+  } catch (e) {
+    res.status(500).json({ error: 'Order refund failed' });
+  }
+});
+
 // POST /api/admin/distribute/batch — Distribute BRX to multiple wallets
 app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
   try {
