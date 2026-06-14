@@ -1143,6 +1143,51 @@ app.patch('/api/admin/orders/:orderId/confirm', adminAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/orders/:orderId/cancel — Cancel a pending order
+// Frees the reserved capacity (pending orders count toward the round hard cap
+// and the per-wallet limit), so abandoned/fraudulent orders don't block buyers.
+app.patch('/api/admin/orders/:orderId/cancel', adminAuth, async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || 'Cancelled by admin').slice(0, 200);
+
+    const { data: order } = await supabase
+      .from('ico_orders').select('*, users(email, first_name)').eq('order_id', req.params.orderId).single();
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'pending_payment') {
+      return res.status(400).json({ error: 'Only pending_payment orders can be cancelled' });
+    }
+
+    const { data: updated, error } = await supabase
+      .from('ico_orders')
+      .update({ status: 'cancelled' })
+      .eq('order_id', req.params.orderId)
+      .eq('status', 'pending_payment') // guard against a race with the payment monitor
+      .select().single();
+    if (error || !updated) return res.status(409).json({ error: 'Order changed state — refresh and retry' });
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    req.user.id,
+      action:      'order_cancelled',
+      target_type: 'order',
+      target_id:   req.params.orderId,
+      details:     `${reason} | $${order.usd_amount} | ${order.brx_allocated.toLocaleString()} BRX`,
+    });
+
+    if (order.users?.email) {
+      await sendEmail(order.users.email, `Order ${order.order_id} — Cancelled`, `
+        <h2>Your order was cancelled</h2>
+        <p>Order <strong>${order.order_id}</strong> ($${order.usd_amount.toLocaleString()}) has been cancelled and no longer reserves an allocation.</p>
+        <p>Reason: ${reason}</p>
+        <p>If you already sent payment for this order, contact <a href="mailto:support@brickxprotocol.io">support@brickxprotocol.io</a> right away with your transaction hash.</p>
+      `);
+    }
+
+    res.json({ success: true, message: `Order ${req.params.orderId} cancelled.` });
+  } catch (e) {
+    res.status(500).json({ error: 'Order cancellation failed' });
+  }
+});
+
 // POST /api/admin/distribute/batch — Distribute BRX to multiple wallets
 app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
   try {
@@ -1449,6 +1494,39 @@ async function checkPendingPayments() {
 
 // Run every 3 minutes
 cron.schedule('*/3 * * * *', checkPendingPayments);
+
+// ── AUTO-EXPIRE STALE PENDING ORDERS ──────────────────────────
+// Unpaid orders reserve capacity (they count toward the round hard cap and the
+// per-wallet limit). Expire them after ORDER_EXPIRY_HOURS so abandoned orders
+// don't block real buyers. This is also the window the payment monitor scans.
+const ORDER_EXPIRY_HOURS = parseInt(process.env.ORDER_EXPIRY_HOURS) || 72;
+async function expireStalePendingOrders() {
+  try {
+    const cutoff = new Date(Date.now() - ORDER_EXPIRY_HOURS * 3600000).toISOString();
+    const { data: stale } = await supabase
+      .from('ico_orders')
+      .select('order_id, user_id, usd_amount')
+      .eq('status', 'pending_payment')
+      .lt('created_at', cutoff);
+    if (!stale || !stale.length) return;
+
+    for (const o of stale) {
+      const { data: updated } = await supabase
+        .from('ico_orders')
+        .update({ status: 'cancelled' })
+        .eq('order_id', o.order_id)
+        .eq('status', 'pending_payment') // don't cancel one the monitor just confirmed
+        .select('order_id').single();
+      if (updated) {
+        console.log(`[OrderExpiry] Cancelled stale order ${o.order_id} ($${o.usd_amount})`);
+      }
+    }
+  } catch (e) {
+    console.error('[OrderExpiry] Error:', e.message);
+  }
+}
+// Run hourly
+cron.schedule('15 * * * *', expireStalePendingOrders);
 
 // ════════════════════════════════════════════════════════════════
 // ANNUAL DIVIDEND REMINDER (Cron — runs December 31 and June 1)

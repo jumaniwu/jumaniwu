@@ -538,7 +538,7 @@ function orderTableRow(o) {
   ap(uc, t('div','font-weight:600;color:var(--white)', orderUserName(o)),
          t('div','font-size:10px;color:var(--muted)', (o.users && o.users.email) || ''));
   var ac = d('display:flex;gap:5px;flex-wrap:wrap');
-  if (o.status === 'pending_payment') ap(ac, btn('✓ Confirm','bs', (function(id){return function(){confirmOrder(id);};})(o.order_id)));
+  if (o.status === 'pending_payment') { ap(ac, btn('✓ Confirm','bs', (function(id){return function(){confirmOrder(id);};})(o.order_id))); ap(ac, btn('✕ Cancel','bo', (function(id){return function(){cancelOrder(id);};})(o.order_id))); }
   else if (o.status === 'confirmed') ap(ac, btn('✈ Send','bgold', (function(id){return function(){distributeBatch([id]);};})(o.order_id)));
   else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
   return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), sbdg(o.status), dt(o.created_at), ac];
@@ -755,7 +755,7 @@ function renderOrders(orders, total) {
     var uc = d(''); ap(uc, t('div','font-weight:600;color:var(--white);font-size:12px', orderUserName(o)), t('div','font-size:10px;color:var(--muted)', (o.users && o.users.email) || ''));
     var txc = s('font-family:var(--mono);font-size:10px;color:'+(o.tx_hash?'var(--muted)':'var(--red)'), o.tx_hash ? o.tx_hash.slice(0,14)+'...' : 'NOT YET');
     var ac = d('display:flex;gap:5px;flex-wrap:wrap');
-    if (o.status === 'pending_payment') ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.order_id)));
+    if (o.status === 'pending_payment') { ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.order_id))); ap(ac, btn('✕ Cancel','bo',(function(id){return function(){cancelOrder(id);};})(o.order_id))); }
     else if (o.status === 'confirmed') ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeBatch([id]);};})(o.order_id)));
     else ap(ac, s('font-size:10px;color:var(--teal)','✓ Done'));
     return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), txc, sbdg(o.status), dt(o.created_at), ac];
@@ -1208,6 +1208,17 @@ function confirmOrder(orderId) {
       nav(PAGE);
     })
     .catch(function(e) { toast('Confirm failed: ' + e.message, 'error'); });
+}
+function cancelOrder(orderId) {
+  var reason = prompt('Cancel order ' + orderId + '? This frees the reserved allocation.\n\nReason (optional):', 'Unpaid / abandoned');
+  if (reason === null) return;
+  api('/api/admin/orders/' + encodeURIComponent(orderId) + '/cancel', { method: 'PATCH', body: { reason: reason } })
+    .then(function() {
+      toast('Order ' + orderId + ' cancelled.','success');
+      refreshCounts();
+      nav(PAGE);
+    })
+    .catch(function(e) { toast('Cancel failed: ' + e.message, 'error'); });
 }
 function distributeBatch(orderIds) {
   if (!orderIds || !orderIds.length) { toast('No orders selected.','warn'); return; }
