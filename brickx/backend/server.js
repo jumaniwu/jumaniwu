@@ -1111,7 +1111,7 @@ app.patch('/api/admin/kyc/:userId', adminAuth, async (req, res) => {
       : 'KYC Update — Action Required';
 
     const emailBody = status === 'approved'
-      ? `<h2>KYC Approved!</h2><p>You are cleared to purchase BRX at $0.008 seed price. Minimum $100.</p><p><a href="${process.env.FRONTEND_URL}/buy">Buy BRX Now →</a></p>`
+      ? `<h2>KYC Approved!</h2><p>You are cleared to purchase BRX at $0.008 seed price. Minimum $100.</p><p><a href="${process.env.APP_URL}">Buy BRX Now →</a></p>`
       : `<h2>KYC Could Not Be Completed</h2><p>Reason: ${reason || 'Document unclear'}. Please resubmit with a clear ID photo and selfie.</p><p>Contact support@brickxprotocol.io for assistance.</p>`;
 
     await sendEmail(user.email, emailSubject, emailBody);

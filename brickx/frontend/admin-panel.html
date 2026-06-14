@@ -651,7 +651,7 @@ function renderUsers() {
     var wc = s('font-family:var(--mono);font-size:10px;color:'+(u.wallet_address?'var(--blueL)':'var(--muted)'), u.wallet_address ? u.wallet_address.slice(0,12)+'...' : '-');
     var ac = d('display:flex;gap:5px');
     ap(ac, btn('View','bg',(function(id){return function(){viewUser(id);};})(u.id)));
-    if (u.kyc_status === 'pending') {
+    if (u.kyc_status !== 'approved') {
       ap(ac, btn('✓ KYC','bs',(function(id){return function(){setKYC(id,'approved');};})(u.id)));
       ap(ac, btn('✗','br',(function(id){return function(){setKYC(id,'rejected');};})(u.id)));
     }
@@ -1247,7 +1247,7 @@ function viewUser(id) {
     ap(mb, row);
   });
   var br = d('display:flex;gap:9px;margin-top:14px;flex-wrap:wrap');
-  if (u.kyc_status === 'pending') {
+  if (u.kyc_status !== 'approved') {
     ap(br, mk('button',{cls:'btn bs',txt:'✅ Approve KYC',on:(function(uid){return function(){setKYC(uid,'approved');};})(u.id)}));
     ap(br, mk('button',{cls:'btn br',txt:'❌ Reject',on:(function(uid){return function(){setKYC(uid,'rejected');};})(u.id)}));
   }
