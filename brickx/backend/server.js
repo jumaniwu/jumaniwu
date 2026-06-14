@@ -1722,12 +1722,29 @@ app.use((err, req, res, next) => {
 
 // ── START SERVER ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚀 BRICKX API v3.0 — running on port ${PORT}`);
   console.log(`📋 Phase 1: BRX ICO — Seed $0.008/BRX | Target: $2,000,000`);
   console.log(`🏨 Phase 2: Hotel Batam — Budget up to $18.5M USD`);
   console.log(`💰 Dividend: Annual, paid June each year (70% NOI → holders)`);
   console.log(`🔗 Polygon network · USDT/USDC auto-detection every 3 min\n`);
+});
+
+// ── PROCESS-LEVEL SAFETY NETS ─────────────────────────────────
+// Without these, an unhandled rejection or exception can take the API down
+// silently. Log everything so it shows up in the platform logs.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  // The process is now in an undefined state — exit so the platform restarts it.
+  process.exit(1);
+});
+// Graceful shutdown on platform redeploy/stop so in-flight requests finish.
+process.on('SIGTERM', () => {
+  console.log('[Shutdown] SIGTERM received — closing server.');
+  server.close(() => process.exit(0));
 });
 
 module.exports = app;
