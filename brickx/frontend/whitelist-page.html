@@ -298,6 +298,11 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
         <option value="10000+">$10,000+</option>
       </select>
 
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--muted);line-height:1.5;margin-top:12px;cursor:pointer">
+        <input id="f-accept" type="checkbox" style="margin-top:2px;accent-color:var(--blue);flex-shrink:0">
+        <span>I have read and accept the <a href="./terms.html" target="_blank" rel="noopener" style="color:var(--blueL)">Terms of Sale</a>, <a href="./privacy.html" target="_blank" rel="noopener" style="color:var(--blueL)">Privacy Policy</a>, and <a href="./risk.html" target="_blank" rel="noopener" style="color:var(--blueL)">Risk Disclosure</a>. I confirm I am not in a restricted jurisdiction.</span>
+      </label>
+
       <div id="form-err" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:10px;margin-top:10px;font-size:12px;color:var(--red);display:none"></div>
 
       <button class="btn-join" id="join-btn" onclick="submitForm()" style="margin-top:14px">
@@ -427,6 +432,7 @@ function submitForm() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = '⚠ Please enter a valid email address.'; errEl.style.display = 'block'; return; }
   if (pw.length < 8) { errEl.textContent = '⚠ Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
   if (pw !== pw2) { errEl.textContent = '⚠ Passwords do not match.'; errEl.style.display = 'block'; return; }
+  if (!document.getElementById('f-accept').checked) { errEl.textContent = '⚠ Please accept the Terms, Privacy Policy, and Risk Disclosure.'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
 
   // Show loading
@@ -441,7 +447,7 @@ function submitForm() {
   fetch(API + '/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pw, country, referralCode: referral || undefined })
+    body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pw, country, referralCode: referral || undefined, acceptedTerms: true })
   })
   .then(r => r.json().then(j => ({ ok: r.ok, j })))
   .then(res => {

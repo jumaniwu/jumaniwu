@@ -82,6 +82,14 @@ process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'https://brickxprotocol.i
 // The platform app (register/login/KYC/buy/portfolio) lives on its own subdomain.
 process.env.APP_URL = process.env.APP_URL || 'https://app.brickxprotocol.io';
 
+// Jurisdictions blocked from registering (self-reported country, lowercased).
+// Defaults to comprehensively OFAC-sanctioned regions; override/extend via
+// RESTRICTED_COUNTRIES (comma-separated). Add 'united states' if the sale is not
+// registered for US persons.
+const RESTRICTED_COUNTRIES = (process.env.RESTRICTED_COUNTRIES ||
+  'north korea,iran,syria,cuba,crimea')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
 // ── INIT ─────────────────────────────────────────────────────
 const app     = express();
 // Only construct the Resend client when a key is present — the SDK throws on
@@ -240,7 +248,7 @@ app.get('/api/health', async (req, res) => {
 // POST /api/auth/register
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, country, referralCode } = req.body;
+    const { firstName, lastName, email, password, country, referralCode, acceptedTerms } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'All fields required' });
@@ -250,6 +258,12 @@ app.post('/api/auth/register', async (req, res) => {
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password minimum 8 characters' });
+    }
+    if (acceptedTerms !== true) {
+      return res.status(400).json({ error: 'You must accept the Terms of Sale and Risk Disclosure to register' });
+    }
+    if (country && RESTRICTED_COUNTRIES.includes(String(country).trim().toLowerCase())) {
+      return res.status(403).json({ error: 'Registration is not available in your jurisdiction.' });
     }
 
     // Check duplicate email — neutral message to limit email enumeration.
