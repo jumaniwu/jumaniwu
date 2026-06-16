@@ -1173,6 +1173,10 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
   const [wallet,setWallet]=useState(user.wallet_address||"");
   const [wErr,setWErr]=useState(null);
   const [wLd,setWLd]=useState(false);
+  const refs=useLoad(()=>api('/api/referrals'));
+  const r=refs.data;
+  const refCode=(r&&r.referralCode)||user.referral_code||"";
+  const shareLink=refCode?`https://brickxprotocol.io/?ref=${refCode}`:"";
 
   const saveWallet=async()=>{
     setWErr(null);
@@ -1211,6 +1215,36 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
         <p style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:11}}>Your BRX allocation and future BRICK dividends are sent to this Polygon address. Required before investing.</p>
         <Field label="Wallet Address" val={wallet} set={v=>{setWallet(v);setWErr(null);}} ph="0x…" icon="🔗" err={wErr}/>
         <Btn ch={user.wallet_address?"UPDATE WALLET →":"SAVE WALLET →"} full v="p" sz="lg" ld={wLd} onClick={saveWallet}/>
+      </div>
+
+      <div className="card glow" style={{marginBottom:12}}>
+        <Lbl ch="REFER & EARN"/>
+        <p style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:11}}>Earn <strong style={{color:C.gold}}>{(r?.bonusPerReferral||500).toLocaleString()} BRX</strong> for every friend who completes their first purchase with your code.</p>
+        <div style={{background:C.bg1,border:`1px solid rgba(245,158,11,.3)`,borderRadius:11,padding:14,textAlign:"center",marginBottom:11}}>
+          <div style={{fontSize:9,color:C.muted,letterSpacing:1.5,textTransform:"uppercase",marginBottom:5}}>Your Referral Code</div>
+          <div style={{fontSize:22,fontWeight:800,color:C.gold,fontFamily:mono,letterSpacing:1,wordBreak:"break-all"}}>{refCode||"—"}</div>
+        </div>
+        <div className="g4" style={{marginBottom:11}}>
+          {[
+            {lb:"REFERRALS",val:refs.ld?"…":String(r?.totalReferrals??0),c:C.blueL},
+            {lb:"EARNED BRX",val:refs.ld?"…":fN(r?.earnedBrx||0),c:C.green},
+            {lb:"PENDING",val:refs.ld?"…":fN(r?.pendingBrx||0),c:C.gold},
+          ].map(k=>(
+            <div key={k.lb} style={{background:C.bg1,borderRadius:8,padding:9,textAlign:"center"}}>
+              <div style={{fontSize:9,color:C.muted,marginBottom:2}}>{k.lb}</div>
+              <div style={{fontSize:14,fontWeight:800,color:k.c}}>{k.val}</div>
+            </div>
+          ))}
+        </div>
+        {refCode&&<div style={{display:"flex",gap:8}}>
+          <CopyBtn text={shareLink} notify={notify}/>
+          <Btn ch="Share" v="bteal" sz="sm" onClick={()=>{
+            const msg=`Join me on BRICKX — tokenized real estate with annual dividends. Use my code ${refCode}: ${shareLink}`;
+            if(navigator.share){navigator.share({title:"BRICKX Protocol",text:msg,url:shareLink}).catch(()=>{});}
+            else{window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");}
+          }}/>
+        </div>}
+        <p style={{fontSize:10,color:C.muted,marginTop:9,lineHeight:1.5}}>Earned BRX is distributed to your wallet at the Token Generation Event (TGE).</p>
       </div>
 
       <div className="card glow" style={{marginBottom:12}}>

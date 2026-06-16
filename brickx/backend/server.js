@@ -758,6 +758,29 @@ app.get('/api/ico/orders', auth, async (req, res) => {
   }
 });
 
+// GET /api/referrals — User's referral code + earnings
+app.get('/api/referrals', auth, async (req, res) => {
+  try {
+    const { data: bonuses } = await supabase
+      .from('referral_bonuses')
+      .select('bonus_brx, status')
+      .eq('referrer_id', req.user.id);
+    const list = bonuses || [];
+    const isEarned = b => b.status === 'activated' || b.status === 'distributed';
+    res.json({
+      referralCode:    req.user.referral_code,
+      bonusPerReferral: PHASE.REFERRAL_BONUS,
+      totalReferrals:  list.length,
+      earnedCount:     list.filter(isEarned).length,
+      earnedBrx:       list.filter(isEarned).reduce((s, b) => s + (b.bonus_brx || 0), 0),
+      pendingCount:    list.filter(b => b.status === 'pending').length,
+      pendingBrx:      list.filter(b => b.status === 'pending').reduce((s, b) => s + (b.bonus_brx || 0), 0),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch referrals' });
+  }
+});
+
 // ════════════════════════════════════════════════════════════════
 // MARKETPLACE ROUTES (PHASE 2 — BRICK HOTEL TOKENS)
 // ════════════════════════════════════════════════════════════════
@@ -1149,6 +1172,8 @@ app.patch('/api/admin/orders/:orderId/confirm', adminAuth, async (req, res) => {
       details:     `Tx: ${txHash} | $${order.usd_amount} | ${order.brx_allocated.toLocaleString()} BRX`,
     });
 
+    await activateReferral(order.user_id);
+
     await sendEmail(order.users.email, `Order ${order.order_id} — Payment Confirmed`, `
       <h2>Payment Confirmed!</h2>
       <p>Your payment of $${order.usd_amount.toLocaleString()} has been confirmed on-chain.</p>
@@ -1466,6 +1491,43 @@ app.get('/api/admin/audit', adminAuth, async (req, res) => {
   }
 });
 
+// ── REFERRAL CREDITING ────────────────────────────────────────
+// Activate a pending referral bonus when the referred user makes their first
+// confirmed purchase. Idempotent: the status guard ensures it credits once.
+async function activateReferral(referredUserId) {
+  try {
+    const { data: bonus } = await supabase
+      .from('referral_bonuses')
+      .select('*')
+      .eq('referred_id', referredUserId)
+      .eq('status', 'pending')
+      .single();
+    if (!bonus) return;
+
+    const { data: updated } = await supabase
+      .from('referral_bonuses')
+      .update({ status: 'activated', activated_at: new Date().toISOString() })
+      .eq('id', bonus.id)
+      .eq('status', 'pending') // guard against double-credit
+      .select().single();
+    if (!updated) return;
+
+    const { data: ref } = await supabase
+      .from('users').select('email, first_name').eq('id', bonus.referrer_id).single();
+    if (ref?.email) {
+      await sendEmail(ref.email, `You earned ${bonus.bonus_brx} BRX — referral bonus unlocked 🎉`, `
+        <h2>Your referral just invested!</h2>
+        <p>Hi ${ref.first_name || 'there'}, someone you referred has completed their first BRX purchase.</p>
+        <p><strong>${bonus.bonus_brx.toLocaleString()} BRX</strong> has been added to your referral earnings and will be distributed to your wallet at the Token Generation Event (TGE).</p>
+        <p>Keep sharing your code to earn more.</p>
+      `);
+    }
+    console.log(`[Referral] Activated ${bonus.bonus_brx} BRX for referrer ${bonus.referrer_id} (referred ${referredUserId})`);
+  } catch (e) {
+    console.error('[Referral] activate error:', e.message);
+  }
+}
+
 // ════════════════════════════════════════════════════════════════
 // BLOCKCHAIN PAYMENT MONITOR — POLYGON (Every 3 minutes)
 // ════════════════════════════════════════════════════════════════
@@ -1553,6 +1615,7 @@ async function checkPendingPayments() {
             `);
           }
 
+          await activateReferral(matchingOrder.user_id);
           console.log(`[PaymentMonitor] Confirmed: ${matchingOrder.order_id} | $${valueUSD} ${tokenSymbol} | Tx: ${event.transactionHash}`);
         }
       }
