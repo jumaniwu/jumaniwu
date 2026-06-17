@@ -282,10 +282,10 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
   <p class="hero-sub">Buy fractional ownership of income-generating hotels. Earn annual dividend in USDC. Fixed token price. Starting from just $100. Powered by Polygon.</p>
 
   <div class="phase-row">
-    <div class="pbadge live">
+    <div class="pbadge" id="phase1-badge">
       <span class="pnum">1</span>
       Phase 1: BRX ICO
-      <span class="pstatus">LIVE NOW</span>
+      <span class="pstatus" id="phase1-status">OPENING SOON</span>
     </div>
     <div class="pbadge next">
       <span class="pnum">2</span>
@@ -341,7 +341,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
     <div class="pcard p1">
       <div class="pcard-hdr">
         <span class="ph-num">PHASE 1</span>
-        <span style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:2px 10px;font-size:9px;font-weight:800">LIVE NOW</span>
+        <span id="phase1-status2" style="background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);border-radius:100px;padding:2px 10px;font-size:9px;font-weight:800">OPENING SOON</span>
       </div>
       <h3>BRX ICO —<br>Build the Ecosystem</h3>
       <p>Raise $2M via BRX token sale to fund platform development, smart contracts, KYC infrastructure, and marketplace. BRX holders receive governance rights and staking rewards.</p>
@@ -847,6 +847,24 @@ fetch(API + '/api/ico/info').then(function(r){ return r.json(); }).then(function
     setTxt('hero-banner', 'BRX ' + activeName.toUpperCase() + ' — OPENING SOON · ' + fmtPrice(activePrice) + ' / BRX');
     setTxt('cta-join', '🔔 Join the Whitelist — Be First In');
   }
+
+  // Phase 1 status badges must reflect the real sale state — not a hardcoded "LIVE NOW".
+  (function(){
+    var live = !!d.saleOpen;
+    var label = live ? 'LIVE NOW' : (d.saleStatus === 'paused' ? 'PAUSED' : 'OPENING SOON');
+    var st1 = document.getElementById('phase1-status');
+    if (st1) st1.textContent = label;
+    var badge = document.getElementById('phase1-badge');
+    if (badge) badge.classList.toggle('live', live);
+    var st2 = document.getElementById('phase1-status2');
+    if (st2) {
+      st2.textContent = label;
+      var bg = live ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)';
+      var col = live ? 'var(--green)' : 'var(--gold)';
+      var bd = live ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)';
+      st2.style.background = bg; st2.style.color = col; st2.style.borderColor = bd;
+    }
+  })();
 
   // Register section copy follows the sale state and live prices
   if (d.saleOpen) {
