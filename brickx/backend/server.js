@@ -1798,6 +1798,10 @@ async function issueOtp(user) {
     <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#3B82F6;margin:18px 0;font-family:monospace">${code}</div>
     <p style="color:#64748B">This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
   `);
+  // Dev aid: when no email provider is configured the email can't be delivered,
+  // so log the code to the server console so testing isn't blocked. Never logs
+  // once RESEND_API_KEY is set (i.e. never in a real production setup).
+  if (!resend) console.warn(`[OTP][dev] No email provider — code for ${user.email} is ${code}`);
 }
 
 async function sendEmail(to, subject, htmlBody) {
