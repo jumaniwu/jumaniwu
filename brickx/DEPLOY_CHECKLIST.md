@@ -11,6 +11,9 @@ Follow the steps **in order**. Do not skip the verification steps.
 3. SQL Editor → paste `backend/migration-001-dynamic-rounds.sql` → Run. This adds the
    sale-schedule columns (`sale_status`, `sale_starts_at`, per-round hard caps) that let
    the admin panel start/pause the sale and the app's countdown work. Safe to re-run.
+   Then run `backend/migration-002-email-otp.sql` — adds the email-verification (OTP)
+   columns so new signups must confirm a real email. Existing accounts are grandfathered
+   in as verified. Safe to re-run.
 4. Verify in Table Editor: 11 tables exist; `ico_settings` has 1 row; `properties` has the "Project Hotel Batam" row.
 5. Verify RLS: every table shows the RLS shield enabled. **This is critical — without RLS the public anon key can rewrite treasury wallets.**
 6. Copy `SUPABASE_URL` and the **service_role** key (Settings → API). The service key is backend-only — never put it in any frontend.

@@ -276,15 +276,17 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing) {
       const passwordHash = await bcrypt.hash(password, 12);
       const { data: upgraded, error: upErr } = await supabase.from('users').update({
-        first_name:    firstName,
-        last_name:     lastName,
-        password_hash: passwordHash,
-        country:       country || '',
-        is_active:     true,
+        first_name:     firstName,
+        last_name:      lastName,
+        password_hash:  passwordHash,
+        country:        country || '',
+        is_active:      true,
+        email_verified: false,
       }).eq('id', existing.id).select().single();
       if (upErr) throw upErr;
-      const token = jwt.sign({ id: upgraded.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-      return res.status(201).json({ token, user: sanitizeUser(upgraded), message: 'Registration successful' });
+      // Verify email before issuing a session.
+      await issueOtp(upgraded);
+      return res.status(201).json({ requiresOtp: true, email: upgraded.email, message: 'Verification code sent' });
     }
 
     // Hash password
@@ -298,11 +300,12 @@ app.post('/api/auth/register', async (req, res) => {
       if (referrer) referredBy = referrer.id;
     }
 
-    // Create user — retry up to 3x on referral_code unique-violation (23505)
+    // Create user — retry up to 3x on referral_code unique-violation (23505).
+    // email_verified stays false until the OTP is confirmed; no session/welcome
+    // email/referral bonus is issued until then, so junk emails leave no trace.
     let user = null;
-    let myReferralCode = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      myReferralCode = generateReferralCode();
+      const myReferralCode = generateReferralCode();
       const { data, error } = await supabase.from('users').insert({
         first_name:    firstName,
         last_name:     lastName,
@@ -312,6 +315,7 @@ app.post('/api/auth/register', async (req, res) => {
         kyc_status:    'not_started',
         referral_code: myReferralCode,
         referred_by:   referredBy,
+        email_verified: false,
         is_active:     true,
         is_admin:      false,
       }).select().single();
@@ -322,41 +326,96 @@ app.post('/api/auth/register', async (req, res) => {
     }
     if (!user) throw new Error('Failed to generate unique referral code after 3 attempts');
 
-    // Send welcome email
-    await sendEmail(email, 'Welcome to BRICKX Protocol — Seed Sale Access', `
-      <h2>Welcome to BRICKX, ${firstName}!</h2>
-      <p>Your account is created. Next step: complete KYC to unlock seed purchase.</p>
-      <h3>BRX Seed Price: $0.008 / BRX</h3>
-      <p><strong>Your referral code: ${myReferralCode}</strong><br>
-      Share and earn 500 BRX per friend who completes a seed purchase.</p>
-      <h3>Phase 1 — BRX ICO (Live Now)</h3>
-      <ul>
-        <li>Seed: $0.008/BRX (you are here)</li>
-        <li>Round 1: $0.015/BRX (+87.5%)</li>
-        <li>DEX launch: $0.030/BRX (+275%)</li>
-      </ul>
-      <h3>Phase 2 — Hotel Token (After ICO)</h3>
-      <p>We are acquiring an existing operating hotel in Batam, Indonesia (budget up to $18.5M USD).
-      BRICK tokens at $10.00 fixed price. Annual dividend paid each June — 70% of Net Operating Income to holders.</p>
-      <p><a href="${process.env.APP_URL}">Complete KYC Now →</a></p>
-    `);
-
-    // Grant referral bonus if applicable
-    if (referredBy) {
-      await supabase.from('referral_bonuses').insert({
-        referrer_id:  referredBy,
-        referred_id:  user.id,
-        bonus_brx:    PHASE.REFERRAL_BONUS,
-        status:       'pending', // activates when referred user makes first purchase
-      });
-    }
-
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.status(201).json({ token, user: sanitizeUser(user), message: 'Registration successful' });
+    // Email a verification code; account becomes usable only after OTP confirm.
+    await issueOtp(user);
+    res.status(201).json({ requiresOtp: true, email: user.email, message: 'Verification code sent' });
 
   } catch (e) {
     console.error('Register error:', e);
     res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// POST /api/auth/verify-otp — confirm the 6-digit code, then issue a session
+app.post('/api/auth/verify-otp', async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+    if (!email || !code) return res.status(400).json({ error: 'Email and code required' });
+
+    const { data: user } = await supabase
+      .from('users').select('*').eq('email', String(email).toLowerCase()).single();
+    if (!user) return res.status(400).json({ error: 'Invalid code' }); // neutral
+
+    if (user.email_verified) {
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+      return res.json({ token, user: sanitizeUser(user) });
+    }
+    if (!user.otp_code_hash || !user.otp_expires_at || new Date(user.otp_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Code expired — request a new one' });
+    }
+    if ((user.otp_attempts || 0) >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ error: 'Too many attempts — request a new code' });
+    }
+
+    const ok = hashOtp(String(code).trim()) === user.otp_code_hash;
+    if (!ok) {
+      await supabase.from('users').update({ otp_attempts: (user.otp_attempts || 0) + 1 }).eq('id', user.id);
+      return res.status(400).json({ error: 'Incorrect code' });
+    }
+
+    // Verified — clear OTP, mark verified, issue session.
+    const { data: verified } = await supabase.from('users').update({
+      email_verified: true,
+      otp_code_hash:  null,
+      otp_expires_at: null,
+      otp_attempts:   0,
+      last_login:     new Date().toISOString(),
+    }).eq('id', user.id).select().single();
+
+    // Now that the email is real: welcome email + referral bonus.
+    await sendEmail(verified.email, 'Welcome to BRICKX Protocol — Email Verified', `
+      <h2>Welcome to BRICKX, ${verified.first_name}!</h2>
+      <p>Your email is verified. Next step: complete KYC to unlock the seed purchase.</p>
+      <p><strong>Your referral code: ${verified.referral_code}</strong> — share it and earn ${PHASE.REFERRAL_BONUS} BRX per friend who completes a purchase.</p>
+      <p><a href="${process.env.APP_URL}">Complete KYC Now →</a></p>
+    `);
+    if (verified.referred_by) {
+      const { data: dupe } = await supabase
+        .from('referral_bonuses').select('id').eq('referred_id', verified.id).maybeSingle();
+      if (!dupe) {
+        await supabase.from('referral_bonuses').insert({
+          referrer_id: verified.referred_by,
+          referred_id: verified.id,
+          bonus_brx:   PHASE.REFERRAL_BONUS,
+          status:      'pending', // activates on the referred user's first purchase
+        });
+      }
+    }
+
+    const token = jwt.sign({ id: verified.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: sanitizeUser(verified) });
+  } catch (e) {
+    console.error('Verify OTP error:', e);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// POST /api/auth/resend-otp — send a fresh code (cooldown-limited)
+app.post('/api/auth/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const { data: user } = await supabase
+      .from('users').select('*').eq('email', String(email).toLowerCase()).single();
+    // Neutral response either way to avoid email enumeration.
+    if (!user || user.email_verified) return res.json({ success: true });
+    if (user.otp_last_sent_at && Date.now() - new Date(user.otp_last_sent_at).getTime() < OTP_RESEND_COOLDOWN_MS) {
+      return res.status(429).json({ error: 'Please wait a moment before requesting another code' });
+    }
+    await issueOtp(user);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not resend code' });
   }
 });
 
@@ -373,6 +432,12 @@ app.post('/api/auth/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+
+    // Email not verified yet — send a fresh code and route to the OTP step.
+    if (user.email_verified === false) {
+      await issueOtp(user);
+      return res.json({ requiresOtp: true, email: user.email, message: 'Please verify your email' });
+    }
 
     // Update last login
     await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('id', user.id);
@@ -1705,8 +1770,34 @@ cron.schedule('0 8 1 6 *', async () => {
 
 // ── HELPERS ───────────────────────────────────────────────────
 function sanitizeUser(user) {
-  const { password_hash, ...safe } = user;
+  // Never expose the password hash or OTP material to clients.
+  const { password_hash, otp_code_hash, otp_expires_at, otp_attempts, otp_last_sent_at, ...safe } = user;
   return safe;
+}
+
+// ── EMAIL OTP (registration verification) ─────────────────────
+const OTP_TTL_MS = 10 * 60 * 1000;          // code valid 10 minutes
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;   // min 60s between sends
+const OTP_MAX_ATTEMPTS = 5;                 // wrong tries before a new code is required
+function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function hashOtp(code) {
+  return crypto.createHmac('sha256', process.env.JWT_SECRET).update(String(code)).digest('hex');
+}
+// Generate, store, and email a fresh OTP for a user row.
+async function issueOtp(user) {
+  const code = generateOtp();
+  await supabase.from('users').update({
+    otp_code_hash:    hashOtp(code),
+    otp_expires_at:   new Date(Date.now() + OTP_TTL_MS).toISOString(),
+    otp_attempts:     0,
+    otp_last_sent_at: new Date().toISOString(),
+  }).eq('id', user.id);
+  await sendEmail(user.email, 'Your BRICKX verification code', `
+    <h2>Verify your email</h2>
+    <p>Hi ${user.first_name || 'there'}, enter this code to verify your BRICKX account:</p>
+    <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#3B82F6;margin:18px 0;font-family:monospace">${code}</div>
+    <p style="color:#64748B">This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
+  `);
 }
 
 async function sendEmail(to, subject, htmlBody) {

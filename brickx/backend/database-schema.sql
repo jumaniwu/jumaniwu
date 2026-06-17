@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS users (
   kyc_applicant_id TEXT DEFAULT '',           -- Sumsub applicant ID
   referral_code    TEXT UNIQUE,               -- User's own referral code
   referred_by      UUID REFERENCES users(id), -- Who referred this user
+  email_verified   BOOLEAN NOT NULL DEFAULT FALSE, -- set true after OTP confirmed
+  otp_code_hash    TEXT,                       -- sha256 of the 6-digit OTP
+  otp_expires_at   TIMESTAMPTZ,
+  otp_attempts     INTEGER NOT NULL DEFAULT 0,
+  otp_last_sent_at TIMESTAMPTZ,
   is_active        BOOLEAN DEFAULT TRUE,
   is_admin         BOOLEAN DEFAULT FALSE,
   last_login       TIMESTAMPTZ,

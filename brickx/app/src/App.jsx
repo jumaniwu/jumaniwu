@@ -281,6 +281,9 @@ function Auth({onAuth}) {
   const [ld,setLd]=useState(false);
   const [errs,setErrs]=useState({});
   const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:"",accept:false});
+  const [otp,setOtp]=useState(null); // { email } when an OTP step is required
+  const [code,setCode]=useState("");
+  const [note,setNote]=useState("");
   const s=(k,v)=>{setF(p=>({...p,[k]:v}));setErrs(p=>({...p,[k]:"",form:""}));};
 
   const chk1=()=>{
@@ -298,13 +301,16 @@ function Auth({onAuth}) {
     setErrs(e);return !Object.keys(e).length;
   };
 
+  const finishAuth=d=>{
+    if(d.requiresOtp){setOtp({email:d.email||f.email});setCode("");setNote("We emailed you a 6-digit code.");return;}
+    setToken(d.token);onAuth(d.user);
+  };
   const doLogin=async()=>{
     if(!chk1())return;
     setLd(true);
     try{
       const d=await api('/api/auth/login',{method:'POST',body:{email:f.email,password:f.pw},auth:false});
-      setToken(d.token);
-      onAuth(d.user);
+      finishAuth(d);
     }catch(e){setErrs({form:e.message});}
     setLd(false);
   };
@@ -316,10 +322,25 @@ function Auth({onAuth}) {
         firstName:f.fn.trim(),lastName:f.ln.trim(),email:f.email,password:f.pw,
         country:f.country,referralCode:f.ref.trim()||undefined,acceptedTerms:f.accept,
       }});
-      setToken(d.token);
-      onAuth(d.user);
+      finishAuth(d);
     }catch(e){setErrs({form:e.message});}
     setLd(false);
+  };
+  const doVerify=async()=>{
+    if(!/^\d{6}$/.test(code.trim())){setErrs({form:"Enter the 6-digit code"});return;}
+    setLd(true);setErrs({});
+    try{
+      const d=await api('/api/auth/verify-otp',{method:'POST',auth:false,body:{email:otp.email,code:code.trim()}});
+      setToken(d.token);onAuth(d.user);
+    }catch(e){setErrs({form:e.message});}
+    setLd(false);
+  };
+  const doResend=async()=>{
+    setNote("");setErrs({});
+    try{
+      await api('/api/auth/resend-otp',{method:'POST',auth:false,body:{email:otp.email}});
+      setNote("A new code has been sent.");
+    }catch(e){setErrs({form:e.message});}
   };
 
   return(
@@ -332,6 +353,23 @@ function Auth({onAuth}) {
           <div style={{fontSize:10,color:C.muted,letterSpacing:2,marginTop:3}}>REAL ESTATE TOKENIZATION PROTOCOL</div>
         </div>
         <div className="card glow">
+          {otp ? (<>
+            <div style={{textAlign:"center",marginBottom:14}}>
+              <div style={{fontSize:30,marginBottom:6}}>✉️</div>
+              <div style={{fontSize:16,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:4}}>Verify your email</div>
+              <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>Enter the 6-digit code we sent to<br/><strong style={{color:C.off}}>{otp.email}</strong></div>
+            </div>
+            <FormErr msg={errs.form}/>
+            {note&&<div style={{fontSize:11,color:C.green,textAlign:"center",marginBottom:10}}>{note}</div>}
+            <input value={code} onChange={e=>{setCode(e.target.value.replace(/\D/g,"").slice(0,6));setErrs({});}}
+              inputMode="numeric" maxLength={6} placeholder="● ● ● ● ● ●"
+              className="inp" style={{textAlign:"center",fontSize:24,letterSpacing:8,fontWeight:800,marginBottom:13}}/>
+            <Btn ch="VERIFY →" full v="p" sz="lg" ld={ld} onClick={doVerify}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:12,fontSize:11}}>
+              <span style={{color:C.blueL,cursor:"pointer"}} onClick={()=>{setOtp(null);setCode("");setErrs({});setNote("");}}>← Back</span>
+              <span style={{color:C.blueL,cursor:"pointer"}} onClick={doResend}>Resend code</span>
+            </div>
+          </>) : (<>
           <div style={{display:"flex",background:C.bg1,borderRadius:10,padding:3,marginBottom:18}}>
             {["login","register"].map(m=>(
               <button key={m} onClick={()=>{setMode(m);setStep(1);setErrs({});}}
@@ -371,6 +409,7 @@ function Auth({onAuth}) {
               <Btn ch="CREATE ACCOUNT ✓" full v="s" sz="lg" ld={ld} onClick={doReg}/>
             </div>
           </>}
+          </>)}
         </div>
       </div>
     </div>
