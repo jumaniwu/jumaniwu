@@ -214,7 +214,7 @@ const FormErr=({msg})=>msg?(
   <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:9,padding:"10px 12px",marginBottom:13,fontSize:12,color:C.red}}>⚠ {msg}</div>
 ):null;
 
-function Field({label,type="text",val,set,ph,err,note,req,icon,prefix}) {
+function Field({label,type="text",val,set,ph,err,note,req,icon,prefix,lock}) {
   return(
     <div style={{marginBottom:13}}>
       {label&&<label style={{fontSize:11,color:C.muted,display:"block",marginBottom:5}}>
@@ -222,8 +222,8 @@ function Field({label,type="text",val,set,ph,err,note,req,icon,prefix}) {
       </label>}
       <div style={{position:"relative"}}>
         {(icon||prefix)&&<span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.muted,fontSize:12,zIndex:1}}>{icon||prefix}</span>}
-        <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph}
-          className="inp" style={icon||prefix?{paddingLeft:34}:{}}/>
+        <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} readOnly={lock}
+          className="inp" style={{...(icon||prefix?{paddingLeft:34}:{}),...(lock?{cursor:"not-allowed",background:C.bg1,color:C.muted}:{})}}/>
       </div>
       {err&&<div style={{fontSize:11,color:C.red,marginTop:3}}>⚠ {err}</div>}
       {note&&<div style={{fontSize:10,color:C.muted,marginTop:3,lineHeight:1.5}}>{note}</div>}
@@ -281,11 +281,15 @@ class ErrorBoundary extends Component {
 
 // ── AUTH ──────────────────────────────────────────────────────
 function Auth({onAuth}) {
-  const [mode,setMode]=useState("login");
+  // Referral via invite link (?ref=BRX-XXXX): pre-fill + lock the code and
+  // open the Register tab so a referred visitor can sign up straight away.
+  const urlRef=(typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("ref"))||"";
+  const refLocked=!!urlRef;
+  const [mode,setMode]=useState(urlRef?"register":"login");
   const [step,setStep]=useState(1);
   const [ld,setLd]=useState(false);
   const [errs,setErrs]=useState({});
-  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:"",accept:false});
+  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:urlRef,accept:false});
   const [otp,setOtp]=useState(null); // { email } when an OTP step is required
   const [code,setCode]=useState("");
   const [note,setNote]=useState("");
@@ -394,7 +398,7 @@ function Auth({onAuth}) {
             <Field label="Email" type="email" val={f.email} set={v=>s("email",v)} ph="you@email.com" icon="✉" err={errs.email} req/>
             <Field label="Password" type="password" val={f.pw} set={v=>s("pw",v)} ph="Min 8 characters" icon="🔒" err={errs.pw} req/>
             <Field label="Confirm Password" type="password" val={f.pw2} set={v=>s("pw2",v)} ph="Repeat password" icon="🔒" err={errs.pw2} req/>
-            <Field label="Referral Code (optional)" val={f.ref} set={v=>s("ref",v)} ph="BRX-XXXXX" icon="🎁"/>
+            <Field label={refLocked?"Referral Code (applied ✓)":"Referral Code (optional)"} val={f.ref} set={v=>s("ref",v)} ph="BRX-XXXXX" icon="🎁" lock={refLocked} note={refLocked?"Applied from your invite link — locked.":undefined}/>
             <Btn ch="NEXT →" full v="p" sz="lg" onClick={()=>chk1()&&setStep(2)}/>
           </>}
           {mode==="register"&&step===2&&<>
@@ -1220,7 +1224,7 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
   const refs=useLoad(()=>api('/api/referrals'));
   const r=refs.data;
   const refCode=(r&&r.referralCode)||user.referral_code||"";
-  const shareLink=refCode?`https://brickxprotocol.io/?ref=${refCode}`:"";
+  const shareLink=refCode?`https://whitelist.brickxprotocol.io/?ref=${refCode}`:"";
 
   const saveWallet=async()=>{
     setWErr(null);

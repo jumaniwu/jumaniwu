@@ -591,7 +591,7 @@ function continueToApp() {
 
 // ── SHARING ──────────────────────────────────────────────────────
 const refCode = () => window._refCode || 'BRX-XXXXX';
-const shareUrl = () => `https://brickxprotocol.io?ref=${refCode()}`;
+const shareUrl = () => `https://whitelist.brickxprotocol.io/?ref=${refCode()}`;
 const shareMsg = () => `🚀 I just joined the @BRICKXProtocol whitelist!\n\nBRICKX tokenizes real estate — buy property tokens at a fixed price and earn annual dividends paid each June.\n\nSeed sale price: $0.008/BRX (+275% upside to DEX launch 🔥)\n\nJoin with my link and we both get 500 BRX:\n${shareUrl()}`;
 
 function shareTwitter() {
@@ -622,7 +622,15 @@ function showToast(msg, type = 'success') {
 const urlRef = new URLSearchParams(window.location.search).get('ref');
 if (urlRef) {
   const refInput = document.getElementById('f-ref');
-  if (refInput) { refInput.value = urlRef; refInput.style.borderColor = '#10B981'; }
+  if (refInput) {
+    refInput.value = urlRef;
+    refInput.readOnly = true;
+    refInput.style.cssText += ';border-color:var(--green);cursor:not-allowed;opacity:.9';
+    const lbl = refInput.previousElementSibling;
+    if (lbl && lbl.classList.contains('form-label')) lbl.textContent = 'Referral Code (applied ✓)';
+    const sub = refInput.nextElementSibling;
+    if (sub && sub.classList.contains('form-sub')) sub.innerHTML = '✓ Referral applied from your invite link — locked.';
+  }
 }
 
 // Enter key

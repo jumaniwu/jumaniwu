@@ -3,6 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Referral link (?ref=BRX-XXXX): send invited visitors straight to the full
+     registration with the code pre-filled + locked, instead of the email-only box. -->
+<script>
+  (function(){
+    try{
+      var ref=new URLSearchParams(window.location.search).get('ref');
+      if(ref && /^BRX-[A-Za-z0-9]{4,}$/.test(ref)){
+        window.location.replace('https://whitelist.brickxprotocol.io/?ref='+encodeURIComponent(ref));
+      }
+    }catch(e){}
+  })();
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-LXP2XY0N0C"></script>
 <script>
