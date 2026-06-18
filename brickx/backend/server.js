@@ -333,9 +333,30 @@ app.post('/api/auth/register', async (req, res) => {
 
   } catch (e) {
     console.error('Register error:', e);
-    res.status(500).json({ error: 'Registration failed' });
+    // Surface the real cause so a Supabase/Railway misconfiguration is
+    // diagnosable from the browser instead of a generic 500.
+    res.status(500).json({ error: 'Registration failed: ' + diagnoseDbError(e), code: e && e.code });
   }
 });
+
+// Map common Supabase/Postgres failures to an actionable message.
+function diagnoseDbError(e) {
+  const code = e && e.code;
+  const map = {
+    '42P01': 'database tables are missing — run backend/database-schema.sql in Supabase SQL Editor',
+    '42703': 'database is missing a column — run backend/migration-002-email-otp.sql (and migration-001) in Supabase',
+    '42501': 'permission denied by RLS — the backend SUPABASE_SERVICE_KEY must be the service_role secret key, not the anon key',
+    'PGRST301': 'permission denied by RLS — use the service_role key as SUPABASE_SERVICE_KEY',
+    '23505': 'a unique value already exists (e.g. email already registered)',
+    '23502': 'a required field was null',
+  };
+  if (code && map[code]) return map[code];
+  // Supabase client connection / key problems surface as fetch/auth errors.
+  const msg = (e && e.message) || 'unknown error';
+  if (/fetch failed|ENOTFOUND|ECONNREFUSED/i.test(msg)) return 'cannot reach Supabase — check SUPABASE_URL';
+  if (/invalid api key|JWT|apikey/i.test(msg)) return 'invalid Supabase key — check SUPABASE_SERVICE_KEY';
+  return msg;
+}
 
 // POST /api/auth/verify-otp — confirm the 6-digit code, then issue a session
 app.post('/api/auth/verify-otp', async (req, res) => {
