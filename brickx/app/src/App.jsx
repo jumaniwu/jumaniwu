@@ -2,22 +2,27 @@ import { Component, useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 // ── COLORS ───────────────────────────────────────────────────
+// Light theme. Keys are kept (referenced as C.xxx everywhere); only values
+// are remapped to a clean, low-glare light palette matching the landing page.
 const C = {
-  bg0:"#020509",bg1:"#060D18",bg2:"#0A1628",
-  blue:"#1A56DB",blueL:"#3B82F6",accent:"#0EA5E9",
-  green:"#10B981",gold:"#F59E0B",red:"#EF4444",purple:"#8B5CF6",teal:"#14B8A6",
-  white:"#FFFFFF",off:"#E2E8F0",muted:"#64748B",dim:"#374151",
-  border:"rgba(26,86,219,0.15)",borderH:"rgba(26,86,219,0.5)",
+  bg0:"#F4F7FB",bg1:"#EEF2F8",bg2:"#FFFFFF",
+  blue:"#1A56DB",blueL:"#2563EB",accent:"#0284C7",
+  green:"#047857",gold:"#B45309",red:"#DC2626",purple:"#7C3AED",teal:"#0F766E",
+  white:"#0B1B2E",off:"#334155",muted:"#5B6B7C",dim:"#94A3B8",
+  border:"rgba(15,23,42,0.09)",borderH:"rgba(26,86,219,0.45)",
+  shadow:"0 1px 3px rgba(16,24,40,.06),0 12px 30px -8px rgba(16,24,40,.10)",
+  shadowSm:"0 1px 2px rgba(16,24,40,.05)",
 };
-const mono="'Courier New',monospace";
-const serif="'Georgia',serif";
+const ui="'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif";
+const mono="'Space Mono',ui-monospace,monospace";
+const serif=ui;
 
 // ── GLOBAL STYLES ─────────────────────────────────────────────
 const GS = () => (
   <style>{`
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{background:${C.bg0};color:${C.off};font-family:${mono};overflow-x:hidden;-webkit-text-size-adjust:100%}
-    input,select,button{font-family:${mono};outline:none}
+    html,body{background:${C.bg0};color:${C.off};font-family:${ui};overflow-x:hidden;-webkit-text-size-adjust:100%}
+    input,select,button{font-family:${ui};outline:none}
     button{-webkit-tap-highlight-color:transparent;cursor:pointer}
     ::-webkit-scrollbar{width:3px;height:3px}
     ::-webkit-scrollbar-thumb{background:${C.blue};border-radius:3px}
@@ -28,9 +33,9 @@ const GS = () => (
     .fu{animation:fadeUp .35s ease both}
     .blink{animation:blink 2s ease infinite}
     .spin{animation:spin .9s linear infinite}
-    .card{background:${C.bg2};border:1px solid ${C.border};border-radius:14px;padding:16px;transition:all .25s}
-    .card.glow{border-color:${C.borderH};box-shadow:0 0 24px rgba(26,86,219,.12)}
-    .card.tap:hover{border-color:${C.borderH};transform:translateY(-3px)}
+    .card{background:${C.bg2};border:1px solid ${C.border};border-radius:14px;padding:16px;box-shadow:${C.shadow};transition:all .25s}
+    .card.glow{border-color:${C.borderH};box-shadow:0 0 0 1px rgba(26,86,219,.10),${C.shadow}}
+    .card.tap:hover{border-color:${C.borderH};transform:translateY(-3px);box-shadow:0 1px 3px rgba(16,24,40,.06),0 18px 42px -10px rgba(16,24,40,.18)}
     .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .g4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     @media(min-width:640px){.g4{grid-template-columns:repeat(4,1fr)}}
@@ -38,22 +43,22 @@ const GS = () => (
     .main{padding:14px 0 80px}
     @media(min-width:768px){.main{padding:20px 0 32px}}
     .bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;display:flex;
-      background:rgba(6,13,24,.97);border-top:1px solid ${C.border};backdrop-filter:blur(20px)}
+      background:rgba(255,255,255,.97);border-top:1px solid ${C.border};backdrop-filter:blur(20px);box-shadow:0 -1px 12px rgba(16,24,40,.05)}
     .bnav button{flex:1;padding:9px 2px 13px;border:none;background:transparent;
-      color:${C.muted};font-size:9px;font-family:${mono};
+      color:${C.muted};font-size:9px;font-family:${ui};
       display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s}
     .bnav button .ic{font-size:18px}
     .bnav button.on{color:${C.blueL}}
     @media(min-width:768px){.bnav{display:none}}
     .tnav{position:sticky;top:0;z-index:100;height:52px;
-      background:rgba(3,8,16,.95);border-bottom:1px solid ${C.border};
+      background:rgba(255,255,255,.92);border-bottom:1px solid ${C.border};
       backdrop-filter:blur(20px);display:flex;align-items:center;
       justify-content:space-between;padding:0 16px}
     .dtabs{display:none}
     @media(min-width:768px){.dtabs{display:flex;gap:2px}}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;
       border:none;border-radius:10px;font-weight:700;transition:all .2s;
-      font-family:${mono};letter-spacing:.3px}
+      font-family:${ui};letter-spacing:.3px}
     .btn:active{transform:scale(.97)}
     .bp{background:${C.blue};color:#fff}
     .bs{background:${C.green};color:#fff}
@@ -67,34 +72,34 @@ const GS = () => (
     .full{width:100%}
     .inp{width:100%;background:${C.bg1};border:1px solid ${C.border};
       border-radius:10px;padding:12px 14px;color:${C.off};font-size:14px;
-      transition:border .2s;font-family:${mono}}
+      transition:border .2s;font-family:${ui}}
     .inp:focus{border-color:${C.blueL}}
     select.inp option{background:${C.bg1}}
-    .pb{background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden}
+    .pb{background:rgba(15,23,42,.08);border-radius:100px;overflow:hidden}
     .pf{border-radius:100px;transition:width .8s ease}
     .bdg{display:inline-flex;align-items:center;gap:3px;border-radius:100px;
       padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:.5px}
-    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);
+    .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);
       backdrop-filter:blur(8px);z-index:500;
       display:flex;align-items:flex-end;justify-content:center}
     @media(min-width:640px){.modal-bg{align-items:center}}
     .modal{background:${C.bg2};border:1px solid ${C.border};border-radius:20px 20px 0 0;
       width:100%;max-width:500px;padding:22px;max-height:90vh;overflow-y:auto;
-      animation:fadeUp .3s ease}
+      box-shadow:0 -8px 40px rgba(16,24,40,.18);animation:fadeUp .3s ease}
     @media(min-width:640px){.modal{border-radius:20px}}
     .toast{position:fixed;top:58px;left:16px;right:16px;z-index:999;
       border-radius:12px;padding:12px 16px;font-size:12px;animation:fadeUp .3s ease}
     @media(min-width:640px){.toast{left:auto;right:20px;width:300px}}
     .prop-card{background:${C.bg2};border:1px solid ${C.border};
-      border-radius:14px;overflow:hidden;transition:all .3s}
-    .prop-card:hover{border-color:${C.borderH}}
+      border-radius:14px;overflow:hidden;box-shadow:${C.shadow};transition:all .3s}
+    .prop-card:hover{border-color:${C.borderH};transform:translateY(-3px)}
     .hscroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
     .hscroll::-webkit-scrollbar{display:none}
     .tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
     .tabs::-webkit-scrollbar{display:none}
     .tbtn{flex-shrink:0;padding:7px 13px;border-radius:8px;border:none;
       font-size:11px;font-weight:600;transition:all .2s;
-      letter-spacing:.7px;font-family:${mono};white-space:nowrap}
+      letter-spacing:.7px;font-family:${ui};white-space:nowrap}
   `}</style>
 );
 
@@ -181,7 +186,7 @@ const roundPrice=(info,round)=>{
 // ── ATOMS ─────────────────────────────────────────────────────
 const Dot=({c=C.green,s=6})=><span className="blink" style={{display:"inline-block",width:s,height:s,borderRadius:"50%",background:c,boxShadow:`0 0 6px ${c}`,flexShrink:0}}/>;
 const Bdg=({ch,c=C.green})=><span className="bdg" style={{background:`${c}18`,border:`1px solid ${c}44`,color:c}}>{ch}</span>;
-const Spin=()=><div className="spin" style={{width:17,height:17,border:"2px solid rgba(255,255,255,.2)",borderTop:"2px solid #fff",borderRadius:"50%"}}/>;
+const Spin=()=><div className="spin" style={{width:17,height:17,border:"2px solid rgba(128,128,128,.3)",borderTop:"2px solid currentColor",borderRadius:"50%"}}/>;
 const Btn=({ch,onClick,v="p",sz="md",dis=false,ld=false,full=false,st={}})=>(
   <button onClick={onClick} disabled={dis||ld} className={`btn b${v} ${sz}${full?" full":""}`} style={{opacity:dis?.5:1,...st}}>
     {ld?<Spin/>:ch}
@@ -551,7 +556,7 @@ function InfoModal({onClose}) {
           ["📸","Dec 31 Snapshot","Dividend eligibility based on holdings at the Dec 31 snapshot"],
           ["🏨","Hotel Batam","Existing operating hotel, budget up to $18.5M"],
         ].map(([ic,t,d])=>(
-          <div key={t} style={{display:"flex",gap:11,padding:"9px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+          <div key={t} style={{display:"flex",gap:11,padding:"9px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
             <span style={{fontSize:17,flexShrink:0}}>{ic}</span>
             <div><div style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:2}}>{t}</div><div style={{fontSize:11,color:C.muted}}>{d}</div></div>
           </div>
@@ -859,7 +864,7 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
       </div>
       <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
         {[["Order ID",order.orderId],["BRX Allocated",`${Number(order.brxAllocated||brx).toLocaleString()} BRX`],["Amount",`$${amt.toLocaleString()}`],["Currency",order.currency||currency]].map(([k,v])=>(
-          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12,gap:10}}>
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:12,gap:10}}>
             <span style={{color:C.muted,flexShrink:0}}>{k}</span><span style={{color:C.white,fontWeight:600,textAlign:"right",wordBreak:"break-all"}}>{v}</span>
           </div>
         ))}
@@ -944,7 +949,7 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
           )}
           <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
             {[["Price",price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"],["You pay",`$${amt.toLocaleString()} (${currency})`],["You receive",`${brx.toLocaleString()} BRX`],["Min / Max",`$${minInv.toLocaleString()} / $${maxInv.toLocaleString()}`],["Network","Polygon"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12}}>
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:12}}>
                 <span style={{color:C.muted}}>{k}</span><span style={{color:C.white,fontWeight:600}}>{v}</span>
               </div>
             ))}
@@ -958,7 +963,7 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
           <FormErr msg={orderErr}/>
           <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
             {[["Tokens",`${brx.toLocaleString()} BRX`],["Amount",`$${amt.toLocaleString()}`],["Pay with",currency],["Price",price!=null?`$${Number(price).toFixed(3)}`:"—"],["Round",ROUND_LABEL[active]||"—"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:13}}>
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:13}}>
                 <span style={{color:C.muted}}>{k}</span><span style={{color:C.white,fontWeight:700}}>{v}</span>
               </div>
             ))}
@@ -1006,7 +1011,7 @@ function Market() {
       <div style={{background:"rgba(20,184,166,.06)",border:"1px solid rgba(20,184,166,.15)",borderRadius:10,padding:"9px 13px",marginBottom:13,fontSize:11,color:C.teal}}>🔒 Token price permanently fixed at $10.00 · Returns come from the annual NOI dividend only</div>
       <div className="tabs">
         {[{k:"properties",l:"PROPERTIES"},{k:"listings",l:"LISTINGS"}].map(t=>(
-          <button key={t.k} className="tbtn" style={{background:tab===t.k?"rgba(26,86,219,.2)":"rgba(255,255,255,.03)",color:tab===t.k?C.blueL:C.muted}} onClick={()=>setTab(t.k)}>{t.l}</button>
+          <button key={t.k} className="tbtn" style={{background:tab===t.k?"rgba(26,86,219,.10)":"rgba(15,23,42,.04)",color:tab===t.k?C.blue:C.muted}} onClick={()=>setTab(t.k)}>{t.l}</button>
         ))}
       </div>
 
@@ -1066,7 +1071,7 @@ function Market() {
          sched.err?<div style={{fontSize:11,color:C.muted}}>Fiscal close Dec 31 → audit Jan–Mar → announce April → pay June.</div>:(
           <div style={{fontSize:11,color:C.muted,lineHeight:1.8}}>
             {[["Fiscal close","December 31"],["Audit","January – March"],["Announcement","April"],["Payment","June (USDC)"],["Holder share","70% of audited NOI"],["Eligibility","Dec 31 snapshot"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
                 <span>{k}</span><span style={{color:C.white,fontWeight:600}}>{v}</span>
               </div>
             ))}
@@ -1120,7 +1125,7 @@ function Portfolio({user}) {
                 {orderList.map(ord=>{
                   const b=ORDER_BADGE[ord.status]||{l:String(ord.status||"").toUpperCase(),c:C.muted};
                   return(
-                    <div key={ord.order_id||ord.orderId||ord.id} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+                    <div key={ord.order_id||ord.orderId||ord.id} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
                       <div>
                         <div style={{fontSize:11,color:C.white,fontWeight:700}}>{Number(ord.brx_allocated||ord.brx_amount||ord.brxAllocated||0).toLocaleString()} BRX</div>
                         <div style={{fontSize:9,color:C.dim}}>{ord.crypto_currency||ord.currency||""}{ord.created_at?` · ${new Date(ord.created_at).toLocaleDateString()}`:""}</div>
@@ -1141,7 +1146,7 @@ function Portfolio({user}) {
       <div className="card" style={{marginBottom:12}}>
         <Lbl ch="SEED VESTING"/>
         {[["Lock","12 months from TGE"],["Vesting","24 months linear after lock"],["Applies to","Seed round BRX"]].map(([k,v])=>(
-          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12}}>
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:12}}>
             <span style={{color:C.muted}}>{k}</span><span style={{color:C.white,fontWeight:600}}>{v}</span>
           </div>
         ))}
@@ -1159,7 +1164,7 @@ function Portfolio({user}) {
             ):(
               <div>
                 {holdings.map(h=>(
-                  <div key={h.property_id||h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+                  <div key={h.property_id||h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
                     <div style={{display:"flex",gap:9,alignItems:"center"}}>
                       <span style={{fontSize:22}}>🏨</span>
                       <div>
@@ -1190,7 +1195,7 @@ function Portfolio({user}) {
               </div>
             ):(
               history.map(rec=>(
-                <div key={rec.receipt_id||rec.id||`${rec.year}-${rec.property_id}`} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+                <div key={rec.receipt_id||rec.id||`${rec.year}-${rec.property_id}`} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
                   <div>
                     <div style={{fontSize:12,color:C.white,fontWeight:700}}>FY {rec.fiscal_year||rec.year||"—"} dividend</div>
                     <div style={{fontSize:10,color:C.muted}}>{rec.paid_at?new Date(rec.paid_at).toLocaleDateString():"June payout"} · USDC</div>
@@ -1243,7 +1248,7 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
           <div><div style={{fontSize:14,fontWeight:800,color:C.white}}>{user.first_name} {user.last_name}</div><div style={{fontSize:11,color:C.muted}}>{user.country}</div></div>
         </div>
         {[["Email",user.email],["Country",user.country||"—"],["Referral Code",user.referral_code||"—"],["Wallet",user.wallet_address||"Not set"]].map(([k,v])=>(
-          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(255,255,255,.04)`,fontSize:12,gap:10}}>
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:12,gap:10}}>
             <span style={{color:C.muted,flexShrink:0}}>{k}</span><span style={{color:C.white,fontWeight:600,textAlign:"right",maxWidth:"65%",wordBreak:"break-all"}}>{v}</span>
           </div>
         ))}
@@ -1306,7 +1311,7 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
           ["💰","Annual Dividend","70% of audited hotel NOI distributed to holders in USDC"],
           ["📅","Paid Each June","Fiscal close Dec 31 · audit Jan–Mar · announce April · pay June"],
           ["📸","Dec 31 Snapshot","Dividend eligibility based on the Dec 31 holder snapshot"]].map(([ic,t,d])=>(
-          <div key={t} style={{display:"flex",gap:11,padding:"9px 0",borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+          <div key={t} style={{display:"flex",gap:11,padding:"9px 0",borderBottom:`1px solid rgba(15,23,42,.07)`}}>
             <span style={{fontSize:18,flexShrink:0}}>{ic}</span>
             <div><div style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:2}}>{t}</div><div style={{fontSize:11,color:C.muted}}>{d}</div></div>
           </div>
