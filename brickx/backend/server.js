@@ -1780,6 +1780,11 @@ const OTP_TTL_MS = 10 * 60 * 1000;          // code valid 10 minutes
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;   // min 60s between sends
 const OTP_MAX_ATTEMPTS = 5;                 // wrong tries before a new code is required
 function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+// Unique-ish referral code (BRX-XXXXXXXX). Register retries on the rare
+// collision (unique-violation 23505) by calling this again.
+function generateReferralCode() {
+  return 'BRX-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+}
 function hashOtp(code) {
   return crypto.createHmac('sha256', process.env.JWT_SECRET).update(String(code)).digest('hex');
 }
