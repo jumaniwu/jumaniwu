@@ -13,16 +13,31 @@
 </script>
 <title>BRICKX Protocol — Real Estate Tokenized On-Chain</title>
 <meta name="description" content="Buy fractional real estate from $100. Earn annual dividend from hotels. Fixed token price. Powered by Polygon.">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#020509;--bg1:#060D18;--bg2:#0A1628;--bg3:#0F2040;
-  --blue:#1A56DB;--blueL:#3B82F6;--teal:#14B8A6;
-  --green:#10B981;--gold:#F59E0B;--red:#EF4444;
-  --white:#fff;--off:#E2E8F0;--muted:#64748B;--dim:#374151;
-  --border:rgba(26,86,219,0.12);
-  --f:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;--serif:'Playfair Display',serif;
+  /* Light theme. Variable NAMES are kept (the inline styles and the live-API
+     JavaScript reference them, e.g. var(--red)/var(--white)); only the values
+     are remapped to a clean, low-glare light palette. */
+  --bg:#F4F7FB;      /* page background — soft cool gray */
+  --bg1:#EEF2F8;     /* inset surfaces: inputs, table header */
+  --bg2:#FFFFFF;     /* cards */
+  --bg3:#F1F5F9;     /* nested insets inside white cards */
+  --blue:#1A56DB;--blueL:#2563EB;--teal:#0F766E;
+  --green:#047857;--gold:#B45309;--red:#DC2626;
+  --white:#0B1B2E;   /* primary text (name kept; now near-black navy) */
+  --off:#334155;     /* secondary text */
+  --muted:#5B6B7C;   /* muted text */
+  --dim:#94A3B8;     /* faint notes */
+  --border:rgba(15,23,42,0.09);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 12px 30px -8px rgba(16,24,40,.10);
+  --f:'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --serif:'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidden}
@@ -33,11 +48,11 @@ body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidde
 .blink{animation:blink 2s ease infinite}
 
 /* BG */
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(26,86,219,.035)1px,transparent 1px),linear-gradient(90deg,rgba(26,86,219,.035)1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
-.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:65vh;background:radial-gradient(ellipse at 50% 0%,rgba(26,86,219,.13)0%,transparent 65%);pointer-events:none;z-index:0}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(15,23,42,.022)1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,.022)1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(180deg,#000,transparent 70%);mask-image:linear-gradient(180deg,#000,transparent 70%)}
+.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:60vh;background:radial-gradient(ellipse at 50% 0%,rgba(37,99,235,.10)0%,rgba(13,148,136,.05)35%,transparent 65%);pointer-events:none;z-index:0}
 
 /* NAV */
-nav{position:sticky;top:0;z-index:100;background:rgba(2,5,9,.94);border-bottom:1px solid var(--border);backdrop-filter:blur(24px);padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.82);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-logo{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--white);letter-spacing:1px;flex-shrink:0}
 .nav-logo span{color:var(--blueL)}
 .nav-links{display:flex;align-items:center;gap:18px}
@@ -243,6 +258,62 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
 .cd-box{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:12px 0 9px;min-width:78px;flex:1;max-width:100px}
 .cd-num{font-size:26px;font-weight:800;color:var(--gold);font-family:var(--mono);line-height:1;text-align:center}
 .cd-lbl{font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:5px}
+
+/* ============ LIGHT-THEME POLISH LAYER ============ */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+::-webkit-scrollbar{width:9px}
+::-webkit-scrollbar-thumb{background:rgba(15,23,42,.20);border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:rgba(15,23,42,.32)}
+
+/* Card surfaces: white with a soft, calm shadow */
+.scard,.step,.hotel-card,.div-box,.tok-box,.faq-item,.comp-wrap,.reg-section{
+  background:#fff;border:1px solid var(--border);box-shadow:var(--shadow)}
+.pcard{box-shadow:var(--shadow-sm)}
+.scard,.step{transition:transform .2s ease,box-shadow .2s ease}
+.scard:hover,.step:hover{transform:translateY(-3px);
+  box-shadow:0 1px 3px rgba(16,24,40,.06),0 18px 42px -10px rgba(16,24,40,.18)}
+
+/* Subtle accent bars to keep brand identity on white cards */
+.div-box,.tok-box{position:relative;overflow:hidden}
+.div-box.calc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--green)}
+.div-box.cal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#F59E0B,#F97316)}
+.tok-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--teal))}
+
+/* Nav */
+nav{box-shadow:0 1px 0 rgba(15,23,42,.04)}
+
+/* Display typography */
+.hero h1{letter-spacing:-1.6px;line-height:.99;font-weight:800}
+.sec-title,.reg-section h2,.hotel-card h3,.pcard h3{letter-spacing:-.4px;font-weight:800}
+
+/* Buttons */
+.nav-cta{box-shadow:0 2px 10px rgba(26,86,219,.22)}
+.nav-cta:hover{background:#1648B8}
+.btn-main{color:#2A1700;box-shadow:0 6px 18px rgba(234,130,4,.30)}
+.btn-sec{background:#fff;color:var(--off);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.btn-sec:hover{border-color:#C3CEDC;background:#F8FAFC}
+.reg-form button{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.25)}
+.reg-form button:hover{filter:none;background:#1648B8}
+
+/* Progress bars + light-theme border overrides (were white-on-dark) */
+.pb{background:rgba(15,23,42,.07)}
+.pf{background:linear-gradient(90deg,#F59E0B,#F97316)}
+.div-box h4{border-bottom-color:var(--border)}
+.crow,.calrow,.trow,table.comp td{border-bottom-color:var(--border)}
+.pstep.up{border-color:var(--border)}
+
+/* Inputs */
+.reg-form input::placeholder{color:var(--dim)}
+.reg-form input:focus{border-color:var(--blueL);box-shadow:0 0 0 3px rgba(37,99,235,.13)}
+
+/* Register CTA card + comparison header + checkmarks */
+.reg-section{border-color:rgba(26,86,219,.18)}
+table.comp th{background:var(--bg1)}
+.bxcol{background:rgba(26,86,219,.06)}
+.xmk{color:var(--dim)}
+
+/* Toast on light */
+#toast{background:rgba(5,150,105,.10);border-color:rgba(5,150,105,.35);color:var(--green)}
 </style>
 <!-- BRICKX API — requires the api.brickxprotocol.io CNAME pointing to Railway -->
 <script>window.BRICKX_API_URL='https://api.brickxprotocol.io';window.BRICKX_APP_URL='https://app.brickxprotocol.io';</script>
@@ -469,7 +540,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
       <div class="crow"><span class="ck">Net Operating Income (55%)</span><span class="cv">$1,354,320</span></div>
       <div class="crow"><span class="ck">70% to Holders (Annual Pool)</span><span class="cv green">$948,024 / year</span></div>
       <div class="crow"><span class="ck">Annual Dividend Per Token</span><span class="cv gold">$0.51 / BRICK</span></div>
-      <div class="crow" style="border-top:1px solid rgba(255,255,255,.08);margin-top:6px;padding-top:12px">
+      <div class="crow" style="border-top:1px solid var(--border);margin-top:6px;padding-top:12px">
         <span class="ck" style="color:var(--off);font-weight:600;font-size:14px">Annual APY</span>
         <span class="cv gold" style="font-size:20px">~5.1%</span>
       </div>

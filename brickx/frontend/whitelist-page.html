@@ -12,16 +12,23 @@
   gtag('config', 'G-LXP2XY0N0C');
 </script>
 <title>BRICKX — Join the Whitelist · Early Access to Seed Sale</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#020509;--bg1:#060D18;--bg2:#0A1628;
-  --blue:#1A56DB;--blueL:#3B82F6;--accent:#0EA5E9;
-  --green:#10B981;--gold:#F59E0B;--red:#EF4444;--teal:#14B8A6;
-  --white:#fff;--off:#E2E8F0;--muted:#64748B;--dim:#374151;
-  --border:rgba(26,86,219,0.15);
-  --f:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;--serif:'Playfair Display',serif;
+  /* Light theme — variable names kept for compatibility, values remapped. */
+  --bg:#F4F7FB;--bg1:#EEF2F8;--bg2:#FFFFFF;
+  --blue:#1A56DB;--blueL:#2563EB;--accent:#0284C7;
+  --green:#047857;--gold:#B45309;--red:#DC2626;--teal:#0F766E;
+  --white:#0B1B2E;--off:#334155;--muted:#5B6B7C;--dim:#94A3B8;
+  --border:rgba(15,23,42,0.09);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 12px 30px -8px rgba(16,24,40,.10);
+  --f:'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --serif:'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column}
@@ -40,11 +47,11 @@ body{background:var(--bg);color:var(--off);font-family:var(--f);overflow-x:hidde
 .shimmer{animation:shimmer 2.5s ease infinite}
 
 /* BG */
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(26,86,219,.04)1px,transparent 1px),linear-gradient(90deg,rgba(26,86,219,.04)1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0}
-.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:70vh;background:radial-gradient(ellipse at 50% 0%,rgba(26,86,219,.15) 0%,transparent 65%);pointer-events:none;z-index:0}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(15,23,42,.022)1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,.022)1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(180deg,#000,transparent 75%);mask-image:linear-gradient(180deg,#000,transparent 75%)}
+.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:65vh;background:radial-gradient(ellipse at 50% 0%,rgba(37,99,235,.10) 0%,rgba(13,148,136,.05) 35%,transparent 65%);pointer-events:none;z-index:0}
 
 /* NAV */
-nav{position:relative;z-index:10;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(2,5,9,.9);backdrop-filter:blur(20px)}
+nav{position:relative;z-index:10;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.82);backdrop-filter:blur(20px)}
 @media(min-width:640px){nav{padding:0 40px}}
 .logo{font-family:var(--serif);font-size:20px;font-weight:900;color:var(--white);letter-spacing:1px}
 .logo span{color:var(--blueL)}
@@ -148,6 +155,21 @@ footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);pa
 
 /* SCAN LINE (aesthetic) */
 .scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(26,86,219,.4),transparent);animation:scan 4s ease-in-out infinite;pointer-events:none}
+
+/* ============ LIGHT-THEME POLISH LAYER ============ */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+::-webkit-scrollbar{width:9px}
+::-webkit-scrollbar-thumb{background:rgba(15,23,42,.20);border-radius:6px}
+nav{box-shadow:0 1px 0 rgba(15,23,42,.04)}
+.form-wrap,.success-card{box-shadow:var(--shadow)}
+.h1{letter-spacing:-1.6px;line-height:.99;font-weight:800}
+.success-card h2,.form-wrap [style*="font-weight:800"]{letter-spacing:-.3px}
+.btn-join{color:#2A1700;box-shadow:0 6px 18px rgba(234,130,4,.30)}
+.pb{background:rgba(15,23,42,.07)}
+footer{border-top-color:var(--border)}
+.form-input::placeholder{color:var(--dim)}
+.form-input:focus{box-shadow:0 0 0 3px rgba(37,99,235,.13)}
+.stat-div{background:var(--border)}
 </style>
 </head>
 <body>
