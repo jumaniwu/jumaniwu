@@ -234,6 +234,7 @@ app.get('/api/health', async (req, res) => {
   res.status(dbStatus === 'ok' ? 200 : 503).json({
     status:  dbStatus === 'ok' ? 'ok' : 'degraded',
     db:      dbStatus,
+    email:   (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_key') ? 'configured' : 'console-only',
     version: '3.0.0',
     phase:   'Phase 1 — BRX ICO Active',
     model:   'Two-Phase: ICO Ecosystem → Hotel Annual Dividend',
@@ -1419,8 +1420,8 @@ app.post('/api/admin/dividend/distribute', adminAuth, async (req, res) => {
     const { data: dist, error } = await supabase.from('yield_distributions').insert({
       property_id:              propertyId,
       fiscal_year:              fiscalYear,
-      gross_revenue:            grossRevenue,
-      noi:                      noi,
+      gross_revenue_usd:        grossRevenue,
+      noi_usd:                  noi,
       holders_pool_usdc:        holdersPool,
       protocol_share_usdc:      protocolShare,
       per_token_usdc:           perToken,
@@ -1819,13 +1820,13 @@ async function sendEmail(to, subject, htmlBody) {
       from:    process.env.EMAIL_FROM || 'noreply@brickxprotocol.io',
       to,
       subject,
-      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#020509;color:#E2E8F0;padding:32px;max-width:600px;margin:0 auto;">
-        <div style="background:#0A1628;border:1px solid rgba(26,86,219,.2);border-radius:14px;padding:28px;">
-          <div style="font-family:Georgia,serif;font-size:22px;font-weight:900;color:#fff;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:14px;">
-            BRICK<span style="color:#3B82F6">X</span> Protocol
+      html: `<!DOCTYPE html><html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#F4F7FB;color:#334155;padding:28px 16px;margin:0;">
+        <div style="background:#FFFFFF;border:1px solid #E6EAF0;border-radius:16px;padding:30px;max-width:560px;margin:0 auto;box-shadow:0 8px 30px rgba(16,24,40,.06);">
+          <div style="font-size:22px;font-weight:800;color:#0B1B2E;margin-bottom:22px;border-bottom:1px solid #EEF2F8;padding-bottom:16px;letter-spacing:-.3px;">
+            BRICK<span style="color:#1A56DB">X</span> Protocol
           </div>
-          ${htmlBody}
-          <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#475569;">
+          <div style="color:#334155;font-size:15px;line-height:1.7;">${htmlBody}</div>
+          <div style="margin-top:26px;padding-top:16px;border-top:1px solid #EEF2F8;font-size:11px;color:#94A3B8;line-height:1.6;">
             BRICKX Protocol · brickxprotocol.io · seed@brickxprotocol.io<br>
             This is not financial advice. Investment involves risk.
           </div>
