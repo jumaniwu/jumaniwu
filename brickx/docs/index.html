@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LXP2XY0N0C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LXP2XY0N0C');
+</script>
+<title>BRICKX Protocol — Whitepaper v2.0</title>
+<meta name="description" content="BRICKX Protocol Whitepaper: real estate tokenization on Polygon. Two-phase model, fixed token price, annual USDC dividend from hotels.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F7FB;--bg1:#EEF2F8;--bg2:#FFFFFF;--bg3:#F1F5F9;
+  --blue:#1A56DB;--blueL:#2563EB;--teal:#0F766E;--green:#047857;--gold:#B45309;
+  --white:#0B1B2E;--off:#334155;--muted:#5B6B7C;--dim:#94A3B8;
+  --border:rgba(15,23,42,.09);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 12px 30px -8px rgba(16,24,40,.10);
+  --f:'Plus Jakarta Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--off);font-family:var(--f);-webkit-font-smoothing:antialiased;line-height:1.65}
+::-webkit-scrollbar{width:9px}::-webkit-scrollbar-thumb{background:rgba(15,23,42,.2);border-radius:6px}
+a{color:var(--blueL);text-decoration:none}
+.bg-glow{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100vw;height:46vh;background:radial-gradient(ellipse at 50% 0%,rgba(37,99,235,.09),rgba(15,118,110,.04) 35%,transparent 62%);pointer-events:none;z-index:0}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.82);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);box-shadow:0 1px 0 rgba(15,23,42,.04);height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px}
+.nav-logo{font-size:21px;font-weight:800;color:var(--white);letter-spacing:-.5px}
+.nav-logo span{color:var(--blueL)}
+.nav-right{display:flex;align-items:center;gap:18px}
+.nav-right a{color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
+.nav-right a:hover{color:var(--white)}
+.nav-cta{background:var(--blue);color:#fff;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(26,86,219,.22)}
+.nav-cta:hover{background:#1648B8;color:#fff}
+@media(max-width:760px){.nav-right a:not(.nav-cta){display:none}}
+
+.cover{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:64px 24px 36px;text-align:center}
+.cover .doctype{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--blueL);font-weight:700;margin-bottom:18px}
+.cover h1{font-size:clamp(38px,8vw,72px);font-weight:800;color:var(--white);line-height:1;letter-spacing:-1.6px;margin-bottom:14px}
+.cover h1 span{color:var(--blueL)}
+.cover .tagline{font-size:clamp(16px,2.4vw,21px);color:var(--white);font-weight:600;margin-bottom:10px}
+.cover .chips{font-size:13px;color:var(--muted);margin-bottom:30px}
+.cover-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:760px;margin:0 auto 26px}
+@media(max-width:620px){.cover-stats{grid-template-columns:1fr 1fr}}
+.wp-stat{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);border-radius:14px;padding:18px 12px;box-shadow:var(--shadow)}
+.wp-stat .v{font-family:var(--mono);font-size:clamp(18px,3vw,24px);font-weight:700;color:var(--blue);line-height:1.1}
+.wp-stat .l{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:.3px}
+.dl-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+.dl-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;font-weight:700;color:var(--off);box-shadow:var(--shadow-sm);cursor:pointer;font-family:var(--f)}
+.dl-btn:hover{border-color:#C3CEDC;background:#F8FAFC;color:var(--off)}
+.dl-btn.primary{background:linear-gradient(135deg,#F59E0B,#F97316);color:#2A1700;border:none;box-shadow:0 6px 18px rgba(234,130,4,.28)}
+.cover .disc{font-size:12px;color:var(--dim);max-width:680px;margin:0 auto;line-height:1.7}
+.cover .contact{font-size:12px;color:var(--muted);margin-top:10px;font-family:var(--mono)}
+
+.layout{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:20px 24px 60px;display:grid;grid-template-columns:248px 1fr;gap:40px;align-items:start}
+@media(max-width:920px){.layout{grid-template-columns:1fr;gap:18px}}
+.toc{position:sticky;top:78px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 16px;box-shadow:var(--shadow);max-height:calc(100vh - 100px);overflow:auto}
+.toc .toc-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px}
+.toc a{display:block;font-size:13px;color:var(--muted);padding:6px 10px;border-radius:7px;font-weight:500;line-height:1.4}
+.toc a:hover{background:var(--bg1);color:var(--white)}
+.toc a.active{background:rgba(26,86,219,.08);color:var(--blue);font-weight:700}
+@media(max-width:920px){.toc{position:relative;top:0;max-height:none}.toc.collapsed .toc-body{display:none}}
+.toc-toggle{display:none}
+@media(max-width:920px){.toc-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;width:100%}}
+
+article{background:#fff;border:1px solid var(--border);border-radius:16px;padding:clamp(22px,4vw,46px);box-shadow:var(--shadow);min-width:0}
+article .wp-h1{font-size:clamp(22px,3.4vw,30px);font-weight:800;color:var(--white);letter-spacing:-.5px;line-height:1.2;margin:42px 0 14px;padding-top:26px;border-top:1px solid var(--border);scroll-margin-top:74px}
+article .wp-h1:first-child{margin-top:0;padding-top:0;border-top:none}
+article .wp-h2{font-size:clamp(16px,2.4vw,19px);font-weight:700;color:var(--white);margin:26px 0 8px;line-height:1.3;scroll-margin-top:74px}
+article p{font-size:15px;color:var(--off);line-height:1.8;margin-bottom:14px}
+article .wp-ul{margin:6px 0 16px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+article .wp-ul li{position:relative;padding-left:26px;font-size:15px;color:var(--off);line-height:1.7}
+article .wp-ul li::before{content:'';position:absolute;left:6px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--teal)}
+.wp-table-wrap{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--border);border-radius:12px}
+table.wp-table{width:100%;border-collapse:collapse;font-size:14px;min-width:420px}
+table.wp-table th,table.wp-table td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+table.wp-table tr:last-child th,table.wp-table tr:last-child td{border-bottom:none}
+table.wp-table th{color:var(--white);font-weight:700;width:34%;background:var(--bg1)}
+table.wp-table td{color:var(--off)}
+
+footer{position:relative;z-index:1;border-top:1px solid var(--border);background:#fff;padding:34px 24px;text-align:center}
+.f-logo{font-size:20px;font-weight:800;color:var(--white);margin-bottom:10px}
+.f-logo span{color:var(--blueL)}
+.f-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.f-links a{color:var(--muted);font-size:13px}.f-links a:hover{color:var(--white)}
+.f-disc{font-size:11px;color:var(--dim);max-width:620px;margin:0 auto;line-height:1.7}
+
+@media print{
+  nav,.toc,.dl-row,.nav-cta,.bg-glow,footer .f-links{display:none!important}
+  body{background:#fff}
+  .layout{grid-template-columns:1fr;display:block}
+  article,.cover-stats .wp-stat{box-shadow:none;border-color:#ddd}
+  article{border:none;padding:0}
+  a{color:#000}
+}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<nav>
+  <div class="nav-logo">BRICK<span>X</span></div>
+  <div class="nav-right">
+    <a href="https://brickxprotocol.io">Home</a>
+    <a href="https://brickxprotocol.io/#tokenomics">Tokenomics</a>
+    <a href="https://brickxprotocol.io/#dividend">Dividend</a>
+    <a class="nav-cta" href="https://brickxprotocol.io/#register">Join Seed Sale &rarr;</a>
+  </div>
+</nav>
+
+<section class="cover">
+  <div class="doctype">WHITEPAPER  |  VERSION 2.0  |  2026</div>
+  <h1>BRICK<span>X</span> Protocol<br>Whitepaper</h1>
+  <div class="tagline">Real Estate. Tokenized On-Chain. For Everyone.</div>
+  <div class="chips">Two-Phase Protocol  |  Annual Dividend Model  |  Fixed Token Price  |  Polygon</div>
+  <div class="cover-stats">
+<div class="wp-stat"><div class="v">USD 0.008</div><div class="l">BRX Seed Price</div></div>
+<div class="wp-stat"><div class="v">USD 2M</div><div class="l">ICO Target</div></div>
+<div class="wp-stat"><div class="v">USD 18.5M</div><div class="l">Hotel Budget</div></div>
+<div class="wp-stat"><div class="v">June</div><div class="l">Annual Dividend</div></div>
+
+  </div>
+  <div class="dl-row">
+    <button class="dl-btn primary" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <a class="dl-btn" href="BRICKX_Whitepaper_v2.docx" download>📄 Whitepaper (.docx)</a>
+    <a class="dl-btn" href="BRICKX_PitchDeck_v4.pptx" download>📊 Pitch Deck (.pptx)</a>
+    <a class="dl-btn" href="BRICKX_Financial_Model_v3.xlsx" download>📈 Financial Model (.xlsx)</a>
+  </div>
+  <p class="disc">This document is for informational purposes only and does not constitute financial advice or an offer to sell securities in any jurisdiction.</p>
+  <div class="contact">brickxprotocol.io  |  seed@brickxprotocol.io  |  docs.brickxprotocol.io</div>
+</section>
+
+<div class="layout">
+  <aside class="toc collapsed" id="toc">
+    <div class="toc-toggle" onclick="document.getElementById('toc').classList.toggle('collapsed')">
+      <span class="toc-title" style="margin:0">Contents</span><span>&#9662;</span>
+    </div>
+    <div class="toc-body">
+      <div class="toc-title" style="margin-top:14px">On this page</div>
+      <a href="#abstract">Abstract</a><a href="#the-problem">1. The Problem</a><a href="#the-solution">2. The Solution</a><a href="#two-phase-strategy">3. Two-Phase Strategy</a><a href="#how-brickx-works">4. How BRICKX Works</a><a href="#token-architecture">5. Token Architecture</a><a href="#tokenomics">6. Tokenomics</a><a href="#annual-dividend-model">7. Annual Dividend Model</a><a href="#project-hotel-batam">8. Project Hotel Batam</a><a href="#market-opportunity">9. Market Opportunity</a><a href="#roadmap">10. Roadmap</a><a href="#revenue-model">11. Revenue Model</a><a href="#competitive-landscape">12. Competitive Landscape</a><a href="#legal-compliance">13. Legal &amp; Compliance</a><a href="#risk-factors">14. Risk Factors</a><a href="#team-governance">15. Team &amp; Governance</a><a href="#conclusion">16. Conclusion</a>
+    </div>
+  </aside>
+  <article id="article">
+<h2 id="abstract" class="wp-h1">Abstract</h2>
+<p>BRICKX Protocol is a decentralized real estate tokenization platform built on the Polygon blockchain. It enables anyone, anywhere in the world, to own fractional shares of income-generating hotel properties — starting from as little as USD 100 — and earn annual dividend income paid in USDC.</p>
+<p>BRICKX operates on a two-phase model. Phase 1 raises USD 2,000,000 through the BRX governance token ICO to fund the development of the full platform ecosystem. Phase 2 uses the established ecosystem to acquire an existing operating hotel in Batam, Indonesia (budget up to USD 18.5 million), tokenize it via BRICK property tokens, and begin distributing annual dividends to token holders.</p>
+<p>Unlike speculative cryptocurrency projects, BRICKX BRICK tokens are fixed at USD 10.00 permanently. Investor returns come exclusively from real hotel rental income — 70% of Net Operating Income distributed annually to holders every June, following an independent audit completed each December-March fiscal cycle.</p>
+<p>The BRICKX ecosystem is powered by two token layers: BRX (governance, utility, and staking token) and BRICK (property-specific fractional ownership tokens with fixed price and annual dividend rights). The platform is built on Polygon for ultra-low gas fees, high throughput, and EVM compatibility.</p>
+<h2 id="the-problem" class="wp-h1">1. The Problem</h2>
+<p>Real estate is the world&#x27;s largest and most consistent wealth-building asset class. Over the past century, property has outperformed stocks, bonds, and commodities across virtually every market cycle. Yet for the vast majority of people on earth, it remains completely inaccessible.</p>
+<h3 class="wp-h2">1.1 The Capital Barrier</h3>
+<p>Consider what is required to purchase a single investment property in any major city today: a down payment of USD 100,000 to USD 500,000 or more, access to local mortgage financing (often restricted to residents and citizens), a team of lawyers, accountants, and agents taking 5-15% in fees, months of paperwork, due diligence, and legal processes, and ongoing management, maintenance, and tax obligations.</p>
+<p>The result: less than 1% of the global population owns investment property. The other 99% are excluded — not by lack of interest, but by structural barriers that have never been challenged.</p>
+<h3 class="wp-h2">1.2 The Liquidity Problem</h3>
+<p>Even investors who manage to purchase property face a secondary problem: complete illiquidity. Selling a property takes 3 to 6 months in most markets, involves significant transaction costs, and requires perfect timing. This capital immobility discourages rational risk-taking and traps wealth in unproductive holding patterns.</p>
+<h3 class="wp-h2">1.3 The Geographic Barrier</h3>
+<p>Some of the world&#x27;s most attractive real estate investment opportunities are in Southeast Asia — fast-growing economies, strong yields, and rapidly expanding middle classes. Yet foreign investors face enormous barriers: restricted ownership laws, complex local corporate structures, and opaque market information. A Singapore resident cannot straightforwardly invest in Batam real estate despite it being a 30-minute ferry ride away.</p>
+<h3 class="wp-h2">1.4 The Southeast Asia Opportunity Gap</h3>
+<p>Southeast Asia is experiencing exceptional growth in hospitality and commercial real estate. Batam Island, directly adjacent to Singapore within Indonesia&#x27;s Riau Islands Free Trade Zone, presents a particularly compelling opportunity:</p>
+<ul class="wp-ul"><li>Hotel demand growing approximately 15% annually, driven by Singapore overflow tourism and business travel</li><li>Limited supply of 4-star hotels despite strong and growing demand</li><li>Property acquisition costs 40-60% lower than comparable assets in Jakarta or Bali</li><li>Free Trade Zone status simplifies business operations and investment structures</li><li>30-minute high-speed ferry connection to Singapore — one of Asia&#x27;s wealthiest cities</li></ul>
+<p>These opportunities exist. The infrastructure to access them globally, transparently, and at any investment size does not. BRICKX is built to fix this.</p>
+<h2 id="the-solution" class="wp-h1">2. The Solution</h2>
+<p>BRICKX Protocol is a blockchain-native platform that tokenizes real hotel properties and makes fractional ownership accessible to anyone with an internet connection, a cryptocurrency wallet, and as little as USD 100.</p>
+<p>Investors purchase BRICK tokens representing fractional ownership of a specific hotel property. Each BRICK token is priced at exactly USD 10.00 permanently — this price never changes. Returns come entirely from real hotel operating income, distributed annually in USDC every June.</p>
+<h3 class="wp-h2">2.1 Core Value Propositions</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Fixed Token Price</th><td>USD 10.00 per BRICK token — permanent. Zero price speculation. Returns from yield only.</td></tr><tr><th>Annual Dividend</th><td>70% of Net Operating Income distributed to holders every June in USDC.</td></tr><tr><th>Audited Cycle</th><td>December 31 fiscal close → independent audit Q1 → April announcement → June payment.</td></tr><tr><th>Marketplace Exit</th><td>List BRICK tokens on marketplace at USD 10.00 anytime. No lock period after purchase.</td></tr><tr><th>Minimum USD 100</th><td>Accessible to any investor globally. No local bank account or residency required.</td></tr><tr><th>Polygon Network</th><td>Gas fees under USD 0.01. 2-minute confirmation. USDT/USDC/ETH/BNB accepted.</td></tr></table></div>
+<h3 class="wp-h2">2.2 What Makes BRICKX Different</h3>
+<p>Most real estate tokenization platforms are either speculative (token price fluctuates with market) or impractical (complex processes, high minimums, limited markets). BRICKX takes a fundamentally different approach:</p>
+<ul class="wp-ul"><li>Zero speculation: BRICK tokens have a permanent fixed price. Your investment thesis is simple — hold BRICK, earn hotel income annually.</li><li>Real assets: Phase 2 acquires an existing operating hotel with a proven revenue track record — not a hypothetical future project.</li><li>Southeast Asia focus: The highest-growth, most underserved real estate markets with the largest untapped investor base.</li><li>Transparent governance: All hotel financials are independently audited annually before dividend distributions. Full audit reports published publicly.</li></ul>
+<h2 id="two-phase-strategy" class="wp-h1">3. Two-Phase Strategy</h2>
+<p>BRICKX operates through a sequential two-phase model designed to ensure the platform ecosystem is fully operational before any hotel acquisition is undertaken. This sequencing reduces risk for all stakeholders.</p>
+<h3 class="wp-h2">3.1 Phase 1 — BRX ICO: Build the Ecosystem (Active Now)</h3>
+<p>Phase 1 raises USD 2,000,000 through the BRX governance token sale to fund full platform development. This phase is currently active.</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Seed Round</th><td>USD 0.008 per BRX — Hard cap USD 640,000</td></tr><tr><th>ICO Round 1</th><td>USD 0.015 per BRX (+87.5% vs seed)</td></tr><tr><th>ICO Round 2</th><td>USD 0.022 per BRX (+175% vs seed)</td></tr><tr><th>DEX Launch</th><td>USD 0.030 per BRX (+275% vs seed)</td></tr><tr><th>Total Raise Target</th><td>USD 2,000,000</td></tr><tr><th>Total BRX Supply</th><td>1,000,000,000 (fixed forever, 0% VC)</td></tr><tr><th>Min / Max Investment</th><td>USD 100 minimum / USD 50,000 per wallet</td></tr><tr><th>Payment Methods</th><td>USDT (Polygon) · USDC (Polygon) · ETH · BNB</td></tr></table></div>
+<p>Phase 1 funds are allocated to platform development and engineering (38%), marketing and community growth (20%), legal and regulatory compliance (12%), CertiK smart contract audit (10%), hotel due diligence and advisory (10%), and operations and reserve fund (10%).</p>
+<p>Critical distinction: ICO proceeds fund the ecosystem only. Hotel acquisition is separately funded via the BRICK hotel token sale — not from BRX ICO proceeds.</p>
+<h3 class="wp-h2">3.2 Phase 2 — Hotel Token: Acquire and Tokenize (After ICO)</h3>
+<p>Once Phase 1 is complete and the platform ecosystem is fully operational, Phase 2 acquires an existing operating hotel in Batam, Indonesia and issues BRICK tokens to fund and tokenize the acquisition.</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Strategy</th><td>Acquire existing operating hotel (not build new)</td></tr><tr><th>Reason</th><td>Immediate revenue from day one. Proven occupancy and P&amp;L history.</td></tr><tr><th>Location</th><td>Batam Island, Riau Islands Province, Indonesia</td></tr><tr><th>Target Category</th><td>3-4 star hotel, upgrade to 4-star standard</td></tr><tr><th>Acquisition Budget</th><td>Up to USD 18,500,000 (approximately Rp 300 billion at Rp 16,200/USD)</td></tr><tr><th>Hotel Name</th><td>Confidential until Sale and Purchase Agreement signed</td></tr><tr><th>BRICK Token Price</th><td>USD 10.00 fixed permanently</td></tr><tr><th>Total Tokens</th><td>Hotel acquisition cost (USD) divided by USD 10.00</td></tr><tr><th>Dividend</th><td>70% of Net Operating Income, paid annually in June</td></tr><tr><th>Fiscal Year</th><td>January 1 to December 31</td></tr></table></div>
+<h2 id="how-brickx-works" class="wp-h1">4. How BRICKX Works</h2>
+<h3 class="wp-h2">4.1 Investor Journey — Step by Step</h3>
+<ul class="wp-ul"><li>Register: Create account at brickxprotocol.io. Provide email and set password.</li><li>Add Wallet: Register your Polygon wallet address. This wallet receives BRX at TGE and BRICK tokens upon purchase, and receives USDC annual dividends.</li><li>Complete KYC: Verify identity via Sumsub (5 minutes). Supports passport, national ID, and driver&#x27;s license from 80+ countries. Required before any purchase.</li><li>Purchase BRX (Phase 1): Send USDT, USDC, ETH, or BNB to the BRICKX treasury wallet. System auto-detects payment on-chain via Polygon. BRX allocated to your wallet at TGE.</li><li>Access Platform (After TGE): Use BRX to access the BRICKX marketplace. Purchase BRICK hotel tokens at USD 10.00 fixed price.</li><li>Earn Annual Dividend: Hotel generates revenue throughout the year. At December 31, a snapshot of all BRICK token holders is taken. After the Q1 independent audit, dividend is announced in April and USDC is automatically distributed to all holder wallets in June.</li><li>Exit When Ready: List BRICK tokens on the BRICKX marketplace at USD 10.00 anytime. No lock period after initial purchase. Buyer purchases instantly and USDC is credited to your wallet.</li></ul>
+<h3 class="wp-h2">4.2 Property Tokenization Process</h3>
+<p>Every hotel property on BRICKX goes through a multi-step process before BRICK tokens are issued:</p>
+<ul class="wp-ul"><li>Due Diligence: Minimum 90-day review of legal title, environmental assessments, building condition, financial records, and local regulatory compliance.</li><li>SPV Structure: A dedicated Special Purpose Vehicle (SPV) legal entity is established in the jurisdiction of the property to hold title and operate the hotel.</li><li>Independent Valuation: Third-party property valuation by a licensed appraisal firm establishes acquisition price and projected NOI.</li><li>Token Issuance: BRICK tokens are minted via the BRICK ERC-1155 smart contract on Polygon at USD 10.00 each. Total tokens = acquisition cost divided by USD 10.00.</li><li>Marketplace Listing: BRICK tokens are listed on the BRICKX marketplace. Investors purchase at USD 10.00 fixed price.</li></ul>
+<h2 id="token-architecture" class="wp-h1">5. Token Architecture</h2>
+<h3 class="wp-h2">5.1 The Dual Token System</h3>
+<p>BRICKX uses two distinct token types, each serving a specific purpose:</p>
+<p>BRX — Governance and Utility Token</p>
+<p>BRX is the primary utility and governance token of BRICKX Protocol. Fixed supply of 1,000,000,000 tokens (no additional minting possible). BRX provides:</p>
+<ul class="wp-ul"><li>Governance voting rights — 1 BRX = 1 vote on protocol decisions</li><li>Staking rewards — earn platform fee distributions by staking BRX</li><li>Platform access — required to participate in BRICK token sales</li><li>Deflationary mechanics — 30% of platform fees burned quarterly</li><li>DAO treasury participation — vote on new property approvals and fund allocation</li></ul>
+<p>BRICK — Property-Specific Ownership Token</p>
+<p>BRICK tokens (ERC-1155 standard) represent fractional ownership of a specific hotel property. Key mechanics:</p>
+<ul class="wp-ul"><li>Price: USD 10.00 fixed permanently — this never changes</li><li>Dividend: 70% of property NOI distributed to holders annually each June</li><li>Liquidity: Can be listed and sold on BRICKX marketplace at USD 10.00 anytime</li><li>Snapshot: Dividend eligibility determined by wallet holdings at December 31 each year</li><li>Unique per property: Each hotel has its own BRICK token with separate financials and dividend history</li></ul>
+<h3 class="wp-h2">5.2 Smart Contract Architecture</h3>
+<p>BRICKX is built on Polygon (Ethereum Layer 2) for the following reasons:</p>
+<ul class="wp-ul"><li>Gas fees under USD 0.01 per transaction (vs USD 5-50 on Ethereum mainnet)</li><li>7,000+ transactions per second throughput</li><li>Full EVM compatibility — integrates with all Ethereum tooling and wallets</li><li>Carbon-neutral Proof of Stake consensus mechanism</li><li>Established DeFi ecosystem — QuickSwap, Aave, Curve available for liquidity</li></ul>
+<p>Five smart contracts power the BRICKX ecosystem:</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>BRXToken.sol</th><td>ERC-20 governance token. Fixed 1B supply. Burnable. Pause capability.</td></tr><tr><th>BRXVesting.sol</th><td>Cliff + linear vesting for ICO investors. Non-transferable vesting schedules.</td></tr><tr><th>BRXICOVault.sol</th><td>Accepts USDT/USDC. KYC whitelist enforcement. Batch BRX distribution.</td></tr><tr><th>BRICKToken.sol</th><td>ERC-1155 property tokens. Fixed price enforced on marketplace. Annual dividend tracking.</td></tr><tr><th>YieldDistributor.sol</th><td>Annual dividend distribution. 70/30 split. Admin deposits NOI. Holders receive USDC.</td></tr></table></div>
+<p>All smart contracts will be audited by CertiK or Hacken prior to Polygon mainnet deployment. Full audit reports will be published publicly on the BRICKX website.</p>
+<h2 id="tokenomics" class="wp-h1">6. Tokenomics</h2>
+<h3 class="wp-h2">6.1 BRX Token Distribution</h3>
+<p>Total Supply: 1,000,000,000 BRX — Fixed forever. No additional minting possible after genesis.</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Ecosystem &amp; Staking</th><td>350,000,000 (35%) — Platform staking rewards and ecosystem incentives</td></tr><tr><th>ICO Public Sale</th><td>150,000,000 (15%) — Rounds 1, 2, and DEX liquidity</td></tr><tr><th>Team (3-year vested)</th><td>120,000,000 (12%) — 12-month cliff, then 24-month linear vest</td></tr><tr><th>Strategic Partners</th><td>100,000,000 (10%) — Advisors and development partners, vested</td></tr><tr><th>Seed Sale</th><td>80,000,000 (8%) — Current round, 12-month lock + 24-month linear vest</td></tr><tr><th>Marketing &amp; KOL</th><td>80,000,000 (8%) — Community growth and influencer partnerships</td></tr><tr><th>DEX Liquidity (Locked)</th><td>70,000,000 (7%) — Locked in smart contract for QuickSwap liquidity</td></tr><tr><th>DAO Reserve</th><td>50,000,000 (5%) — Governed by token holders via DAO vote</td></tr><tr><th>Total</th><td>1,000,000,000 (100%)</td></tr></table></div>
+<h3 class="wp-h2">6.2 ICO Price Structure</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Seed Round</th><td>USD 0.008 per BRX | Hard cap USD 640,000 | Lock 12mo + Vest 24mo</td></tr><tr><th>ICO Round 1</th><td>USD 0.015 per BRX (+87.5%) | Hard cap USD 1,500,000 | Lock 3mo + Vest 12mo</td></tr><tr><th>ICO Round 2</th><td>USD 0.022 per BRX (+175%) | Hard cap USD 1,100,000 | Lock 3mo + Vest 9mo</td></tr><tr><th>DEX Launch</th><td>USD 0.030 per BRX (+275%) | No lock, no vesting — open market</td></tr><tr><th>Total ICO Target</th><td>USD 2,000,000 across all rounds</td></tr></table></div>
+<h3 class="wp-h2">6.3 Deflationary Mechanisms</h3>
+<p>BRX implements multiple burn mechanisms to create long-term scarcity and reward long-term holders:</p>
+<ul class="wp-ul"><li>30% of all platform listing fees collected in BRX are permanently burned</li><li>5% of BRICK token secondary market transaction fees converted to BRX and burned</li><li>Failed governance proposals result in 10% of the proposal bond being burned</li><li>Annual buyback-and-burn program funded from protocol&#x27;s 30% NOI share</li></ul>
+<h2 id="annual-dividend-model" class="wp-h1">7. Annual Dividend Model</h2>
+<p>The BRICKX dividend model is designed to be transparent, audited, and predictable. Investors earn real hotel income — not synthetic yields or protocol token inflation.</p>
+<h3 class="wp-h2">7.1 The Annual Dividend Cycle</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>January – December</th><td>Hotel operations. Revenue and expenses recorded monthly by hotel management.</td></tr><tr><th>December 31</th><td>Fiscal year close. Snapshot of all BRICK token holder wallet addresses taken automatically.</td></tr><tr><th>January – March</th><td>Independent financial audit. Full hotel P&amp;L verification by licensed auditor.</td></tr><tr><th>April</th><td>BRICKX announces exact dividend per BRICK token for the completed fiscal year.</td></tr><tr><th>June</th><td>USDC automatically transferred to all BRICK holder wallets via smart contract. No manual claim needed.</td></tr><tr><th>Repeat</th><td>Cycle repeats every year for the operational life of the hotel property.</td></tr></table></div>
+<p>The snapshot date is December 31. Investors must hold BRICK tokens at this date to qualify for that year&#x27;s dividend. There is no minimum holding period beyond this date.</p>
+<h3 class="wp-h2">7.2 Dividend Split</h3>
+<p>Net Operating Income is split as follows:</p>
+<ul class="wp-ul"><li>70% to BRICK token holders — distributed proportionally based on snapshot balances</li><li>30% to BRICKX Protocol — funds operations, team, future property acquisitions, and BRX buyback-and-burn</li></ul>
+<h3 class="wp-h2">7.3 Example Calculation — Base Case (USD 18.5M Hotel)</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Hotel Acquisition Budget</th><td>USD 18,500,000</td></tr><tr><th>Total BRICK Tokens Issued</th><td>1,850,000 tokens (USD 18.5M / USD 10.00 per token)</td></tr><tr><th>Number of Rooms</th><td>100 rooms</td></tr><tr><th>Average Daily Rate (ADR)</th><td>USD 95 per room night</td></tr><tr><th>Target Occupancy Rate</th><td>72%</td></tr><tr><th>Revenue Per Available Room (RevPAR)</th><td>USD 68.40 (USD 95 x 72%)</td></tr><tr><th>Annual Gross Revenue</th><td>USD 2,462,400 (USD 68.40 x 100 rooms x 360 days)</td></tr><tr><th>Net Operating Income (55% margin)</th><td>USD 1,354,320</td></tr><tr><th>70% Holders Annual Pool</th><td>USD 948,024</td></tr><tr><th>Annual Dividend Per BRICK Token</th><td>USD 0.51</td></tr><tr><th>Annual APY</th><td>5.1% (USD 0.51 / USD 10.00)</td></tr><tr><th>First Dividend Payment</th><td>June 2028 (for FY2027)</td></tr></table></div>
+<h3 class="wp-h2">7.4 APY Sensitivity Analysis</h3>
+<p>Annual APY varies with hotel occupancy and Average Daily Rate. The following table shows estimated APY for different scenarios based on 100 rooms, 55% NOI margin, 70% holder share, and USD 18.5M acquisition:</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>ADR USD 80 / Occupancy 65%</th><td>~4.0% APY (conservative scenario)</td></tr><tr><th>ADR USD 90 / Occupancy 72%</th><td>~5.0% APY (base case)</td></tr><tr><th>ADR USD 95 / Occupancy 72%</th><td>~5.1% APY (planned base case)</td></tr><tr><th>ADR USD 100 / Occupancy 78%</th><td>~6.6% APY (optimistic scenario)</td></tr><tr><th>ADR USD 110 / Occupancy 80%</th><td>~7.8% APY (strong performance)</td></tr></table></div>
+<h2 id="project-hotel-batam" class="wp-h1">8. Project Hotel Batam</h2>
+<p>Phase 2 of BRICKX Protocol centers on the acquisition of an existing operating hotel in Batam Island, Indonesia. The hotel target has been identified. Specific details (name and exact address) are confidential until the Sale and Purchase Agreement (SPA) is signed — a standard practice in commercial real estate acquisitions to protect negotiation integrity.</p>
+<p>Hotel name and exact location: CONFIDENTIAL. Disclosure will occur before the BRICK hotel token sale launches. All BRX seed investors will be notified first. Full due diligence report and audited financials will be published at that time.</p>
+<h3 class="wp-h2">8.1 Why Buy an Existing Hotel</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Immediate Revenue</th><td>Hotel is already operational. Cash flow begins from day one of acquisition.</td></tr><tr><th>Proven Performance</th><td>Historical occupancy rates, ADR, and full P&amp;L financials available for due diligence.</td></tr><tr><th>Lower Risk</th><td>No construction risk, no permitting delays, no 2-3 year wait before first revenue.</td></tr><tr><th>Capital Efficiency</th><td>USD 12.3M-18.5M for existing hotel vs USD 18.5M-24.7M to build equivalent new.</td></tr><tr><th>Upgrade Strategy</th><td>Acquire 3-star hotel, renovate and rebrand to 4-star standard — value creation opportunity.</td></tr></table></div>
+<h3 class="wp-h2">8.2 Why Batam, Indonesia</h3>
+<ul class="wp-ul"><li>Strategic location: 30-minute high-speed ferry from Singapore — one of Asia&#x27;s wealthiest cities</li><li>Indonesia Free Trade Zone: simplified permits, tax advantages, and ease of doing business</li><li>Growing demand: Hotel demand in Batam growing approximately 15% annually driven by business travel and Singapore overflow tourism</li><li>Supply gap: Limited supply of quality 4-star hotels relative to growing demand — creates pricing power</li><li>Affordable acquisition: Properties 40-60% cheaper than equivalent assets in Jakarta, Bali, or Singapore</li><li>Local expertise: BRICKX founder has 10+ years of active real estate development experience in Batam, including current hotel renovation project management — irreplaceable local network</li></ul>
+<h3 class="wp-h2">8.3 Acquisition Parameters</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Maximum Budget</th><td>USD 18,500,000 (equivalent to approximately Rp 300 billion at exchange rate Rp 16,200/USD)</td></tr><tr><th>Target Category</th><td>3-4 star hotel, Nagoya Business District preferred</td></tr><tr><th>Target Size</th><td>Minimum 80 rooms; preference for 100-150 rooms</td></tr><tr><th>Renovation Budget</th><td>Approximately USD 1.9M (Rp 30 billion) for upgrades to 4-star standard</td></tr><tr><th>Total All-In Budget</th><td>USD 20.4M maximum</td></tr><tr><th>BRICK Token Price</th><td>USD 10.00 (fixed permanently after issuance)</td></tr><tr><th>Token Quantity</th><td>Total acquisition cost divided by USD 10.00</td></tr><tr><th>Timeline</th><td>LOI Q2 2026 → SPA Q4 2026 → Renovation 2026-2027 → Operations 2027</td></tr></table></div>
+<h2 id="market-opportunity" class="wp-h1">9. Market Opportunity</h2>
+<h3 class="wp-h2">9.1 Total Addressable Market</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Global Real Estate (TAM)</th><td>USD 326 trillion — the world&#x27;s single largest asset class</td></tr><tr><th>Southeast Asia Real Estate (SAM)</th><td>USD 8.4 trillion — fast-growing, high-yield, underserved</td></tr><tr><th>Tokenized RE Market by 2030 (SOM)</th><td>USD 150 billion+ (BCG estimate) — tokenization still under 0.05% of TAM</td></tr><tr><th>Underbanked Adults in SE Asia</th><td>680 million+ — largest untapped investor base for accessible yield products</td></tr></table></div>
+<h3 class="wp-h2">9.2 Why Now</h3>
+<p>Several macro trends are converging to make the BRICKX launch timing optimal:</p>
+<ul class="wp-ul"><li>Institutional RWA momentum: BlackRock, JPMorgan, and Franklin Templeton have all launched tokenized real-world asset products. The infrastructure for institutional credibility is established.</li><li>DeFi yield compression: On-chain DeFi yields have compressed significantly. Real-world yield from hotel income (5-8% APY) is increasingly attractive to sophisticated crypto investors.</li><li>Polygon maturity: Polygon has processed billions of transactions with proven security, scale, and reliability. Gas fees remain under USD 0.01.</li><li>Regulatory clarity: MiCA in Europe, improving SEC guidance in the United States, and crypto-friendly policies in Singapore and Indonesia create a more navigable compliance environment.</li><li>Mobile penetration: Internet and smartphone penetration in Southeast Asia now exceeds 70%, creating a massive new addressable investor base.</li></ul>
+<h2 id="roadmap" class="wp-h1">10. Roadmap</h2>
+<h3 class="wp-h2">Q1–Q2 2026 — Phase 1: BRX Seed Sale (Active)</h3>
+<ul class="wp-ul"><li>BRX seed sale live at USD 0.008 per token</li><li>Platform MVP development — marketplace, KYC, payment monitoring</li><li>Whitepaper v2.0 published</li><li>Smart contract development and testnet deployment</li><li>Community building: Telegram, Twitter/X, whitelist program</li><li>Sumsub KYC integration finalized</li></ul>
+<h3 class="wp-h2">Q3 2026 — Phase 1 Completion: ICO and DEX</h3>
+<ul class="wp-ul"><li>ICO Round 1 and Round 2 public sale</li><li>CertiK or Hacken smart contract audit — report published publicly</li><li>BRX listing on QuickSwap (Polygon DEX) at USD 0.030</li><li>Full platform mainnet launch</li><li>Hotel due diligence and Letter of Intent preparation</li></ul>
+<h3 class="wp-h2">Q4 2026 — Phase 2 Begins: Hotel Acquisition</h3>
+<ul class="wp-ul"><li>Hotel Sale and Purchase Agreement signed</li><li>Hotel name and details disclosed publicly to all investors</li><li>Full due diligence report and audited financials published</li><li>Renovation to 4-star standard begins</li><li>BRICK hotel token sale launches</li></ul>
+<h3 class="wp-h2">2027 — Phase 2 Operations and First Full Year</h3>
+<ul class="wp-ul"><li>Hotel fully operational under BRICKX management</li><li>First full fiscal year revenue collection</li><li>December 31: First fiscal year close and holder snapshot</li><li>CEX listing applications (MEXC, Gate.io, OKX)</li></ul>
+<h3 class="wp-h2">2028+ — Scale and Expansion</h3>
+<ul class="wp-ul"><li>June 2028: First annual USDC dividend distributed to all BRICK holders</li><li>Second hotel acquisition launched (Phase 3)</li><li>Mobile app (iOS and Android) launched</li><li>Expansion to additional Southeast Asian markets</li><li>DAO governance fully activated — token holders vote on all major decisions</li><li>Target: USD 50M+ total platform TVL</li></ul>
+<h2 id="revenue-model" class="wp-h1">11. Revenue Model</h2>
+<p>BRICKX Protocol generates sustainable revenue through multiple streams that scale with platform growth:</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Protocol NOI Share</th><td>30% of each hotel&#x27;s annual Net Operating Income — primary long-term revenue source</td></tr><tr><th>Marketplace Fee</th><td>0.5% on each BRICK token secondary market transaction</td></tr><tr><th>BRX Staking Protocol Fee</th><td>Portion of BRX staking rewards flows to protocol treasury</td></tr><tr><th>Property Listing Fee</th><td>One-time fee for new property onboarding (Phase 3 onwards)</td></tr><tr><th>DAO Treasury</th><td>Governed and deployed by BRX token holder vote</td></tr></table></div>
+<p>Revenue projections (base case): 2026: USD 5,000 (platform only). 2027: USD 248,000 (first acquisition). 2028: USD 948,000 (first full year hotel + platform). 2029: USD 2.15M. 2030: USD 4.8M (multiple properties).</p>
+<h2 id="competitive-landscape" class="wp-h1">12. Competitive Landscape</h2>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Feature</th><td>BRICKX | RealT | Lofty.ai | Traditional RE</td></tr><tr><th>Fixed Token Price</th><td>YES | No | No | No</td></tr><tr><th>Annual Audited Dividend</th><td>YES | Monthly (estimated) | Monthly (estimated) | Varies</td></tr><tr><th>Hotel / Hospitality Assets</th><td>YES | No | No | Yes</td></tr><tr><th>Southeast Asia Focus</th><td>YES | No | No | Limited</td></tr><tr><th>0% VC Allocation</th><td>YES | No | No | N/A</td></tr><tr><th>Governance Token</th><td>YES | No | No | No</td></tr><tr><th>Marketplace Liquidity</th><td>YES | Yes | Yes | No</td></tr></table></div>
+<p>BRICKX&#x27;s key competitive advantage is the combination of fixed-price yield investing (no speculation), a Southeast Asia hospitality focus (underserved market), and genuine community ownership (0% VC allocation). No existing platform combines all three.</p>
+<h2 id="legal-compliance" class="wp-h1">13. Legal &amp; Compliance</h2>
+<h3 class="wp-h2">13.1 Regulatory Structure</h3>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Holding Company</th><td>British Virgin Islands (BVI) — standard structure for international crypto projects</td></tr><tr><th>Operating Entity</th><td>Singapore — MAS-registered, crypto-friendly jurisdiction, gateway to Southeast Asia</td></tr><tr><th>Hotel SPV</th><td>Indonesia — local legal entity holding hotel title and operating license</td></tr><tr><th>Token Classification</th><td>BRX: utility token. BRICK: asset-backed fractional ownership token.</td></tr></table></div>
+<h3 class="wp-h2">13.2 KYC and AML Compliance</h3>
+<p>All users must complete Know Your Customer (KYC) verification before purchasing any tokens. BRICKX partners with Sumsub for identity verification. Supported documents: passport, national ID, and driver&#x27;s license from 80+ countries. Users from sanctioned jurisdictions are blocked at the KYC stage.</p>
+<h3 class="wp-h2">13.3 Annual Audit Requirement</h3>
+<p>Hotel financial statements are audited annually by an independent licensed auditor before any dividend distribution. Audit reports are published publicly on the BRICKX website. This ensures full transparency and protects investor interests.</p>
+<h3 class="wp-h2">13.4 Disclaimer</h3>
+<p>This whitepaper does not constitute financial advice, a solicitation, or an offer to sell securities in any jurisdiction. Potential participants must ensure that their participation in BRICKX is permitted under the laws of their jurisdiction. BRICKX is not available to residents of the United States, Canada, China, or any sanctioned jurisdiction.</p>
+<h2 id="risk-factors" class="wp-h1">14. Risk Factors</h2>
+<p>Investing in BRICKX Protocol involves significant risks. Participants should carefully consider the following before investing:</p>
+<ul class="wp-ul"><li>Hotel Operating Risk: Hotel revenue and NOI may be lower than projected due to market conditions, competition, management performance, or macroeconomic factors.</li><li>Regulatory Risk: Changes in cryptocurrency regulation, property ownership laws, or foreign investment rules in Indonesia or Singapore could affect operations.</li><li>Smart Contract Risk: Despite audits, smart contracts may contain undiscovered vulnerabilities. BRICKX is not responsible for losses resulting from smart contract exploits.</li><li>Exchange Rate Risk: Hotel revenue is earned in Indonesian Rupiah. Exchange rate fluctuations between IDR and USD affect dividend amounts.</li><li>Liquidity Risk: While BRICKX provides a marketplace, there is no guarantee that buyers will always be available for BRICK token listings.</li><li>Key Person Risk: BRICKX&#x27;s Phase 2 hotel acquisition strategy depends heavily on the founder&#x27;s local expertise and relationships in Batam. Loss of key personnel could affect execution.</li><li>ICO Completion Risk: If Phase 1 ICO does not reach its target, hotel acquisition will not proceed and investors will receive full refunds.</li></ul>
+<h2 id="team-governance" class="wp-h1">15. Team &amp; Governance</h2>
+<h3 class="wp-h2">15.1 Core Team</h3>
+<p>BRICKX is led by a team combining deep expertise in real estate development, blockchain technology, and decentralized finance.</p>
+<div class="wp-table-wrap"><table class="wp-table"><tr><th>Jumani — CEO &amp; Co-Founder</th><td>Real estate developer in Batam for 10+ years. Co-Founder PT Mettaland Batam Sukses. Current field project manager for hotel renovation (PT Alam Jaya Maju Bersama). Leads Phase 2 hotel acquisition strategy.</td></tr><tr><th>CTO (Open)</th><td>Solidity developer with Polygon DeFi experience. Smart contract security specialist. Full-stack Web3 platform architect.</td></tr><tr><th>CFO (Open)</th><td>Real estate fund management expertise. Hotel SPV structuring in Indonesia. Yield fund operations. Southeast Asia due diligence.</td></tr><tr><th>CLO (Open)</th><td>Indonesian property and hotel law. Cryptocurrency regulatory compliance. Cross-border investment structure specialist.</td></tr></table></div>
+<h3 class="wp-h2">15.2 DAO Governance</h3>
+<p>Upon completing Phase 1 (Q3 2026), BRICKX will transition critical protocol decisions to a fully on-chain DAO. BRX token holders vote on:</p>
+<ul class="wp-ul"><li>New hotel property acquisition approvals and due diligence standards</li><li>Fee structure modifications</li><li>Treasury fund allocation and BRX buyback-and-burn schedules</li><li>Protocol upgrades and smart contract changes</li><li>New market expansion priorities and geographic focus</li></ul>
+<p>Governance parameters: 1 BRX = 1 vote. Minimum 1,000 BRX required to submit proposals. Quorum of 10% of circulating supply required for binding votes.</p>
+<h2 id="conclusion" class="wp-h1">16. Conclusion</h2>
+<p>The global real estate market represents the single largest store of wealth in human history — yet it remains inaccessible to the overwhelming majority of people on earth. This is not inevitable. It is a structural problem with a technology solution.</p>
+<p>BRICKX Protocol is that solution. Our two-phase model first builds a fully operational blockchain ecosystem via the BRX ICO, then deploys it to acquire and tokenize a real operating hotel in Batam, Indonesia. Investors earn real hotel income — not synthetic yields or speculative token appreciation.</p>
+<p>The BRICK token model is fundamentally different from every other crypto real estate project: fixed price, annual dividend from real operations, independently audited, and paid directly to your wallet every June. No speculation. No complexity. Just real hotel income.</p>
+<p>We are building BRICKX not as another speculative token, but as infrastructure — the foundational layer for a world where anyone, anywhere, can own a piece of a hotel in Batam from their phone, with USD 100, and receive real income every year.</p>
+<p>The opportunity is vast. The technology is ready. The team is on the ground. The time is now.</p>
+<p>— The BRICKX Protocol Team —</p>
+<p>brickxprotocol.io  |  seed@brickxprotocol.io  |  t.me/brickxprotocol</p>
+<p>WHITEPAPER VERSION 2.0  |  2026  |  BRICKX PROTOCOL</p>
+  </article>
+</div>
+
+<footer>
+  <div class="f-logo">BRICK<span>X</span> Protocol</div>
+  <div class="f-links">
+    <a href="https://brickxprotocol.io">Home</a>
+    <a href="https://brickxprotocol.io/terms.html">Terms</a>
+    <a href="https://brickxprotocol.io/privacy.html">Privacy</a>
+    <a href="https://brickxprotocol.io/risk.html">Risk Disclosure</a>
+    <a href="https://t.me/brickxprotocol" target="_blank" rel="noopener">Telegram</a>
+  </div>
+  <p class="f-disc">© 2026 BRICKX Protocol · seed@brickxprotocol.io<br>This whitepaper is for informational purposes only and does not constitute financial advice or an offer to sell securities. Cryptocurrency and real estate token investments carry significant risk.</p>
+</footer>
+
+<script>
+// Highlight active TOC entry while scrolling
+var links=[].slice.call(document.querySelectorAll('.toc a'));
+var map={};
+links.forEach(function(a){var id=a.getAttribute('href').slice(1);var el=document.getElementById(id);if(el)map[id]=a;});
+var ids=Object.keys(map);
+function onScroll(){
+  var pos=window.scrollY+90,cur=null;
+  ids.forEach(function(id){var el=document.getElementById(id);if(el&&el.offsetTop<=pos)cur=id;});
+  links.forEach(function(a){a.classList.remove('active');});
+  if(cur&&map[cur])map[cur].classList.add('active');
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+</script>
+</body>
+</html>
