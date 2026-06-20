@@ -332,10 +332,10 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(201).json({ requiresOtp: true, email: user.email, message: 'Verification code sent' });
 
   } catch (e) {
-    console.error('Register error:', e);
-    // Surface the real cause so a Supabase/Railway misconfiguration is
-    // diagnosable from the browser instead of a generic 500.
-    res.status(500).json({ error: 'Registration failed: ' + diagnoseDbError(e), code: e && e.code });
+    // Full diagnosis stays in the server log for operators; the client only
+    // gets a generic message so internal DB structure is never exposed.
+    console.error('Register error:', diagnoseDbError(e), '|', e);
+    res.status(500).json({ error: 'Registration failed. Please try again or contact support.' });
   }
 });
 
