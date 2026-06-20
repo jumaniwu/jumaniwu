@@ -4,10 +4,15 @@
   "description": "BRICKX Protocol backend API — two-phase model, annual dividend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "jest --runInBand --forceExit"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
