@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [BrickX-protocol, main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: brickx/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: brickx/backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  contract-tests:
+    name: Smart contract tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: brickx/contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Contracts ship without a committed lockfile, so use install (not ci).
+      # Hardhat downloads the solc binary at compile time (allowed on CI runners).
+      - run: npm install
+      - run: npm test
