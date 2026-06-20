@@ -75,7 +75,9 @@ Then set `RESEND_API_KEY` + `EMAIL_FROM=noreply@brickxprotocol.io` in Railway so
 
 ## 4. Smart contracts — TESTNET FIRST, AUDIT BEFORE MAINNET
 
-1. Deploy to **Polygon Amoy** testnet first (guide at the bottom of `contracts/BRICKXContracts.sol`).
+1. Deploy to **Polygon Amoy** testnet first. Hardhat project is in `contracts/` —
+   `cd contracts && npm install && npm test && npm run deploy:amoy`. Deploy guide
+   also at the bottom of `contracts/src/BRICKXContracts.sol`.
 2. Test: buyWithUSDC/USDT, vesting release after cliff, distributeAnnual, emergency pause.
 3. **A professional audit (CertiK/Hacken) is REQUIRED before mainnet.** The contracts move real funds now.
 4. Owner of every contract must be a Gnosis Safe multisig.

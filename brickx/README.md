@@ -23,7 +23,7 @@
 | `frontend/platform-app.jsx` | React marketplace + ICO platform app |
 | `backend/server.js` | Node.js API v3 — two-phase, annual dividend cron, full English |
 | `backend/database-schema.sql` | PostgreSQL v3 — annual dividend tables, $18.5M hotel seed |
-| `contracts/BRICKXContracts.sol` | 5 Solidity contracts for Polygon |
+| `contracts/src/BRICKXContracts.sol` | 5 Solidity contracts for Polygon (Hardhat project in `contracts/`) |
 | `docs/BRICKX_Whitepaper_v2.docx` | ✨ NEW — 16 sections, full English, two-phase strategy |
 | `docs/BRICKX_PitchDeck_v4.pptx` | ✨ NEW — 14 slides, 100% English, all USD |
 | `docs/BRICKX_Financial_Model_v3.xlsx` | 4 sheets, annual dividend model, IDR→USD |

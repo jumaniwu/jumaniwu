@@ -43,7 +43,7 @@ Southeast Asia focus. Two-phase model. Annual dividend (June each year).
 - brickx/backend/database-schema.sql   ← LATEST schema (annual dividend tables)
 
 ### Blockchain
-- brickx/contracts/BRICKXContracts.sol ← 5 Solidity contracts for Polygon
+- brickx/contracts/src/BRICKXContracts.sol ← 5 Solidity contracts for Polygon (Hardhat project in brickx/contracts/)
 
 ### Bot
 - brickx/bot/brickx-telegram-bot.js    ← Telegram bot (live API stats, rate-limited)
