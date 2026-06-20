@@ -1,0 +1,1 @@
+worker: node brickx-telegram-bot.js

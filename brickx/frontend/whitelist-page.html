@@ -618,8 +618,14 @@ function showToast(msg, type = 'success') {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-// ── URL PARAM REF ─────────────────────────────────────────────────
-const urlRef = new URLSearchParams(window.location.search).get('ref');
+// ── URL PARAMS (ref + email handoff from the landing page) ──────────
+const urlParams = new URLSearchParams(window.location.search);
+const urlEmail = urlParams.get('email');
+if (urlEmail) {
+  const emailInput = document.getElementById('f-email');
+  if (emailInput) emailInput.value = urlEmail;
+}
+const urlRef = urlParams.get('ref');
 if (urlRef) {
   const refInput = document.getElementById('f-ref');
   if (refInput) {

@@ -764,10 +764,10 @@ table.comp th{background:var(--bg1)}
   <p id="reg-sub">Lock in $0.008/BRX before Round 1 opens at $0.015 (+87.5%).</p>
   <div class="reg-form">
     <input type="email" id="reg-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doRegister()">
-    <button id="reg-btn" onclick="doRegister()">Register Now →</button>
+    <button id="reg-btn" onclick="doRegister()">Create Account →</button>
   </div>
   <p class="reg-err" id="reg-err"></p>
-  <p class="reg-note">Free to register · KYC required before purchase · USDT / USDC / ETH / BNB accepted</p>
+  <p class="reg-note">Free to join · Takes about 2 minutes · KYC required before purchase</p>
   <div class="trust-row">
     <div class="trust-item">🔒 SSL Encrypted</div>
     <div class="trust-item">✓ GDPR Compliant</div>
@@ -819,11 +819,8 @@ function scrollToReg(){
   document.getElementById('register').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
-var regBusy = false;
 function doRegister(){
-  if(regBusy) return;
   var inp = document.getElementById('reg-email');
-  var btn = document.getElementById('reg-btn');
   var email = inp.value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     inp.style.borderColor = 'var(--red)';
@@ -831,31 +828,10 @@ function doRegister(){
     setTimeout(function(){ inp.style.borderColor = ''; }, 2000);
     return;
   }
-  regBusy = true;
-  var prevLabel = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Registering…';
-  fetch(API + '/api/whitelist', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ email: email })
-  }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
-    .then(function(res){
-      if(!res.ok) throw new Error(res.j && res.j.error ? res.j.error : 'Registration failed');
-      var t = document.getElementById('toast');
-      t.classList.add('show');
-      setTimeout(function(){ t.classList.remove('show'); }, 3500);
-      inp.value = '';
-      clearRegError();
-    })
-    .catch(function(){
-      showRegError('Could not register right now — please try again or email seed@brickxprotocol.io');
-    })
-    .finally(function(){
-      regBusy = false;
-      btn.disabled = false;
-      btn.textContent = prevLabel;
-    });
+  clearRegError();
+  // Hand off to the full registration (whitelist signup) with the email
+  // pre-filled, so the homepage box leads into a real account, not a dead end.
+  window.location.href = 'https://whitelist.brickxprotocol.io/?email=' + encodeURIComponent(email);
 }
 
 function showRegError(msg){
