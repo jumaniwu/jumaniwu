@@ -4,26 +4,7 @@
 // (e.g. the historical generateReferralCode crash): the route would 500 and
 // these assertions would fail.
 
-jest.mock("@supabase/supabase-js", () => {
-  function shift() {
-    const q = global.__SB_QUEUE__ || [];
-    return q.length ? q.shift() : { data: null, error: null };
-  }
-  function builder() {
-    const b = {};
-    ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "gt", "lt", "filter", "range", "delete"]
-      .forEach((m) => { b[m] = () => b; });
-    b.single = () => Promise.resolve(shift());
-    b.maybeSingle = () => Promise.resolve(shift());
-    b.insert = (obj) => { (global.__SB_WRITES__ = global.__SB_WRITES__ || []).push({ op: "insert", obj }); return b; };
-    b.update = (obj) => { (global.__SB_WRITES__ = global.__SB_WRITES__ || []).push({ op: "update", obj }); return b; };
-    b.upsert = (obj) => { (global.__SB_WRITES__ = global.__SB_WRITES__ || []).push({ op: "upsert", obj }); return b; };
-    // Makes a chain that ends WITHOUT .single() (e.g. ...update().eq()) awaitable.
-    b.then = (res, rej) => Promise.resolve(shift()).then(res, rej);
-    return b;
-  }
-  return { createClient: () => ({ from: () => builder() }) };
-});
+jest.mock("@supabase/supabase-js", () => require("./helpers/supabaseMock"));
 
 const request = require("supertest");
 const app = require("../server");
