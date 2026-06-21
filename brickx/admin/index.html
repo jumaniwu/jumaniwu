@@ -162,6 +162,7 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
     <button class="sb-btn" id="nav-users" onclick="nav('users')">👥 All Users</button>
     <button class="sb-btn" id="nav-kyc" onclick="nav('kyc')">🪪 KYC Queue <span class="sb-badge" id="kyc-ct" style="display:none"></span></button>
     <button class="sb-btn" id="nav-wallets" onclick="nav('wallets')">🔑 Wallets</button>
+    <button class="sb-btn" id="nav-referrals" onclick="nav('referrals')">🎁 Referrals</button>
     <div class="sb-section">ICO</div>
     <button class="sb-btn" id="nav-orders" onclick="nav('orders')">💳 Orders <span class="sb-badge" id="ord-ct" style="background:var(--gold);display:none"></span></button>
     <button class="sb-btn" id="nav-rounds" onclick="nav('rounds')">🚀 ICO Rounds</button>
@@ -294,7 +295,7 @@ function doLogout() {
 document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
 
 // ─── NAV ──────────────────────────────────────────────────────
-var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Annual Dividend',settings:'System Settings',audit:'Audit Log'};
+var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',referrals:'Referrals',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Annual Dividend',settings:'System Settings',audit:'Audit Log'};
 function nav(p) {
   PAGE = p;
   document.querySelectorAll('.sb-btn').forEach(function(b) { b.classList.remove('on'); });
@@ -304,7 +305,7 @@ function nav(p) {
   var pgEl = document.getElementById('pg');
   pgEl.innerHTML = '';
   pgEl.className = 'content fu';
-  var fn = {dashboard:pgDash,analytics:pgAnalytics,users:pgUsers,kyc:pgKYC,wallets:pgWallets,orders:pgOrders,rounds:pgRounds,distribute:pgDistribute,properties:pgProps,yield:pgYield,settings:pgSettings,audit:pgAudit}[p];
+  var fn = {dashboard:pgDash,analytics:pgAnalytics,users:pgUsers,kyc:pgKYC,wallets:pgWallets,referrals:pgReferrals,orders:pgOrders,rounds:pgRounds,distribute:pgDistribute,properties:pgProps,yield:pgYield,settings:pgSettings,audit:pgAudit}[p];
   if (fn) fn();
   if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
 }
@@ -1173,6 +1174,42 @@ function renderAudit(logs) {
     ];
   });
   add(mkTable(['Time','Admin','Action','Target','Detail'], rows));
+}
+
+function pgReferrals() {
+  add(loadingCard('Loading referral data…'));
+  api('/api/admin/referrals')
+    .then(function(r) { if (PAGE !== 'referrals') return; clearPg(); renderReferrals(r || {}); })
+    .catch(function(e) { if (PAGE !== 'referrals') return; clearPg(); add(errCard(e.message, pgReferrals)); });
+}
+function renderReferrals(r) {
+  var tot = r.totals || {};
+  var per = r.bonusPerReferral || 500;
+  add(secHdr('Referrals', num(per) + ' BRX per successful referral · a referral counts once the invited user completes their first purchase'));
+
+  var kpiRow = mk('div',{cls:'g4',css:'margin-bottom:18px'});
+  ap(kpiRow,
+    kpi('REFERRERS', num(tot.referrers), 'Codes with ≥1 signup', 'var(--blueL)'),
+    kpi('SUCCESSFUL', num(tot.successfulReferrals), 'of ' + num(tot.signupsViaReferral) + ' signups via referral', 'var(--green)'),
+    kpi('EARNED BRX', kfmt(tot.earnedBrx), 'Owed to referrers (activated)', 'var(--gold)'),
+    kpi('PENDING BRX', kfmt(tot.pendingBrx), 'Awaiting first purchase', 'var(--purple)')
+  );
+  add(kpiRow);
+
+  var list = r.referrers || [];
+  if (!list.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No referrals yet.'})); return; }
+
+  var rows = list.map(function(x) {
+    return [
+      x.referralCode ? bdg(x.referralCode, 'bg-blue') : s('color:var(--muted)','—'),
+      s('font-size:11px;color:var(--off)', x.name || x.email || '—'),
+      s('font-family:var(--mono);color:var(--white)', num(x.totalReferred)),
+      s('font-family:var(--mono);color:var(--green)', num(x.successfulReferrals)),
+      s('font-family:var(--mono);color:var(--gold)', num(x.earnedBrx) + ' BRX'),
+      s('font-family:var(--mono);color:var(--muted)', num(x.pendingBrx) + ' BRX')
+    ];
+  });
+  add(mkTable(['Code','Referrer','Invited','Successful','Earned','Pending'], rows));
 }
 
 // ─── ACTIONS ──────────────────────────────────────────────────
