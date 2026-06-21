@@ -97,6 +97,34 @@ function formatUSD(n) {
   return "$" + n.toFixed(2);
 }
 
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleString("en-US", {
+      dateStyle: "medium", timeStyle: "short", timeZone: "UTC",
+    }) + " UTC";
+  } catch (e) {
+    return String(iso);
+  }
+}
+
+// Sale-status banner for the welcome screen. Reflects the LIVE backend state
+// (admin-managed saleStatus/saleOpen) instead of a hardcoded "LIVE NOW".
+// If stats can't be fetched, never claim the sale is live.
+function saleBanner(live) {
+  var price = `💰 Price: *$0.008/BRX*\n📈 DEX target: *$0.030 (+275%)*`;
+  if (live && live.saleOpen) {
+    return `🟢 *BRX Seed Sale: LIVE NOW*\n${price}`;
+  }
+  if (live && live.saleStatus === "paused") {
+    return `⏸️ *BRX Seed Sale: Paused* (temporarily)\n${price}`;
+  }
+  // "upcoming", unknown, or API unavailable → announce as not-yet-open.
+  var when = (live && live.saleStartsAt)
+    ? `\n🗓 Opens: *${formatDate(live.saleStartsAt)}*`
+    : "";
+  return `🔜 *BRX Seed Sale: Coming Soon*${when}\n${price}`;
+}
+
 async function fetchLiveStats() {
   try {
     const res = await axios.get(API_URL + "/api/ico/info", { timeout: 5000 });
@@ -206,7 +234,7 @@ const BACK_BTN = {
 const MSG = {
 
   // ── WELCOME ────────────────────────────────────────────────
-  welcome: function(name) {
+  welcome: function(name, live) {
     return `🏨 *Welcome to BRICKX Protocol, ${name}!*
 
 Real estate tokenized on-chain.
@@ -214,9 +242,7 @@ Own hotel fractions from *$100*.
 Earn annual dividend in USDC every June.
 
 ━━━━━━━━━━━━━━━━━━━
-🟢 *BRX Seed Sale: LIVE NOW*
-💰 Price: *$0.008/BRX*
-📈 DEX target: *$0.030 (+275%)*
+${saleBanner(live)}
 🏨 Hotel budget: *$18.5M USD*
 ━━━━━━━━━━━━━━━━━━━
 
@@ -593,11 +619,12 @@ If someone claims to be BRICKX support in DM — it's a scam. Only contact us th
 // COMMAND HANDLERS
 // ════════════════════════════════════════════════════════════════
 
-// /start
-bot.onText(/\/start/, function(msg) {
+// /start — welcome with LIVE sale status from the backend
+bot.onText(/\/start/, async function(msg) {
   var chatId = msg.chat.id;
   var name = msg.from.first_name || "Investor";
-  sendMsg(chatId, MSG.welcome(name), MAIN_KEYBOARD);
+  var live = await fetchLiveStats();
+  sendMsg(chatId, MSG.welcome(name, live), MAIN_KEYBOARD);
   console.log("[Bot] /start from", msg.from.username || msg.from.id);
 });
 
@@ -955,6 +982,10 @@ cron.schedule("0 9 * * *", async function() {
   var live = await fetchLiveStats();
   if (!live || typeof live.totalRaised !== "number") {
     console.log("[Cron] Daily update skipped — API unavailable (no fabricated numbers posted)");
+    return;
+  }
+  if (!live.saleOpen) {
+    console.log("[Cron] Daily update skipped — sale not open yet (status:", (live.saleStatus || "unknown") + ")");
     return;
   }
   var cap    = live.seedHardCap || ICO.seedCap;
