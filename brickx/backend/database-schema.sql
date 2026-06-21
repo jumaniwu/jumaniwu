@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS users (
   -- kyc_status: 'in_progress' = Sumsub session started; 'pending' = awaiting manual review
   kyc_status       TEXT DEFAULT 'not_started' CHECK (kyc_status IN ('not_started','in_progress','pending','approved','rejected')),
   kyc_applicant_id TEXT DEFAULT '',           -- Sumsub applicant ID
+  -- Manual KYC (when Sumsub isn't configured): paths into the private
+  -- "kyc-documents" Storage bucket; admins view via short-lived signed URLs.
+  kyc_doc_type     TEXT DEFAULT '',           -- passport | national_id | drivers_license
+  kyc_doc_id_front TEXT DEFAULT '',
+  kyc_doc_id_back  TEXT DEFAULT '',
+  kyc_doc_selfie   TEXT DEFAULT '',
+  kyc_submitted_at TIMESTAMPTZ,
   referral_code    TEXT UNIQUE,               -- User's own referral code
   referred_by      UUID REFERENCES users(id), -- Who referred this user
   email_verified   BOOLEAN NOT NULL DEFAULT FALSE, -- set true after OTP confirmed

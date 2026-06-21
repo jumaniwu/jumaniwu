@@ -144,6 +144,30 @@ function loadSumsubSdk() {
   return _sumsubPromise;
 }
 
+// Read an image File, downscale it (longest side ≤ maxDim) and return a
+// compressed JPEG data URL — keeps manual-KYC uploads small enough for the API.
+function compressImage(file, maxDim=1600, quality=0.72) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('Please choose an image file (JPEG or PNG).'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read that file. Please try another photo.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That image couldn't be loaded. Please try another photo."));
+      img.onload = () => {
+        let { width:w, height:h } = img;
+        if (Math.max(w, h) > maxDim) { const r = maxDim / Math.max(w, h); w = Math.round(w*r); h = Math.round(h*r); }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Generic loader hook: loading + error + retry on every call
 function useLoad(loader, enabled=true) {
   const [st,setSt]=useState({data:null,ld:enabled,err:null});
@@ -425,6 +449,77 @@ function Auth({onAuth}) {
   );
 }
 
+// ── Manual KYC (document upload when Sumsub isn't configured) ──
+function PhotoPick({label,note,val,onPick,req}) {
+  const [err,setErr]=useState(null);
+  const pick=async(e)=>{
+    const file=e.target.files&&e.target.files[0];
+    e.target.value=""; // allow re-selecting the same file
+    if(!file)return;
+    setErr(null);
+    try{ onPick(await compressImage(file)); }
+    catch(ex){ setErr(ex.message); }
+  };
+  return(
+    <div style={{marginBottom:13}}>
+      <label style={{fontSize:11,color:C.muted,display:"block",marginBottom:5}}>{label}{req&&<span style={{color:C.red}}> *</span>}</label>
+      <label style={{display:"block",cursor:"pointer",border:`1px dashed ${val?C.green:C.border}`,borderRadius:10,padding:val?8:16,background:C.bg2,textAlign:"center"}}>
+        <input type="file" accept="image/*" capture="environment" onChange={pick} style={{display:"none"}}/>
+        {val?(
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <img src={val} alt="" style={{width:54,height:54,objectFit:"cover",borderRadius:8,flexShrink:0}}/>
+            <span style={{fontSize:12,color:C.green,fontWeight:700}}>✓ Photo added — tap to replace</span>
+          </div>
+        ):(
+          <span style={{fontSize:12,color:C.muted}}>📷 Tap to take a photo or choose a file</span>
+        )}
+      </label>
+      {note&&<div style={{fontSize:10,color:C.muted,marginTop:4,lineHeight:1.5}}>{note}</div>}
+      {err&&<div style={{fontSize:11,color:C.red,marginTop:3}}>⚠ {err}</div>}
+    </div>
+  );
+}
+
+function ManualKyc({onSubmitted}) {
+  const [docType,setDocType]=useState("passport");
+  const [idFront,setIdFront]=useState(null);
+  const [idBack,setIdBack]=useState(null);
+  const [selfie,setSelfie]=useState(null);
+  const [ld,setLd]=useState(false);
+  const [err,setErr]=useState(null);
+  const needsBack=docType!=="passport";
+
+  const submit=async()=>{
+    setErr(null);
+    if(!idFront){setErr("Please add a photo of your ID.");return;}
+    if(needsBack&&!idBack){setErr("Please add the back of your ID too.");return;}
+    if(!selfie){setErr("Please add a selfie holding your ID.");return;}
+    setLd(true);
+    try{
+      await api('/api/kyc/manual-submit',{method:'POST',body:{docType,idFront,idBack:needsBack?idBack:null,selfie}});
+      onSubmitted();
+    }catch(e){setErr(e.message);}
+    setLd(false);
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:14}}>Upload clear photos of your government ID and a selfie. Our team reviews submissions within 24 hours and you'll get an email when you're approved.</div>
+      <SelField label="Document type" val={docType} set={setDocType} req opts={[
+        {v:"passport",l:"Passport"},
+        {v:"national_id",l:"National ID / KTP"},
+        {v:"drivers_license",l:"Driver's License"},
+      ]}/>
+      <PhotoPick label={needsBack?"ID — front":"ID — photo page"} req val={idFront} onPick={setIdFront} note="All four corners visible, no glare."/>
+      {needsBack&&<PhotoPick label="ID — back" req val={idBack} onPick={setIdBack}/>}
+      <PhotoPick label="Selfie holding your ID" req val={selfie} onPick={setSelfie} note="Your face and the ID both clearly visible."/>
+      {err&&<FormErr msg={err}/>}
+      <Btn ch="SUBMIT FOR REVIEW →" full v="p" sz="lg" ld={ld} onClick={submit}/>
+      <div style={{fontSize:10,color:C.muted,marginTop:10,lineHeight:1.6}}>🔒 Your documents are stored privately and used only for identity verification.</div>
+    </div>
+  );
+}
+
 // ── KYC (Sumsub-backed) ───────────────────────────────────────
 const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red};
 const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
@@ -501,7 +596,7 @@ function KYCScreen({user,onStatus,onBack}) {
           </div>
         </div>
 
-        {status!=="approved"&&(
+        {status!=="approved"&&status!=="pending"&&(
           <div className="card fu" style={{marginBottom:13}}>
             <Lbl ch="WHY KYC?"/>
             <div style={{fontSize:17,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:8}}>Verify to Invest</div>
@@ -518,11 +613,7 @@ function KYCScreen({user,onStatus,onBack}) {
             {err&&<FormErr msg={err}/>}
             {session?(
               session.configured===false?(
-                <div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:11,padding:18,textAlign:"center"}}>
-                  <div style={{fontSize:26,marginBottom:6}}>🛠️</div>
-                  <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:4}}>Verification opening soon</div>
-                  <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>{session.message||"Identity verification isn't available just yet. We'll email you the moment it's ready."}</div>
-                </div>
+                <ManualKyc onSubmitted={()=>{onStatus("pending");setSession(null);}}/>
               ):(
                 <>
                   <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:10}}>Complete the steps below. Your status updates here automatically when the review finishes.</div>

@@ -182,12 +182,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization'],
 }));
 
-// JSON body parsing — 1mb is plenty for API payloads.
+// JSON body parsing — 1mb is plenty for normal API payloads.
 // `verify` captures the raw body so webhook HMAC signatures can be checked.
-app.use(express.json({
+// The manual-KYC upload route carries base64 images, so it is routed past this
+// small parser and uses its own larger parser (kycUploadParser) instead.
+const jsonParser = express.json({
   limit: '1mb',
   verify: (req, res, buf) => { req.rawBody = buf; },
-}));
+});
+const kycUploadParser = express.json({ limit: '10mb' });
+app.use((req, res, next) => {
+  if (req.path === '/api/kyc/manual-submit') return next();
+  return jsonParser(req, res, next);
+});
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined')); // Request logging
 
@@ -515,9 +522,10 @@ app.post('/api/kyc/init', auth, async (req, res) => {
     }
 
     // If Sumsub isn't configured yet, don't hand the real WebSDK a fake token
-    // (it throws a confusing "session expired"). Tell the client it's not ready.
+    // (it throws a confusing "session expired"). Fall back to manual review:
+    // the client shows a document-upload form that posts to /api/kyc/manual-submit.
     if (!process.env.SUMSUB_APP_TOKEN || !process.env.SUMSUB_SECRET_KEY) {
-      return res.json({ configured: false, message: 'Identity verification is not available yet. Please check back soon.' });
+      return res.json({ configured: false, manualKyc: true, message: 'Upload your documents below — our team will verify you within 24 hours.' });
     }
 
     // Reuse the existing applicant id if the user already has one. This keeps the
@@ -534,6 +542,88 @@ app.post('/api/kyc/init', auth, async (req, res) => {
   } catch (e) {
     console.error('KYC init error:', e?.response?.data || e.message);
     res.status(500).json({ error: 'Failed to initialize KYC. Please try again shortly.' });
+  }
+});
+
+// ── Manual KYC document upload (used when Sumsub isn't configured) ──
+// Documents go to a PRIVATE Supabase Storage bucket; admins view them via
+// short-lived signed URLs (GET /api/admin/kyc/:userId/documents) and then
+// approve/reject with the existing PATCH /api/admin/kyc/:userId.
+const KYC_BUCKET    = 'kyc-documents';
+const KYC_MAX_BYTES = 4 * 1024 * 1024; // 4 MB per decoded image
+const KYC_MIME_EXT  = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+let _kycBucketReady = false;
+
+async function ensureKycBucket() {
+  if (_kycBucketReady) return;
+  const { data: existing } = await supabase.storage.getBucket(KYC_BUCKET);
+  if (!existing) {
+    const { error } = await supabase.storage.createBucket(KYC_BUCKET, { public: false });
+    if (error && !/exist/i.test(error.message || '')) throw new Error(error.message);
+  }
+  _kycBucketReady = true;
+}
+
+function parseDataUrl(dataUrl) {
+  const m = /^data:([^;,]+);base64,(.+)$/s.exec(typeof dataUrl === 'string' ? dataUrl : '');
+  if (!m) throw new Error('Invalid image — please re-select the photo.');
+  const mime = m[1].toLowerCase();
+  const ext  = KYC_MIME_EXT[mime];
+  if (!ext) throw new Error('Unsupported image type — use JPEG or PNG.');
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length) throw new Error('One of the images is empty.');
+  if (buf.length > KYC_MAX_BYTES) throw new Error('An image is too large — please use a smaller photo.');
+  return { buf, ext, mime };
+}
+
+async function uploadKycImage(userId, label, dataUrl) {
+  const { buf, ext, mime } = parseDataUrl(dataUrl);
+  const path = `${userId}/${label}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(KYC_BUCKET)
+    .upload(path, buf, { contentType: mime, upsert: true });
+  if (error) throw new Error('Upload failed — please try again.');
+  return path;
+}
+
+// POST /api/kyc/manual-submit — applicant uploads ID + selfie for manual review.
+// Uses kycUploadParser (10 MB) instead of the global 1 MB JSON parser.
+app.post('/api/kyc/manual-submit', kycUploadParser, auth, async (req, res) => {
+  try {
+    if (req.user.kyc_status === 'approved') {
+      return res.status(400).json({ error: 'Your identity is already verified.' });
+    }
+    const { docType, idFront, idBack, selfie } = req.body || {};
+    if (!['passport', 'national_id', 'drivers_license'].includes(docType)) {
+      return res.status(400).json({ error: 'Please choose a valid document type.' });
+    }
+    if (!idFront || !selfie) {
+      return res.status(400).json({ error: 'A photo of your ID and a selfie are both required.' });
+    }
+
+    await ensureKycBucket();
+
+    const updates = {
+      kyc_doc_type:     docType,
+      kyc_submitted_at: new Date().toISOString(),
+      kyc_doc_id_front: await uploadKycImage(req.user.id, 'id_front', idFront),
+      kyc_doc_selfie:   await uploadKycImage(req.user.id, 'selfie', selfie),
+      kyc_doc_id_back:  idBack ? await uploadKycImage(req.user.id, 'id_back', idBack) : '',
+      kyc_status:       'pending',
+    };
+    await supabase.from('users').update(updates).eq('id', req.user.id);
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    null,
+      action:      'kyc_submitted',
+      target_type: 'user',
+      target_id:   req.user.id,
+      details:     `Manual KYC documents submitted (${docType})`,
+    });
+
+    res.json({ success: true, status: 'pending', message: 'Documents received — your verification is under review.' });
+  } catch (e) {
+    console.error('Manual KYC submit error:', e.message);
+    res.status(500).json({ error: e.message || 'Could not submit your documents. Please try again shortly.' });
   }
 });
 
@@ -1281,6 +1371,35 @@ app.patch('/api/admin/kyc/:userId', adminAuth, async (req, res) => {
     res.json({ success: true, message: `KYC ${status} for ${user.first_name} ${user.last_name}` });
   } catch (e) {
     res.status(500).json({ error: 'KYC update failed' });
+  }
+});
+
+// GET /api/admin/kyc/:userId/documents — short-lived signed URLs for the
+// manually-submitted ID/selfie images (private bucket; links expire in 5 min).
+app.get('/api/admin/kyc/:userId/documents', adminAuth, async (req, res) => {
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('kyc_doc_type, kyc_doc_id_front, kyc_doc_id_back, kyc_doc_selfie, kyc_submitted_at')
+      .eq('id', req.params.userId).single();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const sign = async (path) => {
+      if (!path) return null;
+      const { data, error } = await supabase.storage.from(KYC_BUCKET).createSignedUrl(path, 300);
+      return error ? null : data.signedUrl;
+    };
+
+    res.json({
+      docType:     user.kyc_doc_type || null,
+      submittedAt: user.kyc_submitted_at || null,
+      idFront:     await sign(user.kyc_doc_id_front),
+      idBack:      await sign(user.kyc_doc_id_back),
+      selfie:      await sign(user.kyc_doc_selfie),
+    });
+  } catch (e) {
+    console.error('KYC documents fetch error:', e.message);
+    res.status(500).json({ error: 'Could not load documents' });
   }
 });
 

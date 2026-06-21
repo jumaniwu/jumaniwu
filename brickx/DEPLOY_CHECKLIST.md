@@ -14,9 +14,17 @@ Follow the steps **in order**. Do not skip the verification steps.
    Then run `backend/migration-002-email-otp.sql` — adds the email-verification (OTP)
    columns so new signups must confirm a real email. Existing accounts are grandfathered
    in as verified. Safe to re-run.
-4. Verify in Table Editor: 11 tables exist; `ico_settings` has 1 row; `properties` has the "Project Hotel Batam" row.
-5. Verify RLS: every table shows the RLS shield enabled. **This is critical — without RLS the public anon key can rewrite treasury wallets.**
-6. Copy `SUPABASE_URL` and the **service_role** key (Settings → API). The service key is backend-only — never put it in any frontend.
+   Then run `backend/migration-003-manual-kyc.sql` — adds the manual-KYC document
+   columns (used when Sumsub isn't configured yet; applicants upload an ID + selfie
+   for admin review). Safe to re-run.
+4. **Manual KYC storage (only if you'll run KYC manually before Sumsub is live):**
+   the backend auto-creates a **private** Storage bucket named `kyc-documents` on the
+   first upload. You can also pre-create it: Storage → New bucket → name `kyc-documents`,
+   **Public bucket = OFF**. Admins view submissions via short-lived signed URLs in the
+   admin panel's KYC Queue → "View Documents".
+5. Verify in Table Editor: 11 tables exist; `ico_settings` has 1 row; `properties` has the "Project Hotel Batam" row.
+6. Verify RLS: every table shows the RLS shield enabled. **This is critical — without RLS the public anon key can rewrite treasury wallets.**
+7. Copy `SUPABASE_URL` and the **service_role** key (Settings → API). The service key is backend-only — never put it in any frontend.
 
 ## 2. Backend API (Railway)
 

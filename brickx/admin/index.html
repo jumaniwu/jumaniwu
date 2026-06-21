@@ -691,6 +691,7 @@ function renderKYC() {
     ]));
     var br = d('display:flex;gap:10px;flex-wrap:wrap;margin-top:14px');
     ap(br,
+      btn('📄 View Documents','bo',(function(id){return function(){viewKycDocs(id);};})(u.id)),
       btn('✅ Approve','bs',(function(id){return function(){setKYC(id,'approved');};})(u.id)),
       btn('❌ Reject','br',(function(id){return function(){setKYC(id,'rejected');};})(u.id)),
       btn('View Profile','bo',(function(id){return function(){viewUser(id);};})(u.id))
@@ -1305,6 +1306,53 @@ function viewUser(id) {
   ap(br, mk('button',{cls:'btn bo',txt:'Close',on:closeModal}));
   ap(mb, br);
   openModal();
+}
+
+// View the manually-submitted KYC documents (signed image URLs, 5-min expiry)
+// with Approve/Reject inline.
+function viewKycDocs(userId) {
+  var mb = document.getElementById('mbox');
+  function header() {
+    var hdr = d('display:flex;justify-content:space-between;align-items:center;margin-bottom:16px');
+    ap(hdr, t('div','font-size:16px;font-weight:800;color:var(--white)','KYC Documents'));
+    ap(hdr, mk('button',{css:'background:rgba(255,255,255,.08);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer',txt:'✕',on:closeModal}));
+    return hdr;
+  }
+  mb.innerHTML = '';
+  ap(mb, header(), t('div','color:var(--muted);font-size:12px','Loading documents…'));
+  openModal();
+
+  var DOC_LBL = {passport:'Passport', national_id:'National ID / KTP', drivers_license:"Driver's License"};
+  api('/api/admin/kyc/' + encodeURIComponent(userId) + '/documents')
+    .then(function(docs) {
+      mb.innerHTML = '';
+      ap(mb, header());
+      var meta = d('font-size:12px;color:var(--muted);margin-bottom:6px');
+      meta.textContent = 'Type: ' + (DOC_LBL[docs.docType] || docs.docType || '—') + (docs.submittedAt ? (' · Submitted ' + dt(docs.submittedAt)) : '');
+      ap(mb, meta);
+      var any = false;
+      [['ID — Front', docs.idFront], ['ID — Back', docs.idBack], ['Selfie with ID', docs.selfie]].forEach(function(pair) {
+        if (!pair[1]) return;
+        any = true;
+        ap(mb, t('div','font-size:11px;color:var(--muted);margin:12px 0 5px;letter-spacing:1px;text-transform:uppercase', pair[0]));
+        var a = mk('a',{href:pair[1],target:'_blank'});
+        a.appendChild(mk('img',{src:pair[1],css:'width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.08);display:block'}));
+        ap(mb, a);
+      });
+      if (!any) ap(mb, t('div','color:var(--gold);font-size:12px;margin-top:8px','No uploaded documents found. This user may have been approved manually elsewhere, or hasn’t submitted yet.'));
+      var br = d('display:flex;gap:9px;margin-top:16px;flex-wrap:wrap');
+      ap(br,
+        mk('button',{cls:'btn bs',txt:'✅ Approve KYC',on:function(){setKYC(userId,'approved');}}),
+        mk('button',{cls:'btn br',txt:'❌ Reject',on:function(){setKYC(userId,'rejected');}}),
+        mk('button',{cls:'btn bo',txt:'Close',on:closeModal})
+      );
+      ap(mb, br);
+    })
+    .catch(function(e) {
+      mb.innerHTML = '';
+      ap(mb, header(), t('div','color:var(--red);font-size:12px','Could not load documents: ' + e.message));
+      ap(mb, mk('button',{cls:'btn bo',css:'margin-top:12px',txt:'Close',on:closeModal}));
+    });
 }
 // CSV export — escapes quotes and neutralizes formula-injection (= + - @ prefixes).
 function csvCell(v) {
