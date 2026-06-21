@@ -600,9 +600,9 @@ function KYCScreen({user,onStatus,onBack}) {
           <div className="card fu" style={{marginBottom:13}}>
             <Lbl ch="WHY KYC?"/>
             <div style={{fontSize:17,fontWeight:800,color:C.white,fontFamily:serif,marginBottom:8}}>Verify to Invest</div>
-            <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:18}}>Required for AML compliance. Verification is handled securely by our identity partner (Sumsub). Takes ~5 minutes.</p>
+            <p style={{fontSize:12,color:C.muted,lineHeight:1.7,marginBottom:18}}>Required for AML compliance. Your identity is verified securely and your documents are kept private. Takes just a few minutes.</p>
             <div className="g2" style={{marginBottom:18}}>
-              {[["🪪","Govt ID","Passport / National ID"],["🤳","Live Selfie","With your ID"],["🏠","Address","Proof of address"],["🔒","Secure","Handled by Sumsub"]].map(([ic,ti,de])=>(
+              {[["🪪","Govt ID","Passport / National ID"],["🤳","Live Selfie","With your ID"],["🏠","Address","Proof of address"],["🔒","Secure","Documents kept private"]].map(([ic,ti,de])=>(
                 <div key={ti} style={{background:C.bg1,borderRadius:11,padding:13,border:`1px solid ${C.border}`}}>
                   <div style={{fontSize:22,marginBottom:5}}>{ic}</div>
                   <div style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:2}}>{ti}</div>
