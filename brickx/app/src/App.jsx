@@ -524,11 +524,36 @@ function ManualKyc({onSubmitted}) {
 const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red};
 const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
 
-function KYCScreen({user,onStatus,onBack}) {
+// Inline wallet capture — KYC can't start until a Polygon wallet is on file
+// (BRX + dividends are sent there), so we collect it right here if missing.
+function WalletGate({onSaved}) {
+  const [wallet,setWallet]=useState("");
+  const [err,setErr]=useState(null);
+  const [ld,setLd]=useState(false);
+  const save=async()=>{
+    const w=wallet.trim();
+    if(!WALLET_RX.test(w)){setErr("Invalid address — must be 0x followed by 40 hex characters.");return;}
+    setLd(true);setErr(null);
+    try{ await api('/api/auth/wallet',{method:'PUT',body:{walletAddress:w}}); await onSaved(); }
+    catch(e){setErr(e.message);}
+    setLd(false);
+  };
+  return(
+    <div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:11,padding:16}}>
+      <div style={{fontSize:13,fontWeight:700,color:C.gold,marginBottom:4}}>🔗 Add your wallet first</div>
+      <div style={{fontSize:11,color:C.muted,lineHeight:1.7,marginBottom:12}}>Your Polygon wallet is where your BRX and annual USDC dividends are sent. Add it before verifying your identity.</div>
+      <Field label="Your Polygon Wallet Address" val={wallet} set={v=>{setWallet(v);setErr(null);}} ph="0x… (where your BRX will be sent)" icon="🔗" err={err} req/>
+      <Btn ch="SAVE WALLET →" full v="p" sz="lg" ld={ld} onClick={save}/>
+    </div>
+  );
+}
+
+function KYCScreen({user,onStatus,onBack,refreshUser}) {
   const [ld,setLd]=useState(false);
   const [err,setErr]=useState(null);
   const [session,setSession]=useState(null);
   const status=user.kyc_status||"not_started";
+  const walletOk=WALLET_RX.test(user.wallet_address||"");
   const containerRef=useRef(null);
   const launchedRef=useRef(false);
 
@@ -611,7 +636,9 @@ function KYCScreen({user,onStatus,onBack}) {
               ))}
             </div>
             {err&&<FormErr msg={err}/>}
-            {session?(
+            {!walletOk?(
+              <WalletGate onSaved={refreshUser}/>
+            ):session?(
               session.configured===false?(
                 <ManualKyc onSubmitted={()=>{onStatus("pending");setSession(null);}}/>
               ):(
@@ -676,7 +703,7 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
   const notify=useCallback((msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);},[]);
   const kyc=user.kyc_status||"not_started";
 
-  if(showKYC)return<KYCScreen user={user} onStatus={onKycStatus} onBack={()=>setShowKYC(false)}/>;
+  if(showKYC)return<KYCScreen user={user} onStatus={onKycStatus} onBack={()=>setShowKYC(false)} refreshUser={refreshUser}/>;
 
   const NAV=[{id:"home",ic:"◈",lb:"Home"},{id:"ico",ic:"🚀",lb:"Buy BRX"},{id:"market",ic:"🏪",lb:"Market"},{id:"portfolio",ic:"◎",lb:"Portfolio"},{id:"account",ic:"⊙",lb:"Account"}];
 

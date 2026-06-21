@@ -8,7 +8,8 @@ const jwt = require("jsonwebtoken");
 const app = require("../server");
 
 const tokenFor = (id) => jwt.sign({ id }, process.env.JWT_SECRET);
-const activeUser = (over) => ({ data: { id: "u1", is_active: true, kyc_status: "not_started", ...over }, error: null });
+const WALLET = "0x" + "a".repeat(40);
+const activeUser = (over) => ({ data: { id: "u1", is_active: true, kyc_status: "not_started", wallet_address: WALLET, ...over }, error: null });
 
 beforeEach(() => {
   global.__SB_QUEUE__ = [];
@@ -29,6 +30,16 @@ describe("POST /api/kyc/manual-submit", () => {
       .send({ docType: "passport", idFront: "x", selfie: "y" });
     expect(r.status).toBe(400);
     expect(r.body.error).toMatch(/already verified/i);
+  });
+
+  test("400 when no wallet is set", async () => {
+    global.__SB_QUEUE__ = [activeUser({ wallet_address: "" })];
+    const r = await request(app)
+      .post("/api/kyc/manual-submit")
+      .set("Authorization", `Bearer ${tokenFor("u1")}`)
+      .send({ docType: "passport", idFront: "x", selfie: "y" });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toMatch(/wallet/i);
   });
 
   test("400 for an invalid document type", async () => {

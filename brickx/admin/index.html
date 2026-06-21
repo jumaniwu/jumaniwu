@@ -693,6 +693,7 @@ function renderKYC() {
     ap(br,
       btn('📄 View Documents','bo',(function(id){return function(){viewKycDocs(id);};})(u.id)),
       btn('✅ Approve','bs',(function(id){return function(){setKYC(id,'approved');};})(u.id)),
+      btn('📝 Request Fix','bo',(function(id){return function(){requestFix(id);};})(u.id)),
       btn('❌ Reject','br',(function(id){return function(){setKYC(id,'rejected');};})(u.id)),
       btn('View Profile','bo',(function(id){return function(){viewUser(id);};})(u.id))
     );
@@ -1343,6 +1344,7 @@ function viewKycDocs(userId) {
       var br = d('display:flex;gap:9px;margin-top:16px;flex-wrap:wrap');
       ap(br,
         mk('button',{cls:'btn bs',txt:'✅ Approve KYC',on:function(){setKYC(userId,'approved');}}),
+        mk('button',{cls:'btn bo',txt:'📝 Request Fix',on:function(){requestFix(userId);}}),
         mk('button',{cls:'btn br',txt:'❌ Reject',on:function(){setKYC(userId,'rejected');}}),
         mk('button',{cls:'btn bo',txt:'Close',on:closeModal})
       );
@@ -1353,6 +1355,51 @@ function viewKycDocs(userId) {
       ap(mb, header(), t('div','color:var(--red);font-size:12px','Could not load documents: ' + e.message));
       ap(mb, mk('button',{cls:'btn bo',css:'margin-top:12px',txt:'Close',on:closeModal}));
     });
+}
+
+// Request a fix: email the applicant a specific correction (e.g. blurry photo)
+// and reopen their upload form so they can resubmit.
+var FIX_REASONS = [
+  'The photo of your ID is blurry — please retake it in good lighting.',
+  'There is glare covering part of your ID — please retake without flash.',
+  'Your selfie does not clearly show your face together with the ID.',
+  'The document looks expired or the dates are unreadable.',
+  'The name on your ID does not match your account details.',
+  'Please make sure all four corners of the ID are visible.'
+];
+function requestFix(userId) {
+  var mb = document.getElementById('mbox');
+  mb.innerHTML = '';
+  var hdr = d('display:flex;justify-content:space-between;align-items:center;margin-bottom:14px');
+  ap(hdr, t('div','font-size:16px;font-weight:800;color:var(--white)','Request a Fix'));
+  ap(hdr, mk('button',{css:'background:rgba(255,255,255,.08);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer',txt:'✕',on:closeModal}));
+  ap(mb, hdr);
+  ap(mb, t('div','font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6','Describe what the applicant must correct. This is emailed to their registration address and reopens their upload form so they can resubmit.'));
+
+  var ta = mk('textarea',{cls:'inp',css:'min-height:96px;resize:vertical;font-family:var(--f)',placeholder:'e.g. The photo of your ID is blurry — please retake it in good lighting.'});
+  ap(mb, ta);
+
+  ap(mb, t('div','font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin:12px 0 6px','Quick reasons (tap to add)'));
+  var quick = d('display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px');
+  FIX_REASONS.forEach(function(rsn) {
+    var label = rsn.length > 30 ? rsn.slice(0, 28) + '…' : rsn;
+    ap(quick, mk('button',{cls:'btn bo bsm',txt:label,on:function(){ ta.value = ta.value.trim() ? (ta.value.trim() + ' ' + rsn) : rsn; ta.focus(); }}));
+  });
+  ap(mb, quick);
+
+  var br = d('display:flex;gap:9px;margin-top:14px;flex-wrap:wrap');
+  ap(br,
+    mk('button',{cls:'btn bs',txt:'📧 Send to applicant',on:function(){
+      var note = (ta.value || '').trim();
+      if (!note) { toast('Please describe what needs fixing.','warn'); return; }
+      api('/api/admin/kyc/' + encodeURIComponent(userId) + '/request-fix', { method: 'POST', body: { note: note } })
+        .then(function(r){ toast('✅ ' + (r.message || 'Request sent.'),'success'); closeModal(); refreshCounts(); nav(PAGE); })
+        .catch(function(e){ toast('Could not send: ' + e.message,'error'); });
+    }}),
+    mk('button',{cls:'btn bo',txt:'Cancel',on:closeModal})
+  );
+  ap(mb, br);
+  openModal();
 }
 // CSV export — escapes quotes and neutralizes formula-injection (= + - @ prefixes).
 function csvCell(v) {

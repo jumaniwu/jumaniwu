@@ -520,6 +520,9 @@ app.post('/api/kyc/init', auth, async (req, res) => {
     if (req.user.kyc_status === 'approved') {
       return res.json({ status: 'approved', message: 'KYC already approved' });
     }
+    if (!WALLET_RX.test(req.user.wallet_address || '')) {
+      return res.status(400).json({ error: 'Please add your Polygon wallet address before starting KYC.' });
+    }
 
     // If Sumsub isn't configured yet, don't hand the real WebSDK a fake token
     // (it throws a confusing "session expired"). Fall back to manual review:
@@ -552,6 +555,7 @@ app.post('/api/kyc/init', auth, async (req, res) => {
 const KYC_BUCKET    = 'kyc-documents';
 const KYC_MAX_BYTES = 4 * 1024 * 1024; // 4 MB per decoded image
 const KYC_MIME_EXT  = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const WALLET_RX     = /^0x[a-fA-F0-9]{40}$/; // Polygon wallet must be set before KYC
 let _kycBucketReady = false;
 
 async function ensureKycBucket() {
@@ -591,6 +595,9 @@ app.post('/api/kyc/manual-submit', kycUploadParser, auth, async (req, res) => {
   try {
     if (req.user.kyc_status === 'approved') {
       return res.status(400).json({ error: 'Your identity is already verified.' });
+    }
+    if (!WALLET_RX.test(req.user.wallet_address || '')) {
+      return res.status(400).json({ error: 'Please add your Polygon wallet address before submitting KYC.' });
     }
     const { docType, idFront, idBack, selfie } = req.body || {};
     if (!['passport', 'national_id', 'drivers_license'].includes(docType)) {
@@ -1403,6 +1410,46 @@ app.get('/api/admin/kyc/:userId/documents', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/admin/kyc/:userId/request-fix — ask the applicant to re-upload with
+// a specific correction (e.g. "photo is blurry"). Emails the registration
+// address and sets status back so the in-app upload form reappears.
+app.post('/api/admin/kyc/:userId/request-fix', adminAuth, async (req, res) => {
+  try {
+    const note = (req.body && req.body.note || '').trim();
+    if (!note) return res.status(400).json({ error: 'Please describe what the applicant needs to fix.' });
+
+    const { data: user } = await supabase
+      .from('users').select('*').eq('id', req.params.userId).single();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // 'rejected' is what re-enables the upload form in the app; the email frames
+    // it as a resubmission request rather than a hard rejection.
+    await supabase.from('users').update({ kyc_status: 'rejected' }).eq('id', req.params.userId);
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    req.user.id,
+      action:      'kyc_resubmit_requested',
+      target_type: 'user',
+      target_id:   req.params.userId,
+      details:     note,
+    });
+
+    const body = `<h2>Almost there — a quick fix is needed</h2>
+      <p>Hi ${escapeHtml(user.first_name) || 'there'}, thanks for submitting your identity verification. Before we can approve it, please re-upload your documents with this correction:</p>
+      <blockquote style="margin:14px 0;padding:12px 16px;border-left:3px solid #1A56DB;background:#f5f8ff;color:#0B1B2E;border-radius:6px">${escapeHtml(note)}</blockquote>
+      <p>Just log in and submit again — it only takes a minute.</p>
+      <p><a href="${process.env.APP_URL}">Re-upload my documents →</a></p>
+      <p style="color:#64748B;font-size:13px">Questions? Reply to this email or contact support@brickxprotocol.io.</p>`;
+
+    await sendEmail(user.email, 'Action needed: please update your KYC documents', body);
+
+    res.json({ success: true, message: `Resubmission request emailed to ${user.email}` });
+  } catch (e) {
+    console.error('KYC request-fix error:', e.message);
+    res.status(500).json({ error: 'Could not send the resubmission request.' });
+  }
+});
+
 // PATCH /api/admin/orders/:orderId/confirm
 app.patch('/api/admin/orders/:orderId/confirm', adminAuth, async (req, res) => {
   try {
@@ -2000,6 +2047,13 @@ async function issueOtp(user) {
   // so log the code to the server console so testing isn't blocked. Never logs
   // once RESEND_API_KEY is set (i.e. never in a real production setup).
   if (!resend) console.warn(`[OTP][dev] No email provider — code for ${user.email} is ${code}`);
+}
+
+// Escape user/admin-supplied text before interpolating into HTML email bodies.
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 async function sendEmail(to, subject, htmlBody) {
