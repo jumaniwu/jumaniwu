@@ -1158,6 +1158,58 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/admin/referrals — per-code referral performance + protocol totals.
+// Records how many people each referral code has successfully brought in (a
+// referral is "successful" once the referred user completes their first
+// purchase, which flips the bonus to 'activated') and auto-computes the BRX
+// benefit owed: earned vs still-pending, per referrer and protocol-wide.
+app.get('/api/admin/referrals', adminAuth, async (req, res) => {
+  try {
+    const { data: bonuses } = await supabase
+      .from('referral_bonuses')
+      .select('bonus_brx, status, referrer_id, referrer:referrer_id(referral_code, first_name, last_name, email)');
+    const rows = bonuses || [];
+    const isEarned = b => b.status === 'activated' || b.status === 'distributed';
+
+    const byReferrer = new Map();
+    for (const b of rows) {
+      if (!byReferrer.has(b.referrer_id)) {
+        byReferrer.set(b.referrer_id, {
+          referrerId:    b.referrer_id,
+          referralCode:  b.referrer?.referral_code || null,
+          name:          [b.referrer?.first_name, b.referrer?.last_name].filter(Boolean).join(' ') || null,
+          email:         b.referrer?.email || null,
+          totalReferred: 0, successfulReferrals: 0, pendingReferrals: 0,
+          earnedBrx:     0, pendingBrx: 0,
+        });
+      }
+      const r = byReferrer.get(b.referrer_id);
+      r.totalReferred += 1;
+      if (isEarned(b)) { r.successfulReferrals += 1; r.earnedBrx += b.bonus_brx || 0; }
+      else             { r.pendingReferrals    += 1; r.pendingBrx += b.bonus_brx || 0; }
+    }
+
+    // Leaderboard: most successful referrals first, then most BRX earned.
+    const referrers = [...byReferrer.values()]
+      .sort((a, b) => b.successfulReferrals - a.successfulReferrals || b.earnedBrx - a.earnedBrx);
+
+    res.json({
+      bonusPerReferral: PHASE.REFERRAL_BONUS,
+      totals: {
+        referrers:           referrers.length,
+        signupsViaReferral:  rows.length,
+        successfulReferrals: rows.filter(isEarned).length,
+        earnedBrx:           rows.filter(isEarned).reduce((s, b) => s + (b.bonus_brx || 0), 0),
+        pendingBrx:          rows.filter(b => b.status === 'pending').reduce((s, b) => s + (b.bonus_brx || 0), 0),
+      },
+      referrers,
+    });
+  } catch (e) {
+    console.error('Admin referrals error:', e);
+    res.status(500).json({ error: 'Failed to load referral overview' });
+  }
+});
+
 // GET /api/admin/orders — paginated order list for the admin panel
 app.get('/api/admin/orders', adminAuth, async (req, res) => {
   try {
