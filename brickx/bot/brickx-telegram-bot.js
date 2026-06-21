@@ -144,6 +144,23 @@ function sendMsg(chatId, text, opts) {
   });
 }
 
+// Edit a message IN PLACE (used by inline-button navigation) so the menu
+// morphs between menu ↔ content instead of stacking new messages every tap.
+// Falls back to a fresh message if the edit isn't possible (e.g. the message
+// is too old to edit); silently ignores the "not modified" no-op.
+function editMsg(chatId, msgId, text, opts) {
+  return bot.editMessageText(text, {
+    chat_id: chatId,
+    message_id: msgId,
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+    ...opts,
+  }).catch(function(e) {
+    if (/not modified/i.test(e.message)) return;
+    return sendMsg(chatId, text, opts);
+  });
+}
+
 function isAdmin(userId) {
   return ADMIN_IDS.includes(userId);
 }
@@ -863,34 +880,30 @@ bot.on("callback_query", async function(query) {
     return;
   }
 
+  // All inline-button navigation edits the SAME message in place (no stacking).
   switch (data) {
     case "cmd_menu":
-      bot.editMessageText("📋 *BRICKX Protocol — Main Menu*", {
-        chat_id: chatId, message_id: msgId,
-        parse_mode: "Markdown",
-        ...MAIN_KEYBOARD,
-      });
+      editMsg(chatId, msgId, "📋 *BRICKX Protocol — Main Menu*\nChoose an option:", MAIN_KEYBOARD);
       break;
-    case "cmd_buy":      sendMsg(chatId, MSG.buy,        BACK_BTN); break;
-    case "cmd_price":    sendMsg(chatId, MSG.price,      BACK_BTN); break;
-    case "cmd_hotel":    sendMsg(chatId, MSG.hotel,      BACK_BTN); break;
-    case "cmd_dividend": sendMsg(chatId, MSG.dividend,   BACK_BTN); break;
-    case "cmd_kyc":      sendMsg(chatId, MSG.kyc,        BACK_BTN); break;
-    case "cmd_roadmap":  sendMsg(chatId, MSG.roadmap,    BACK_BTN); break;
-    case "cmd_faq":      sendMsg(chatId, MSG.faq,        BACK_BTN); break;
-    case "cmd_referral": sendMsg(chatId, MSG.referral,   BACK_BTN); break;
-    case "cmd_contact":  sendMsg(chatId, MSG.contact,    BACK_BTN); break;
-    case "cmd_whitepaper": sendMsg(chatId, MSG.whitepaper, BACK_BTN); break;
+    case "cmd_buy":      editMsg(chatId, msgId, MSG.buy,        BACK_BTN); break;
+    case "cmd_price":    editMsg(chatId, msgId, MSG.price,      BACK_BTN); break;
+    case "cmd_hotel":    editMsg(chatId, msgId, MSG.hotel,      BACK_BTN); break;
+    case "cmd_dividend": editMsg(chatId, msgId, MSG.dividend,   BACK_BTN); break;
+    case "cmd_kyc":      editMsg(chatId, msgId, MSG.kyc,        BACK_BTN); break;
+    case "cmd_roadmap":  editMsg(chatId, msgId, MSG.roadmap,    BACK_BTN); break;
+    case "cmd_faq":      editMsg(chatId, msgId, MSG.faq,        BACK_BTN); break;
+    case "cmd_referral": editMsg(chatId, msgId, MSG.referral,   BACK_BTN); break;
+    case "cmd_contact":  editMsg(chatId, msgId, MSG.contact,    BACK_BTN); break;
+    case "cmd_whitepaper": editMsg(chatId, msgId, MSG.whitepaper, BACK_BTN); break;
     case "cmd_status":
       var live = await fetchLiveStats();
-      sendMsg(chatId, buildStatusMessage(live), STATUS_KEYBOARD);
+      editMsg(chatId, msgId, buildStatusMessage(live), STATUS_KEYBOARD);
       break;
     case "cmd_calc":
       userState.set(chatId, { step: "awaiting_amount" });
-      sendMsg(chatId,
+      editMsg(chatId, msgId,
         `🧮 *Dividend Calculator*\n\nHow much USD to invest in BRICK tokens?\nMinimum $10 (1 token)`,
         {
-          parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [
               [{ text: "$500", callback_data: "calc_500" }, { text: "$1,000", callback_data: "calc_1000" }, { text: "$5,000", callback_data: "calc_5000" }],
