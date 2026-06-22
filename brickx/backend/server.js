@@ -214,7 +214,16 @@ app.use(morgan('combined')); // Request logging
 // better stopped at the infra layer, while the tight auth/OTP caps below guard the
 // sensitive routes. The auth cap counts only FAILED attempts so a successful login
 // never consumes the budget. Both caps are env-tunable.
-const rlBase      = { windowMs: 15*60*1000, standardHeaders: true, legacyHeaders: false };
+// Behind Railway's proxy, req.ip can collapse to a single internal address — which
+// would lump EVERY client into one shared bucket and lock everyone out at once (a
+// fresh phone on mobile data hitting the same "Too many requests" is the tell). Key
+// on the real client instead: the left-most X-Forwarded-For entry, then req.ip.
+const rlKey = (req) => {
+  const xff = req.headers['x-forwarded-for'];
+  return (typeof xff === 'string' && xff.split(',')[0].trim()) || req.ip || 'unknown';
+};
+const rlBase      = { windowMs: 15*60*1000, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: rlKey, validate: false };
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const limiter     = rateLimit({ ...rlBase,
   max: Number(process.env.RATE_LIMIT_MAX) || 2000,
