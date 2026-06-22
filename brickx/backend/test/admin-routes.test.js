@@ -72,7 +72,7 @@ describe("POST /api/admin/kyc/:userId/request-fix", () => {
     expect(r.status).toBe(400);
   });
 
-  test("sets status to rejected and records the note", async () => {
+  test("sets status to needs_update and records the note", async () => {
     global.__SB_QUEUE__ = [
       { data: { id: "admin1", is_active: true, is_admin: true }, error: null }, // auth lookup
       { data: { id: "u1", email: "a@b.com", first_name: "Test" }, error: null }, // target user
@@ -82,7 +82,7 @@ describe("POST /api/admin/kyc/:userId/request-fix", () => {
       .send({ note: "The photo of your ID is blurry." });
     expect(r.status).toBe(200);
     const writes = global.__SB_WRITES__;
-    expect(writes.find((w) => w.op === "update" && w.obj.kyc_status === "rejected")).toBeTruthy();
+    expect(writes.find((w) => w.op === "update" && w.obj.kyc_status === "needs_update")).toBeTruthy();
     expect(writes.find((w) => w.op === "insert" && w.obj.action === "kyc_resubmit_requested")).toBeTruthy();
   });
 });

@@ -353,6 +353,7 @@ function sbdg(status) {
   var m = {
     approved:['✓ Approved','bg-green'],pending:['⏳ Pending','bg-gold'],
     not_started:['○ Unverified','bg-muted'],rejected:['✗ Rejected','bg-red'],
+    needs_update:['📝 Needs Update','bg-gold'],
     confirmed:['✓ Confirmed','bg-green'],pending_payment:['⏳ Pending Pay','bg-gold'],
     distributed:['✈ Distributed','bg-teal'],live:['Live','bg-green'],Live:['Live','bg-green'],
     funding:['Funding','bg-gold'],ico_funding:['ICO Funding','bg-gold'],
@@ -629,7 +630,7 @@ function renderUsers() {
     '⬇ Export CSV', exportUsersCSV));
 
   var fw = d('display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap');
-  [['all','All'],['whitelist','Whitelist'],['approved','Approved'],['pending','Pending'],['not_started','Unverified'],['rejected','Rejected']].forEach(function(v) {
+  [['all','All'],['whitelist','Whitelist'],['approved','Approved'],['pending','Pending'],['needs_update','Needs Update'],['not_started','Unverified'],['rejected','Rejected']].forEach(function(v) {
     var active = UFILT === v[0];
     ap(fw, mk('button',{
       cls:'btn bsm',
@@ -1161,7 +1162,7 @@ function pgAudit() {
 function renderAudit(logs) {
   add(secHdr('Audit Log','All admin actions logged'));
   if (!logs.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No audit entries yet.'})); return; }
-  var cm = {kyc_approved:'bg-green',kyc_rejected:'bg-red',setting_updated:'bg-gold',payment_confirmed:'bg-blue',order_confirmed:'bg-blue',brx_distributed:'bg-teal',dividend_distributed:'bg-teal'};
+  var cm = {kyc_approved:'bg-green',kyc_rejected:'bg-red',kyc_resubmit_requested:'bg-gold',kyc_submitted:'bg-blue',setting_updated:'bg-gold',payment_confirmed:'bg-blue',order_confirmed:'bg-blue',brx_distributed:'bg-teal',dividend_distributed:'bg-teal'};
   var rows = logs.map(function(l) {
     var admin = l.users ? (l.users.email || l.users.first_name || '—') : '—';
     var target = [l.target_type, l.target_id].filter(Boolean).join(' ');

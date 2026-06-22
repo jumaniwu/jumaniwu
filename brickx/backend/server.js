@@ -1422,9 +1422,9 @@ app.post('/api/admin/kyc/:userId/request-fix', adminAuth, async (req, res) => {
       .from('users').select('*').eq('id', req.params.userId).single();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // 'rejected' is what re-enables the upload form in the app; the email frames
-    // it as a resubmission request rather than a hard rejection.
-    await supabase.from('users').update({ kyc_status: 'rejected' }).eq('id', req.params.userId);
+    // 'needs_update' is a soft state (not a hard "rejected") that re-enables the
+    // in-app upload form; the email frames it as a resubmission request.
+    await supabase.from('users').update({ kyc_status: 'needs_update' }).eq('id', req.params.userId);
 
     await supabase.from('audit_logs').insert({
       admin_id:    req.user.id,

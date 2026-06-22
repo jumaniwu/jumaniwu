@@ -15,8 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
   country          TEXT DEFAULT '',
   phone            TEXT DEFAULT '',
   wallet_address   TEXT DEFAULT '',           -- Polygon wallet for BRX airdrop + BRICK dividends
-  -- kyc_status: 'in_progress' = Sumsub session started; 'pending' = awaiting manual review
-  kyc_status       TEXT DEFAULT 'not_started' CHECK (kyc_status IN ('not_started','in_progress','pending','approved','rejected')),
+  -- kyc_status: 'in_progress' = Sumsub session started; 'pending' = awaiting manual review;
+  -- 'needs_update' = admin asked the applicant to re-upload with a correction
+  kyc_status       TEXT DEFAULT 'not_started' CHECK (kyc_status IN ('not_started','in_progress','pending','approved','rejected','needs_update')),
   kyc_applicant_id TEXT DEFAULT '',           -- Sumsub applicant ID
   -- Manual KYC (when Sumsub isn't configured): paths into the private
   -- "kyc-documents" Storage bucket; admins view via short-lived signed URLs.

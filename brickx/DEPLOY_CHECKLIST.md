@@ -17,6 +17,8 @@ Follow the steps **in order**. Do not skip the verification steps.
    Then run `backend/migration-003-manual-kyc.sql` — adds the manual-KYC document
    columns (used when Sumsub isn't configured yet; applicants upload an ID + selfie
    for admin review). Safe to re-run.
+   Then run `backend/migration-004-kyc-needs-update.sql` — adds the soft
+   `needs_update` KYC status used by the admin "Request Fix" action. Safe to re-run.
 4. **Manual KYC storage (only if you'll run KYC manually before Sumsub is live):**
    the backend auto-creates a **private** Storage bucket named `kyc-documents` on the
    first upload. You can also pre-create it: Storage → New bucket → name `kyc-documents`,

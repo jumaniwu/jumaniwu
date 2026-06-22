@@ -521,8 +521,8 @@ function ManualKyc({onSubmitted}) {
 }
 
 // ── KYC (Sumsub-backed) ───────────────────────────────────────
-const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red};
-const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected"};
+const KYC_C={not_started:C.muted,in_progress:C.gold,pending:C.gold,approved:C.green,rejected:C.red,needs_update:C.gold};
+const KYC_LBL={not_started:"Not Started",in_progress:"In Progress",pending:"Under Review",approved:"Verified ✓",rejected:"Rejected",needs_update:"Needs Update"};
 
 // Inline wallet capture — KYC can't start until a Polygon wallet is on file
 // (BRX + dividends are sent there), so we collect it right here if missing.
@@ -609,13 +609,14 @@ function KYCScreen({user,onStatus,onBack,refreshUser}) {
         <div className="card fu" style={{marginBottom:13}}>
           <Lbl ch="VERIFICATION STATUS"/>
           <div style={{background:`${KYC_C[status]}10`,border:`1px solid ${KYC_C[status]}33`,borderRadius:11,padding:18,textAlign:"center"}}>
-            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":(status==="pending"||status==="in_progress")?"⏳":status==="approved"?"✅":"❌"}</div>
+            <div style={{fontSize:34,marginBottom:5}}>{status==="not_started"?"⭕":(status==="pending"||status==="in_progress")?"⏳":status==="approved"?"✅":status==="needs_update"?"📝":"❌"}</div>
             <div style={{fontSize:14,fontWeight:800,color:KYC_C[status]||C.muted,marginBottom:3}}>{KYC_LBL[status]||"Unknown"}</div>
             <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>
               {status==="not_started"&&"Identity verification is required before investing."}
               {status==="in_progress"&&"Continue the verification steps below. This page updates automatically when the review finishes."}
               {status==="pending"&&"Your documents are being reviewed. This page refreshes automatically every 15 seconds."}
               {status==="approved"&&"You are fully verified and can invest in the ICO."}
+              {status==="needs_update"&&"We need a quick correction — check your email for what to fix, then re-upload your documents below."}
               {status==="rejected"&&"Verification was rejected. Please start a new session and resubmit clearer documents."}
             </div>
           </div>
@@ -648,7 +649,7 @@ function KYCScreen({user,onStatus,onBack,refreshUser}) {
                 </>
               )
             ):(
-              <Btn ch={status==="rejected"?"RESTART VERIFICATION →":"START VERIFICATION →"} full v="p" sz="lg" ld={ld} onClick={startKyc}/>
+              <Btn ch={status==="needs_update"?"RE-UPLOAD DOCUMENTS →":status==="rejected"?"RESTART VERIFICATION →":"START VERIFICATION →"} full v="p" sz="lg" ld={ld} onClick={startKyc}/>
             )}
           </div>
         )}
@@ -727,8 +728,8 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
 
       {kyc!=="approved"&&(
         <div style={{background:"rgba(245,158,11,.07)",borderBottom:"1px solid rgba(245,158,11,.18)",padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-          <div style={{fontSize:12,color:C.gold}}>⚠ {kyc==="pending"?"KYC under review — investing unlocks once approved":"Complete KYC to invest"}</div>
-          <Btn ch={kyc==="pending"?"Status →":"Verify →"} v="bgold" sz="sm" onClick={()=>setShowKYC(true)}/>
+          <div style={{fontSize:12,color:C.gold}}>⚠ {kyc==="pending"?"KYC under review — investing unlocks once approved":kyc==="needs_update"?"Action needed — please re-upload your KYC documents":"Complete KYC to invest"}</div>
+          <Btn ch={kyc==="pending"?"Status →":kyc==="needs_update"?"Fix →":"Verify →"} v="bgold" sz="sm" onClick={()=>setShowKYC(true)}/>
         </div>
       )}
       <div style={{background:"rgba(20,184,166,.05)",borderBottom:"1px solid rgba(20,184,166,.1)",padding:"7px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
