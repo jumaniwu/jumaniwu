@@ -758,15 +758,22 @@ function renderOrders(orders, total) {
   if (!orders.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No orders found.'})); return; }
   var rows = orders.map(function(o) {
     var uc = d(''); ap(uc, t('div','font-weight:600;color:var(--white);font-size:12px', orderUserName(o)), t('div','font-size:10px;color:var(--muted)', (o.users && o.users.email) || ''));
+    // Buyer's registered wallet — payments are auto-matched on this address, so it's
+    // what the admin checks on Polygonscan to confirm funds arrived for this account.
+    var wc = d('');
+    if (o.wallet_address) {
+      ap(wc, s('font-family:var(--mono);font-size:10px;color:var(--blueL)', o.wallet_address.slice(0,6)+'…'+o.wallet_address.slice(-4)));
+      ap(wc, mk('button',{css:'display:block;background:rgba(26,86,219,.1);border:none;color:var(--blueL);padding:2px 7px;border-radius:5px;font-size:9px;cursor:pointer;margin-top:3px',txt:'Copy',on:(function(w){return function(){copyTxt(w);};})(o.wallet_address)}));
+    } else { ap(wc, s('font-size:10px;color:var(--red)','Not set')); }
     var txc = s('font-family:var(--mono);font-size:10px;color:'+(o.tx_hash?'var(--muted)':'var(--red)'), o.tx_hash ? o.tx_hash.slice(0,14)+'...' : 'NOT YET');
     var ac = d('display:flex;gap:5px;flex-wrap:wrap');
     if (o.status === 'pending_payment') { ap(ac, btn('✓ Confirm','bs',(function(id){return function(){confirmOrder(id);};})(o.order_id))); ap(ac, btn('✕ Cancel','bo',(function(id){return function(){cancelOrder(id);};})(o.order_id))); }
     else if (o.status === 'confirmed') { ap(ac, btn('✈ Send','bgold',(function(id){return function(){distributeBatch([id]);};})(o.order_id))); ap(ac, btn('↩ Refund','bo',(function(id){return function(){refundOrder(id);};})(o.order_id))); }
     else if (o.status === 'distributed') ap(ac, btn('↩ Refund','bo',(function(id){return function(){refundOrder(id);};})(o.order_id)));
     else ap(ac, s('font-size:10px;color:var(--muted)', o.status === 'refunded' ? '↩ Refunded' : '✓ Done'));
-    return [String(o.order_id || '—'), uc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), txc, sbdg(o.status), dt(o.created_at), ac];
+    return [String(o.order_id || '—'), uc, wc, usd(o.usd_amount), kfmt(o.brx_allocated), bdg(o.crypto_currency || '—','bg-blue'), txc, sbdg(o.status), dt(o.created_at), ac];
   });
-  add(mkTable(['Order','User','USD','BRX','Crypto','Tx Hash','Status','Date','Action'], rows));
+  add(mkTable(['Order','User','Wallet','USD','BRX','Crypto','Tx Hash','Status','Date','Action'], rows));
   // Pagination
   if (total != null && total > OLIMIT) {
     var pgs = Math.ceil(total / OLIMIT);
