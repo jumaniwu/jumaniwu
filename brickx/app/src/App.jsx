@@ -188,7 +188,10 @@ function useLoad(loader, enabled=true) {
     return()=>{on=false;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[tick,enabled]);
-  return {...st,reload:()=>setTick(t=>t+1)};
+  // Stable identity so consumers (e.g. Countdown's onDone) don't see a new function
+  // every render and re-run their effects.
+  const reload=useCallback(()=>setTick(t=>t+1),[]);
+  return {...st,reload};
 }
 
 // ── STATIC CONFIG (display only — live numbers come from the API) ──
@@ -894,15 +897,21 @@ function useCountdown(targetIso) {
 }
 function Countdown({iso,onDone}) {
   const t=useCountdown(iso);
-  // Fire onDone exactly ONCE when the countdown hits zero. Without this guard it ran
-  // on every 1s tick (t becomes a fresh {done:true} object each second), and since
-  // onDone is info.reload that refetched /api/ico/info every second in an endless
-  // loop — flooding the API. That loop was the real cause of the stuck "Loading ICO
-  // data…" and the recurring "Too many requests" (even on a fresh device/phone).
+  // Only fire onDone on a REAL transition: still counting, then reaching zero while
+  // mounted. Never fire it when the deadline has ALREADY passed at mount time. onDone
+  // is info.reload, which flips the page into its loading state and unmounts/remounts
+  // this component — so firing on mount makes it fire again on every remount, an
+  // endless refetch loop (the "Loading…" flicker + API flood). Capture whether we
+  // started already-done and only fire on the counting→done edge.
+  const startedDoneRef=useRef(null);
   const firedRef=useRef(false);
   useEffect(()=>{
-    if(t&&t.done){ if(!firedRef.current){ firedRef.current=true; onDone&&onDone(); } }
-    else if(t){ firedRef.current=false; }
+    if(!t)return;
+    if(startedDoneRef.current===null) startedDoneRef.current=t.done;
+    if(t.done && startedDoneRef.current===false && !firedRef.current){
+      firedRef.current=true;
+      onDone&&onDone();
+    }
   },[t,onDone]);
   if(!t)return null;
   const cell=(v,l)=>(
