@@ -109,6 +109,11 @@ const supabase = createClient(
   }
 );
 
+// Abort a Supabase query that runs too long, so a slow or paused database can never
+// hang a request indefinitely (the cause of the Buy BRX page spinning forever).
+// Chain `.abortSignal(dbSignal())` onto a query. Tunable via DB_QUERY_TIMEOUT_MS.
+const dbSignal = () => AbortSignal.timeout(Number(process.env.DB_QUERY_TIMEOUT_MS) || 6000);
+
 // ── CONSTANTS ─────────────────────────────────────────────────
 const PHASE = {
   // Phase 1: BRX ICO
@@ -559,17 +564,33 @@ function liveRoundConfig(settings) {
 // GET /api/ico/info — Current round info
 app.get('/api/ico/info', async (req, res) => {
   try {
-    const { data: settings } = await supabase
-      .from('ico_settings').select('*').single();
+    // Each query is time-bounded and wrapped so a slow/paused DB never hangs this
+    // public endpoint — it always responds quickly, falling back to default round
+    // config (and $0 raised) if the database is unreachable. maybeSingle() also
+    // tolerates a missing/duplicate settings row.
+    let settings = null;
+    try {
+      const { data, error } = await supabase
+        .from('ico_settings').select('*').abortSignal(dbSignal()).maybeSingle();
+      if (error) console.error('[ico/info] ico_settings query failed:', error.message || error);
+      else settings = data;
+    } catch (e) { console.error('[ico/info] ico_settings threw:', e && e.message ? e.message : e); }
+
     const cfg = liveRoundConfig(settings);
 
-    const { data: roundStats } = await supabase
-      .from('ico_orders')
-      .select('usd_amount, brx_allocated, status')
-      .in('status', ['confirmed', 'distributed']);
+    let roundStats = [];
+    try {
+      const { data, error } = await supabase
+        .from('ico_orders')
+        .select('usd_amount, brx_allocated, status')
+        .in('status', ['confirmed', 'distributed'])
+        .abortSignal(dbSignal());
+      if (error) console.error('[ico/info] ico_orders query failed:', error.message || error);
+      else roundStats = data || [];
+    } catch (e) { console.error('[ico/info] ico_orders threw:', e && e.message ? e.message : e); }
 
-    const totalRaised = (roundStats || []).reduce((s, o) => s + (o.usd_amount || 0), 0);
-    const totalBrx    = (roundStats || []).reduce((s, o) => s + (o.brx_allocated || 0), 0);
+    const totalRaised = roundStats.reduce((s, o) => s + (o.usd_amount || 0), 0);
+    const totalBrx    = roundStats.reduce((s, o) => s + (o.brx_allocated || 0), 0);
 
     // Percent filled is measured against the ACTIVE round's hard cap
     const activeRound = cfg.activeRound;
@@ -606,6 +627,7 @@ app.get('/api/ico/info', async (req, res) => {
       },
     });
   } catch (e) {
+    console.error('[ico/info] error:', e && e.message ? e.message : e);
     res.status(500).json({ error: 'Failed to fetch ICO info' });
   }
 });
