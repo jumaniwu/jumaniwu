@@ -109,17 +109,24 @@ const TOKEN_KEY = 'brickx_token';
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
 const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
 
-async function api(path,{method='GET',body,auth=true}={}) {
+async function api(path,{method='GET',body,auth=true,timeoutMs=20000}={}) {
   const headers = {'Content-Type':'application/json'};
   if (auth) {
     const t = getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
   }
+  // Abort if the backend doesn't respond in time so a slow/hung server surfaces as a
+  // clear, retryable error instead of an infinite spinner (e.g. the Buy BRX page).
+  const ctrl  = typeof AbortController!=='undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(()=>ctrl.abort(), timeoutMs) : null;
   let res;
   try {
-    res = await fetch(`${API_URL}${path}`,{method,headers,body:body?JSON.stringify(body):undefined});
-  } catch {
+    res = await fetch(`${API_URL}${path}`,{method,headers,body:body?JSON.stringify(body):undefined,signal:ctrl?ctrl.signal:undefined});
+  } catch (e) {
+    if (e && e.name==='AbortError') throw new Error('The server took too long to respond — please retry in a moment.');
     throw new Error('Network error — please check your connection and try again');
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   let data = null;
   try { data = await res.json(); } catch { /* non-JSON response */ }
