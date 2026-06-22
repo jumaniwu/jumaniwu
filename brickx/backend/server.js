@@ -208,15 +208,15 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined')); // Request logging
 
-// Rate limiting. The global cap must comfortably cover ONE user's normal session:
-// every page loads several endpoints and some screens poll in the background, so the
-// old 100/15min window was far too tight — a single active user (or a few open tabs)
-// exhausted it and got locked out of everything, including /api/auth/login. Keep the
-// auth cap tight to slow brute-force, but only count FAILED attempts so a successful
-// login never consumes the budget. Both caps are env-tunable.
+// Rate limiting. The global cap must comfortably cover real usage: several endpoints
+// per page, background polling, multiple open tabs, and retries during a slow/cold
+// backend all add up fast, so the cap is deliberately generous — runaway abuse is
+// better stopped at the infra layer, while the tight auth/OTP caps below guard the
+// sensitive routes. The auth cap counts only FAILED attempts so a successful login
+// never consumes the budget. Both caps are env-tunable.
 const rlBase      = { windowMs: 15*60*1000, standardHeaders: true, legacyHeaders: false };
 const limiter     = rateLimit({ ...rlBase,
-  max: Number(process.env.RATE_LIMIT_MAX) || 600,
+  max: Number(process.env.RATE_LIMIT_MAX) || 2000,
   message: { error: 'Too many requests' },
   skip: (req) => (req.originalUrl || req.url).split('?')[0] === '/api/health' });
 const authLimiter = rateLimit({ ...rlBase,
