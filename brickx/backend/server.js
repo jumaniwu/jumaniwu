@@ -2186,16 +2186,20 @@ async function createSumsubToken(applicantId, email) {
   const levelName = process.env.SUMSUB_LEVEL_NAME || 'basic-kyc-level';
   const ts = Math.floor(Date.now() / 1000);
   const path = `/resources/accessTokens?userId=${encodeURIComponent(applicantId)}&levelName=${encodeURIComponent(levelName)}`;
+  // Sumsub verifies HMAC(secret, ts + METHOD + path + body) against the bytes it
+  // actually receives, so the signed body and the sent body MUST match exactly. This
+  // endpoint takes no body — send an empty body and sign over the empty string.
+  const body = '';
   const crypto = require('crypto');
   const sig = crypto
     .createHmac('sha256', process.env.SUMSUB_SECRET_KEY)
-    .update(ts + 'POST' + path)
+    .update(ts + 'POST' + path + body)
     .digest('hex');
 
   const response = await axios.post(
     `https://api.sumsub.com${path}`,
-    {},
-    { headers: { 'X-App-Token': process.env.SUMSUB_APP_TOKEN, 'X-App-Access-Sig': sig, 'X-App-Access-Ts': ts } }
+    body,
+    { headers: { 'X-App-Token': process.env.SUMSUB_APP_TOKEN, 'X-App-Access-Sig': sig, 'X-App-Access-Ts': String(ts), 'Content-Type': 'application/json' } }
   );
   return response.data.token;
 }
