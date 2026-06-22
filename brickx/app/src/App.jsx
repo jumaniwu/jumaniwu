@@ -715,6 +715,10 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
 
   const notify=useCallback((msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);},[]);
   const kyc=user.kyc_status||"not_started";
+  // Whether KYC is currently required (admin-toggleable). When deferred, we don't nag
+  // users to verify just to invest. Defaults to required until the config loads.
+  const cfg=useLoad(()=>api('/api/ico/info',{auth:false}));
+  const kycRequired=cfg.data?.kycRequired!==false;
 
   if(showKYC)return<KYCScreen user={user} onStatus={onKycStatus} onBack={()=>setShowKYC(false)} refreshUser={refreshUser}/>;
 
@@ -738,7 +742,7 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
         </div>
       </header>
 
-      {kyc!=="approved"&&(
+      {kycRequired&&kyc!=="approved"&&(
         <div style={{background:"rgba(245,158,11,.07)",borderBottom:"1px solid rgba(245,158,11,.18)",padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
           <div style={{fontSize:12,color:C.gold}}>⚠ {kyc==="pending"?"KYC under review — investing unlocks once approved":kyc==="needs_update"?"Action needed — please re-upload your KYC documents":"Complete KYC to invest"}</div>
           <Btn ch={kyc==="pending"?"Status →":kyc==="needs_update"?"Fix →":"Verify →"} v="bgold" sz="sm" onClick={()=>setShowKYC(true)}/>
@@ -781,7 +785,7 @@ function Home({user,onNav,onKYC}) {
         <p style={{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:13}}>Phase 1: BRX ICO funds the protocol. Phase 2: BRICK property tokens at a fixed $10.00, paying 70% of audited hotel NOI each June.</p>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn ch="🚀 Buy BRX" v="p" sz="md" onClick={()=>onNav("ico")}/>
-          {user.kyc_status!=="approved"&&<Btn ch="⚠ Complete KYC" v="bgold" sz="md" onClick={onKYC}/>}
+          {i?.kycRequired!==false&&user.kyc_status!=="approved"&&<Btn ch="⚠ Complete KYC" v="bgold" sz="md" onClick={onKYC}/>}
         </div>
       </div>
 
@@ -969,7 +973,10 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
   const saleOpen=!!i?.saleOpen;
   const saleStartsAt=i?.saleStartsAt||null;
 
-  const kycOk=user.kyc_status==="approved";
+  // Admin can defer KYC during the seed raise; when deferred, buying needs only a
+  // wallet. KYC is still enforced before tokens are distributed.
+  const kycRequired=i?.kycRequired!==false;
+  const kycOk=!kycRequired||user.kyc_status==="approved";
   const walletOk=!!user.wallet_address&&WALLET_RX.test(user.wallet_address);
   const can=kycOk&&walletOk;
 

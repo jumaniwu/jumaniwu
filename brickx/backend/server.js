@@ -786,6 +786,9 @@ function liveRoundConfig(settings) {
     minInvestment: num(s.min_investment_usd, PHASE.MIN_INVESTMENT),
     maxInvestment: num(s.max_investment_usd, PHASE.MAX_INVESTMENT),
     totalTarget:   num(s.ico_total_target_usd, PHASE.ICO_TOTAL_TARGET),
+    // KYC gate is admin-toggleable: deferred (false) during the seed raise, then
+    // turned on before token distribution. Defaults to required unless explicitly off.
+    kycRequired:   s.kyc_required !== false,
   };
 }
 
@@ -830,6 +833,7 @@ app.get('/api/ico/info', async (req, res) => {
       saleStatus:     cfg.saleStatus,
       saleStartsAt:   cfg.saleStartsAt,
       saleOpen:       cfg.saleOpen,
+      kycRequired:    cfg.kycRequired,
       seedPrice:      cfg.rounds.seed.price,
       round1Price:    cfg.rounds.round1.price,
       round2Price:    cfg.rounds.round2.price,
@@ -865,16 +869,19 @@ app.post('/api/ico/order', auth, async (req, res) => {
   try {
     const { usdAmount, cryptoCurrency } = req.body;
 
-    if (req.user.kyc_status !== 'approved') {
-      return res.status(403).json({ error: 'KYC must be approved before purchasing. Please complete verification first.' });
-    }
     if (!req.user.wallet_address) {
       return res.status(400).json({ error: 'Please register your Polygon wallet address before purchasing.' });
     }
 
-    // Sale gate + active round price/cap come from admin-managed settings
+    // Sale gate + active round price/cap + KYC requirement come from admin settings
     const { data: settings } = await supabase.from('ico_settings').select('*').single();
     const cfg = liveRoundConfig(settings);
+    // KYC is only enforced for purchases when the admin has it turned on. While it's
+    // deferred (kycRequired=false) users can reserve their allocation now; KYC is then
+    // required before tokens are distributed (see /api/admin/distribute/batch).
+    if (cfg.kycRequired && req.user.kyc_status !== 'approved') {
+      return res.status(403).json({ error: 'KYC must be approved before purchasing. Please complete verification first.' });
+    }
     if (!cfg.saleOpen) {
       const when = cfg.saleStartsAt
         ? ` The sale opens at ${cfg.saleStartsAt}.`
@@ -1668,6 +1675,12 @@ app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
       return res.status(400).json({ error: 'Order IDs required' });
     }
 
+    // When KYC is required, tokens may only be distributed to KYC-approved buyers —
+    // this is the gate that enforces "verify before receiving" even for allocations
+    // reserved while KYC was deferred.
+    const { data: settings } = await supabase.from('ico_settings').select('kyc_required').single();
+    const kycRequired = !settings || settings.kyc_required !== false;
+
     const results = [];
     for (const orderId of orderIds) {
       const { data: order } = await supabase
@@ -1675,6 +1688,11 @@ app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
 
       if (!order || order.status !== 'confirmed') {
         results.push({ orderId, success: false, error: 'Not found or not confirmed' });
+        continue;
+      }
+
+      if (kycRequired && (!order.users || order.users.kyc_status !== 'approved')) {
+        results.push({ orderId, success: false, error: 'Buyer KYC not approved — cannot distribute' });
         continue;
       }
 
@@ -1823,6 +1841,10 @@ app.patch('/api/admin/settings', adminAuth, async (req, res) => {
     }
     if (updates.active_round && !['seed','round1','round2','dex'].includes(updates.active_round)) {
       return res.status(400).json({ error: "active_round must be 'seed', 'round1', 'round2', or 'dex'" });
+    }
+    if ('kyc_required' in updates) {
+      const v = updates.kyc_required;
+      updates.kyc_required = v === true || v === 'true' || v === 1 || v === '1';
     }
     if (updates.sale_starts_at) {
       const d = new Date(updates.sale_starts_at);

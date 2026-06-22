@@ -1133,21 +1133,35 @@ function renderSettings(settings) {
     return;
   }
   SET_KEYS = entries.map(function(e2) { return e2.key; });
+  var DESC = {
+    kyc_required: 'When ON, buyers must have approved KYC to purchase AND to receive tokens. Turn OFF to defer KYC during the seed raise — enable it again (with Sumsub) before distributing BRX.'
+  };
   var c = mk('div',{cls:'card'});
   entries.forEach(function(e2, i) {
     var row = mk('div',{cls:'srow'});
     var info = d('');
     ap(info, t('div','font-size:13px;font-weight:600;color:var(--white)', String(e2.key).replace(/_/g,' ').replace(/\b\w/g, function(ch){return ch.toUpperCase();})));
-    ap(info, t('div','font-size:11px;color:var(--muted)', e2.desc || e2.key));
+    ap(info, t('div','font-size:11px;color:var(--muted)', DESC[e2.key] || e2.desc || e2.key));
     var ctrl = d('display:flex;align-items:center;gap:8px;flex-shrink:0');
-    var inp = mk('input',{cls:'inp',id:'s-i'+i,css:'min-width:200px;max-width:260px'});
-    inp.value = e2.value;
-    var sbBtn = mk('button',{cls:'btn bs bsm',txt:'Save',on:(function(idx){return function(){saveSetting(idx);};})(i)});
-    ap(ctrl, inp, sbBtn);
+    if (e2.value === 'true' || e2.value === 'false') {
+      // Boolean setting → ON/OFF toggle that flips + saves immediately.
+      var on = e2.value === 'true';
+      ap(ctrl, mk('button',{cls:'btn bsm',css:'min-width:88px;background:'+(on?'var(--green)':'rgba(255,255,255,.05)')+';color:'+(on?'#fff':'var(--muted)')+';border:1px solid '+(on?'var(--green)':'rgba(255,255,255,.18)'),txt:(on?'ON':'OFF'),on:(function(k,cur){return function(){toggleSetting(k,!cur);};})(e2.key,on)}));
+    } else {
+      var inp = mk('input',{cls:'inp',id:'s-i'+i,css:'min-width:200px;max-width:260px'});
+      inp.value = e2.value;
+      ap(ctrl, inp, mk('button',{cls:'btn bs bsm',txt:'Save',on:(function(idx){return function(){saveSetting(idx);};})(i)}));
+    }
     ap(row, info, ctrl);
     ap(c, row);
   });
   add(c);
+}
+function toggleSetting(key, val) {
+  var body = {}; body[key] = val;
+  api('/api/admin/settings', { method: 'PATCH', body: body })
+    .then(function() { toast('✅ ' + key.replace(/_/g,' ') + ' → ' + (val ? 'ON' : 'OFF'), 'success'); nav('settings'); })
+    .catch(function(e) { toast('Save failed: ' + e.message, 'error'); });
 }
 function saveSetting(idx) {
   var key = SET_KEYS[idx];
