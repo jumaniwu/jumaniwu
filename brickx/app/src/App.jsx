@@ -894,7 +894,16 @@ function useCountdown(targetIso) {
 }
 function Countdown({iso,onDone}) {
   const t=useCountdown(iso);
-  useEffect(()=>{if(t&&t.done&&onDone)onDone();},[t,onDone]);
+  // Fire onDone exactly ONCE when the countdown hits zero. Without this guard it ran
+  // on every 1s tick (t becomes a fresh {done:true} object each second), and since
+  // onDone is info.reload that refetched /api/ico/info every second in an endless
+  // loop — flooding the API. That loop was the real cause of the stuck "Loading ICO
+  // data…" and the recurring "Too many requests" (even on a fresh device/phone).
+  const firedRef=useRef(false);
+  useEffect(()=>{
+    if(t&&t.done){ if(!firedRef.current){ firedRef.current=true; onDone&&onDone(); } }
+    else if(t){ firedRef.current=false; }
+  },[t,onDone]);
   if(!t)return null;
   const cell=(v,l)=>(
     <div key={l} style={{background:C.bg1,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 0",textAlign:"center",flex:1}}>
