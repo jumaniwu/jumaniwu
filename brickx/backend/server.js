@@ -215,10 +215,16 @@ app.use(morgan('combined')); // Request logging
 // sensitive routes. The auth cap counts only FAILED attempts so a successful login
 // never consumes the budget. Both caps are env-tunable.
 const rlBase      = { windowMs: 15*60*1000, standardHeaders: true, legacyHeaders: false };
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const limiter     = rateLimit({ ...rlBase,
   max: Number(process.env.RATE_LIMIT_MAX) || 2000,
   message: { error: 'Too many requests' },
-  skip: (req) => (req.originalUrl || req.url).split('?')[0] === '/api/health' });
+  // Don't count safe reads. The public pages (landing, app, Buy BRX) load several
+  // GET endpoints and poll in the background across multiple open tabs, which was
+  // exhausting the per-IP budget and locking everyone out — including /api/auth/login.
+  // Mutations (POST/PUT/PATCH/DELETE) still count here, and login/register/OTP have
+  // their own dedicated limiters. /api/health stays exempt for uptime checks.
+  skip: (req) => SAFE_METHODS.has(req.method) || (req.originalUrl || req.url).split('?')[0] === '/api/health' });
 const authLimiter = rateLimit({ ...rlBase,
   max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 30,
   message: { error: 'Too many login attempts' },
