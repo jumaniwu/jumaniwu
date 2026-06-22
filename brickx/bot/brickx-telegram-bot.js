@@ -827,23 +827,148 @@ function calcResult(chatId, amountUSD) {
   userState.delete(chatId);
 }
 
-// ── HANDLE TEXT INPUT FOR CALCULATOR ─────────────────────────
+// ════════════════════════════════════════════════════════════════
+// AUTO-REPLY — answers natural-language questions (not just commands)
+// ════════════════════════════════════════════════════════════════
+// In private chat it answers any matching question; in groups it only replies
+// when mentioned/replied-to or when the text is clearly a question, so it isn't
+// chatty. Replies are short pointers (not the full command templates).
+// NOTE: for groups the bot must have privacy mode OFF (@BotFather → /setprivacy
+// → Disable) so it can read normal messages.
+let BOT_USERNAME = "";
+bot.getMe().then(function(me){ BOT_USERNAME = (me.username || "").toLowerCase(); }).catch(function(){});
+
+function isGroupChat(msg){ return !!(msg.chat && (msg.chat.type === "group" || msg.chat.type === "supergroup")); }
+function mentionsBot(msg){
+  var t = (msg.text || "").toLowerCase();
+  if (BOT_USERNAME && t.indexOf("@" + BOT_USERNAME) !== -1) return true;
+  return !!(msg.reply_to_message && msg.reply_to_message.from && msg.reply_to_message.from.is_bot);
+}
+function looksLikeQuestion(t){
+  return /\?/.test(t) || /\b(what|how|when|where|which|why|who|is|are|can|do|does|apa|gimana|bagaimana|kapan|di ?mana|berapa|kenapa|bisa|cara|gmn)\b/i.test(t);
+}
+var WEB_BTN = { reply_markup: { inline_keyboard: [[{ text: "🌐 Open Website", url: WEBSITE }, { text: "📋 Menu", callback_data: "cmd_menu" }]] } };
+// First match wins; keep replies short (especially for groups). EN + Bahasa.
+var AUTO_RULES = [
+  { re: /\b(web ?site|situs|official site|link resmi|where.*(site|website))\b/i,
+    reply: "🌐 Official site: " + WEBSITE + "\n📄 Docs: " + WHITEPAPER + "\n\n⚠️ Beware of fakes — only trust these links. Step-by-step: /buy", kb: WEB_BTN },
+  { re: /\b(how.*(buy|invest|participate|join)|cara (beli|invest|ikut)|where.*buy|beli di ?mana|mau beli)\b/i,
+    reply: "🌱 To buy BRX: register at " + WEBSITE + " → add Polygon wallet → KYC → pay (USDT/USDC/ETH/BNB). Full guide: /buy", kb: WEB_BTN },
+  { re: /\b(price|harga|how much|berapa harga|cost|biaya)\b/i,
+    reply: "💰 Seed price: *$0.008/BRX* (lowest). Then $0.015 → $0.022 → DEX $0.030. Min $100 / Max $50,000. Details: /price" },
+  { re: /\b(kyc|verif|verification|identitas)\b/i,
+    reply: "🔍 KYC is done in-app (ID + selfie), approval ~5–30 min. Guide: /kyc" },
+  { re: /\b(wallet|dompet|metamask|address|alamat)\b/i,
+    reply: "🔗 Add a Polygon wallet (MetaMask/Trust) in your account — it receives BRX + USDC dividends. More: /wallet" },
+  { re: /\b(dividend|dividen|yield|apy|return|profit|imbal)\b/i,
+    reply: "💵 Annual USDC dividend each June — 70% of audited hotel NOI to holders. More: /dividend" },
+  { re: /\b(whitepaper|white paper|docs|dokumen|wp)\b/i,
+    reply: "📄 Whitepaper & docs: " + WHITEPAPER },
+  { re: /\b(roadmap|timeline|kapan launch|when launch|tge|listing)\b/i,
+    reply: "🗺️ Roadmap & live sale status: /roadmap and /status" },
+  { re: /\b(referral|refer|affiliate|ajak teman)\b/i,
+    reply: "🤝 Earn 500 BRX per verified referral. Details: /referral" },
+  { re: /\b(scam|legit|safe|aman|penipuan|rug ?pull)\b/i,
+    reply: "🛡️ Stay safe: admins NEVER DM first or ask for your seed phrase. Only trust " + WEBSITE + ". Report anyone who does." },
+  { re: /\b(contact|support|admin|customer service|cs|bantuan|hubungi)\b/i,
+    reply: "📞 Support: " + SUPPORT_EMAIL + " — type /contact for all official channels." },
+];
+function autoReply(msg){
+  var t = msg.text || "";
+  if (!t || t.length > 280) return;
+  if (isGroupChat(msg) && !mentionsBot(msg) && !looksLikeQuestion(t)) return;
+  for (var i = 0; i < AUTO_RULES.length; i++){
+    if (AUTO_RULES[i].re.test(t)) { sendMsg(msg.chat.id, AUTO_RULES[i].reply, AUTO_RULES[i].kb); return; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// RAID BOT — community-run social raids (no third-party admin needed)
+// ════════════════════════════════════════════════════════════════
+// In-memory (resets on restart): one active raid per chat + a session leaderboard.
+var activeRaids = new Map(); // chatId -> { url, msgId, participants:Set, names:Map, startedAt }
+var raidScores  = new Map(); // userId -> { name, count }
+var RAID_HELP = "🔥 *Raid Bot*\n\nRally the community to boost BRICKX posts on X/Twitter.\n\n*Admins:*\n• `/raid <link>` — start a raid on a post\n• `/raidstop` — end it + show results\n\n*Everyone:*\n• Tap *✅ I raided* after you like + RT + comment\n• `/raidtop` — top raiders\n\nThis bot is ours — no third-party admin access needed.";
+
+function raidText(url, count){
+  return "🔥 *RAID TIME!* 🔥\n\nLet's boost BRICKX on social 🚀\n\n👉 *Like + Retweet + Comment* on this post:\n" + url + "\n\nThen tap *✅ I raided* below.\n\n👥 *Raiders so far: " + count + "*";
+}
+function raidKb(url){
+  return { inline_keyboard: [
+    [{ text: "🔗 Open Post", url: url }],
+    [{ text: "✅ I raided", callback_data: "raid_done" }, { text: "📊 Raiders", callback_data: "raid_count" }],
+  ]};
+}
+function startRaid(chatId, url){
+  if (activeRaids.has(chatId)) { sendMsg(chatId, "⚠️ A raid is already running here. End it with /raidstop first."); return; }
+  bot.sendMessage(chatId, raidText(url, 0), { parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(url) })
+    .then(function(sent){ activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now() }); })
+    .catch(function(e){ console.error("[Raid] start:", e.message); });
+}
+function handleRaidDone(query){
+  var chatId = query.message.chat.id;
+  var raid = activeRaids.get(chatId);
+  if (!raid){ bot.answerCallbackQuery(query.id, { text: "No active raid right now." }).catch(function(){}); return; }
+  var uid = query.from.id;
+  var name = query.from.first_name || query.from.username || "raider";
+  if (raid.participants.has(uid)){ bot.answerCallbackQuery(query.id, { text: "You already raided — thank you! 🔥" }).catch(function(){}); return; }
+  raid.participants.add(uid); raid.names.set(uid, name);
+  var sc = raidScores.get(uid) || { name: name, count: 0 }; sc.name = name; sc.count++; raidScores.set(uid, sc);
+  bot.answerCallbackQuery(query.id, { text: "🔥 Thanks for raiding, " + name + "!" }).catch(function(){});
+  bot.editMessageText(raidText(raid.url, raid.participants.size), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url) }).catch(function(){});
+}
+function handleRaidCount(query){
+  var raid = activeRaids.get(query.message.chat.id);
+  bot.answerCallbackQuery(query.id, { text: raid ? (raid.participants.size + " raider(s) so far 🔥") : "No active raid." }).catch(function(){});
+}
+function stopRaid(chatId){
+  var raid = activeRaids.get(chatId);
+  if (!raid){ sendMsg(chatId, "No active raid to stop."); return; }
+  activeRaids.delete(chatId);
+  var top = Array.from(raid.names.values()).slice(0, 10).map(function(n, i){ return (i + 1) + ". " + n; });
+  sendMsg(chatId, "🏁 *Raid ended!*\n\n👥 Total raiders: *" + raid.participants.size + "*\n\n" + (top.length ? "🔥 Raiders:\n" + top.join("\n") : "No one tapped ✅ this time.") + "\n\nThank you all! 🚀");
+}
+function showRaidLeaderboard(chatId){
+  var arr = Array.from(raidScores.values()).sort(function(a, b){ return b.count - a.count; }).slice(0, 10);
+  if (!arr.length){ sendMsg(chatId, "No raids recorded yet. Admins can start one with `/raid <link>`."); return; }
+  var medals = ["🥇","🥈","🥉"];
+  var lines = arr.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " " + s.name + " — " + s.count + " raids"; });
+  sendMsg(chatId, "🏆 *Top Raiders (this session)*\n\n" + lines.join("\n") + "\n\n_Resets when the bot restarts._");
+}
+
+bot.onText(/^\/raidstop(?:@\w+)?$/i, function(msg){
+  if (!isAdmin(msg.from.id)){ sendMsg(msg.chat.id, "🔒 Admins only."); return; }
+  stopRaid(msg.chat.id);
+});
+bot.onText(/^\/raidtop(?:@\w+)?$/i, function(msg){ showRaidLeaderboard(msg.chat.id); });
+bot.onText(/^\/raidhelp(?:@\w+)?$/i, function(msg){ sendMsg(msg.chat.id, RAID_HELP); });
+bot.onText(/^\/raid(?:@\w+)?(?:\s+(\S+))?$/i, function(msg, match){
+  if (!isAdmin(msg.from.id)){ sendMsg(msg.chat.id, "🔒 Only admins can start a raid."); return; }
+  var url = (match && match[1] || "").trim();
+  if (!/^https?:\/\/\S+/i.test(url)){ sendMsg(msg.chat.id, "Usage: `/raid <link>`\nExample: `/raid https://x.com/BRICKXProtocol/status/123`"); return; }
+  startRaid(msg.chat.id, url);
+});
+
+// ── HANDLE FREE-TEXT MESSAGES (calculator step, then keyword auto-reply) ──
 bot.on("message", function(msg) {
   if (!msg.text || msg.text.startsWith("/")) return;
+  if (msg.from && rateLimited(msg.from.id)) return;
   var chatId = msg.chat.id;
   var state  = userState.get(chatId);
-  if (!state || state.step !== "awaiting_amount") return;
-
-  var amount = parseFloat(msg.text.replace(/[,$]/g, ""));
-  if (isNaN(amount) || amount < 10) {
-    sendMsg(chatId, "⚠️ Please enter a valid amount in USD (minimum $10 = 1 BRICK token).\nExample: `5000`", { parse_mode:"Markdown" });
+  if (state && state.step === "awaiting_amount") {
+    var amount = parseFloat(msg.text.replace(/[,$]/g, ""));
+    if (isNaN(amount) || amount < 10) {
+      sendMsg(chatId, "⚠️ Please enter a valid amount in USD (minimum $10 = 1 BRICK token).\nExample: `5000`", { parse_mode:"Markdown" });
+      return;
+    }
+    if (amount > 18500000) {
+      sendMsg(chatId, "⚠️ Maximum is the full hotel budget ($18,500,000). Please enter a smaller amount.");
+      return;
+    }
+    calcResult(chatId, amount);
     return;
   }
-  if (amount > 18500000) {
-    sendMsg(chatId, "⚠️ Maximum is the full hotel budget ($18,500,000). Please enter a smaller amount.");
-    return;
-  }
-  calcResult(chatId, amount);
+  autoReply(msg);
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -859,6 +984,10 @@ bot.on("callback_query", async function(query) {
   var msgId  = query.message.message_id;
   var data   = query.data;
   knownChats.add(chatId);
+
+  // Raid buttons answer with their own custom text — handle before the generic ack.
+  if (data === "raid_done")  { handleRaidDone(query);  return; }
+  if (data === "raid_count") { handleRaidCount(query); return; }
 
   bot.answerCallbackQuery(query.id).catch(function(){});
 

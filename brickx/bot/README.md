@@ -1,8 +1,32 @@
 # BRICKX Telegram Bot
 
 Community bot: live ICO stats (`/status`), an investment/dividend calculator,
-FAQ replies, and scheduled daily/weekly channel updates. Reads live numbers from
-the backend API (`/api/ico/info`) — nothing is hardcoded.
+FAQ replies, scheduled daily/weekly channel updates, **keyword auto-replies**,
+and a built-in **raid bot**. Reads live numbers from the backend API
+(`/api/ico/info`) — nothing is hardcoded.
+
+## Auto-reply (answers questions, not just commands)
+
+The bot answers natural-language questions about the website, price, how to buy,
+KYC, wallet, dividend, whitepaper, roadmap, referral, safety, and support. In
+**private chat** it replies to any matching question; in **groups** it only
+replies when it's mentioned/replied-to or the message is clearly a question.
+
+> ⚠️ For auto-reply to work **in groups**, disable the bot's privacy mode:
+> @BotFather → `/setprivacy` → select this bot → **Disable**. Otherwise the bot
+> only sees slash-commands in groups.
+
+## Raid bot (community social raids — no third-party admin needed)
+
+| Command | Who | Action |
+|---------|-----|--------|
+| `/raid <link>` | admins | Start a raid on an X/Twitter post (posts it with an **✅ I raided** button). |
+| `/raidstop` | admins | End the current raid and show total + raiders. |
+| `/raidtop` | everyone | Session leaderboard of top raiders. |
+| `/raidhelp` | everyone | How it works. |
+
+Participation is tracked when members tap **✅ I raided**. State is in-memory and
+resets when the bot restarts (fine for short-lived raid events).
 
 ## Env
 
