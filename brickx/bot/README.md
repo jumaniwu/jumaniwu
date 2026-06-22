@@ -20,10 +20,13 @@ replies when it's mentioned/replied-to or the message is clearly a question.
 
 | Command | Who | Action |
 |---------|-----|--------|
-| `/raid <link>` | admins | Start a raid on an X/Twitter post (posts it with an **✅ I raided** button). |
-| `/raidstop` | admins | End the current raid and show total + raiders. |
+| `/raid <link>` | group owner/admins (or `ADMIN_TELEGRAM_IDS`) | Start a raid on an X/Twitter post (posts it with an **✅ I raided** button). |
+| `/raidstop` | group owner/admins | End the current raid and show total + raiders. |
 | `/raidtop` | everyone | Session leaderboard of top raiders. |
 | `/raidhelp` | everyone | How it works. |
+
+> The group **owner and admins are recognized automatically** (via Telegram), so you
+> don't need to add your own ID to `ADMIN_TELEGRAM_IDS` to start raids in your group.
 
 Participation is tracked when members tap **✅ I raided**. State is in-memory and
 resets when the bot restarts (fine for short-lived raid events).

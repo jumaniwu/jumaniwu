@@ -936,14 +936,27 @@ function showRaidLeaderboard(chatId){
   sendMsg(chatId, "🏆 *Top Raiders (this session)*\n\n" + lines.join("\n") + "\n\n_Resets when the bot restarts._");
 }
 
-bot.onText(/^\/raidstop(?:@\w+)?$/i, function(msg){
-  if (!isAdmin(msg.from.id)){ sendMsg(msg.chat.id, "🔒 Admins only."); return; }
+// Who can run raids: the configured bot admins (ADMIN_TELEGRAM_IDS) OR the Telegram
+// group owner/admins of the chat — so the owner can start raids without any env setup.
+async function canRaid(msg){
+  if (msg.from && isAdmin(msg.from.id)) return true;
+  if (isGroupChat(msg) && msg.from) {
+    try {
+      var m = await bot.getChatMember(msg.chat.id, msg.from.id);
+      return !!m && (m.status === "creator" || m.status === "administrator");
+    } catch (e) { return false; }
+  }
+  return false;
+}
+
+bot.onText(/^\/raidstop(?:@\w+)?$/i, async function(msg){
+  if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can do that."); return; }
   stopRaid(msg.chat.id);
 });
 bot.onText(/^\/raidtop(?:@\w+)?$/i, function(msg){ showRaidLeaderboard(msg.chat.id); });
 bot.onText(/^\/raidhelp(?:@\w+)?$/i, function(msg){ sendMsg(msg.chat.id, RAID_HELP); });
-bot.onText(/^\/raid(?:@\w+)?(?:\s+(\S+))?$/i, function(msg, match){
-  if (!isAdmin(msg.from.id)){ sendMsg(msg.chat.id, "🔒 Only admins can start a raid."); return; }
+bot.onText(/^\/raid(?:@\w+)?(?:\s+(\S+))?$/i, async function(msg, match){
+  if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can start a raid."); return; }
   var url = (match && match[1] || "").trim();
   if (!/^https?:\/\/\S+/i.test(url)){ sendMsg(msg.chat.id, "Usage: `/raid <link>`\nExample: `/raid https://x.com/BRICKXProtocol/status/123`"); return; }
   startRaid(msg.chat.id, url);
