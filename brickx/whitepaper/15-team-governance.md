@@ -4,7 +4,7 @@
 
 BRICKX is led by a team combining deep expertise in real estate development, blockchain technology, and decentralized finance.
 
-| Jumani — CEO & Co-Founder | Real estate developer in Batam for 10+ years. Co-Founder PT Mettaland Batam Sukses. Current field project manager for hotel renovation (PT Alam Jaya Maju Bersama). Leads Phase 2 hotel acquisition strategy. |
+| Jumani — CEO & Co-Founder | Real estate developer in Batam for 10+ years, with hands-on hotel renovation and development project-management experience. Leads Phase 2 hotel acquisition strategy. |
 |---|---|
 | CTO (Open) | Solidity developer with Polygon DeFi experience. Smart contract security specialist. Full-stack Web3 platform architect. |
 | CFO (Open) | Real estate fund management expertise. Hotel SPV structuring in Indonesia. Yield fund operations. Southeast Asia due diligence. |
