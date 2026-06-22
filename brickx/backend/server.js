@@ -243,7 +243,9 @@ app.get('/api/health', async (req, res) => {
   // Ping the database so the health check reflects real availability
   let dbStatus = 'ok';
   try {
-    const { error } = await supabase.from('ico_settings').select('id').limit(1);
+    // Time-bounded so a slow/paused DB returns "degraded" fast instead of hanging
+    // the health check (a hanging check can trip platform restart loops).
+    const { error } = await supabase.from('ico_settings').select('id').limit(1).abortSignal(dbSignal());
     if (error) dbStatus = 'error';
   } catch (e) {
     dbStatus = 'error';
