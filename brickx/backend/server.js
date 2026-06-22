@@ -114,6 +114,11 @@ const supabase = createClient(
 // Chain `.abortSignal(dbSignal())` onto a query. Tunable via DB_QUERY_TIMEOUT_MS.
 const dbSignal = () => AbortSignal.timeout(Number(process.env.DB_QUERY_TIMEOUT_MS) || 6000);
 
+// When this process booted + which commit is running, surfaced in /api/health so a
+// deploy can be verified at a glance (Railway injects RAILWAY_GIT_COMMIT_SHA).
+const BOOT_TIME = new Date().toISOString();
+const BUILD_COMMIT = (process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT || process.env.SOURCE_COMMIT || '').slice(0, 7) || 'unknown';
+
 // ── CONSTANTS ─────────────────────────────────────────────────
 const PHASE = {
   // Phase 1: BRX ICO
@@ -262,6 +267,8 @@ app.get('/api/health', async (req, res) => {
     db:      dbStatus,
     email:   (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_key') ? 'configured' : 'console-only',
     version: '3.0.0',
+    commit:  BUILD_COMMIT,    // which code is live — confirms a redeploy took effect
+    startedAt: BOOT_TIME,     // recent value ⇒ the service just redeployed/restarted
     phase:   'Phase 1 — BRX ICO Active',
     model:   'Two-Phase: ICO Ecosystem → Hotel Annual Dividend',
     timestamp: new Date().toISOString(),
