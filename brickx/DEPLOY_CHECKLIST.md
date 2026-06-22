@@ -19,6 +19,9 @@ Follow the steps **in order**. Do not skip the verification steps.
    for admin review). Safe to re-run.
    Then run `backend/migration-004-kyc-needs-update.sql` — adds the soft
    `needs_update` KYC status used by the admin "Request Fix" action. Safe to re-run.
+   Then run `backend/migration-005-kyc-toggle.sql` — ensures the `kyc_required`
+   column exists so KYC can be deferred during the seed raise and switched on (with
+   Sumsub) before distribution, from Admin → Settings. Safe to re-run.
 4. **Manual KYC storage (only if you'll run KYC manually before Sumsub is live):**
    the backend auto-creates a **private** Storage bucket named `kyc-documents` on the
    first upload. You can also pre-create it: Storage → New bucket → name `kyc-documents`,
