@@ -114,6 +114,20 @@ const supabase = createClient(
 // Chain `.abortSignal(dbSignal())` onto a query. Tunable via DB_QUERY_TIMEOUT_MS.
 const dbSignal = () => AbortSignal.timeout(Number(process.env.DB_QUERY_TIMEOUT_MS) || 6000);
 
+// Hard backstop: resolve a Supabase query within `ms` no matter what, returning the
+// usual { data, error } shape. abortSignal() normally cancels a slow query, but if a
+// runtime ever fails to honour it, this Promise.race still frees the request handler
+// (the orphaned query just finishes in the background). Guarantees endpoints like
+// /api/ico/info can never hang the page on "Loading…".
+function dbWithin(query, ms = Number(process.env.DB_QUERY_TIMEOUT_MS) || 6000) {
+  return Promise.race([
+    Promise.resolve(query).then((r) => r, (err) => ({ data: null, error: err })),
+    new Promise((resolve) => setTimeout(
+      () => resolve({ data: null, error: { message: `query exceeded ${ms}ms deadline` } }),
+      ms + 500)),
+  ]);
+}
+
 // When this process booted + which commit is running, surfaced in /api/health so a
 // deploy can be verified at a glance (Railway injects RAILWAY_GIT_COMMIT_SHA).
 const BOOT_TIME = new Date().toISOString();
@@ -783,25 +797,25 @@ app.get('/api/ico/info', async (req, res) => {
     // config (and $0 raised) if the database is unreachable. maybeSingle() also
     // tolerates a missing/duplicate settings row.
     let settings = null;
-    try {
-      const { data, error } = await supabase
-        .from('ico_settings').select('*').abortSignal(dbSignal()).maybeSingle();
+    {
+      const { data, error } = await dbWithin(
+        supabase.from('ico_settings').select('*').abortSignal(dbSignal()).maybeSingle());
       if (error) console.error('[ico/info] ico_settings query failed:', error.message || error);
       else settings = data;
-    } catch (e) { console.error('[ico/info] ico_settings threw:', e && e.message ? e.message : e); }
+    }
 
     const cfg = liveRoundConfig(settings);
 
     let roundStats = [];
-    try {
-      const { data, error } = await supabase
-        .from('ico_orders')
-        .select('usd_amount, brx_allocated, status')
-        .in('status', ['confirmed', 'distributed'])
-        .abortSignal(dbSignal());
+    {
+      const { data, error } = await dbWithin(
+        supabase.from('ico_orders')
+          .select('usd_amount, brx_allocated, status')
+          .in('status', ['confirmed', 'distributed'])
+          .abortSignal(dbSignal()));
       if (error) console.error('[ico/info] ico_orders query failed:', error.message || error);
       else roundStats = data || [];
-    } catch (e) { console.error('[ico/info] ico_orders threw:', e && e.message ? e.message : e); }
+    }
 
     const totalRaised = roundStats.reduce((s, o) => s + (o.usd_amount || 0), 0);
     const totalBrx    = roundStats.reduce((s, o) => s + (o.brx_allocated || 0), 0);
