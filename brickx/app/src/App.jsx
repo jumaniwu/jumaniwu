@@ -396,11 +396,13 @@ function KYCScreen({user,onStatus,onBack}) {
     }catch{/* ignore */}
   },[status,onStatus]);
 
-  // Poll KYC status every 15s while this screen is mounted
+  // Poll KYC status every 20s while waiting — stop once it reaches a terminal
+  // state (approved/rejected) so we don't keep hitting the API for no reason.
   useEffect(()=>{
-    const t=setInterval(recheckStatus,15000);
+    if(status==="approved"||status==="rejected")return;
+    const t=setInterval(recheckStatus,20000);
     return()=>clearInterval(t);
-  },[recheckStatus]);
+  },[recheckStatus,status]);
 
   const startKyc=async()=>{
     setLd(true);setErr(null);
