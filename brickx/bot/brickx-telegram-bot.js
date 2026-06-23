@@ -651,8 +651,20 @@ If someone claims to be BRICKX support in DM — it's a scam. Only contact us th
 // ════════════════════════════════════════════════════════════════
 
 // /start — welcome with LIVE sale status from the backend
-bot.onText(/^\/start\b/, async function(msg) {
+bot.onText(/^\/start(?:@\w+)?(?:\s+(\S+))?/, async function(msg, match) {
   var chatId = msg.chat.id;
+  // Deep-link from a raid's "🎁 Submit my post" button: /start raid_<chatId>_<msgId>.
+  // Put the user into "awaiting post link" mode here in DM, so links never hit the group.
+  var payload = match && match[1];
+  if (payload && payload.indexOf("raid_") === 0) {
+    var parts = payload.split("_");
+    var rChat = parseInt(parts[1], 10), rMsg = parseInt(parts[2], 10);
+    if (rChat && rMsg) {
+      pendingSubmit.set(msg.from.id, { chatId: rChat, msgId: rMsg });
+      sendMsg(chatId, "🎁 *Submit your raid post*\n\nPaste the link to *your X post* about BRICKX here and I'll log it for the prize. 🔥\n\nMake sure you've already liked + retweeted + commented the original post.");
+      return;
+    }
+  }
   var name = msg.from.first_name || "Investor";
   var live = await fetchLiveStats();
   sendMsg(chatId, MSG.welcome(name, live), MAIN_KEYBOARD);
@@ -902,18 +914,26 @@ function autoReply(msg){
 // RAID BOT — community-run social raids (no third-party admin needed)
 // ════════════════════════════════════════════════════════════════
 // In-memory (resets on restart): one active raid per chat + a session leaderboard.
-var activeRaids = new Map(); // chatId -> { url, msgId, participants:Set, names:Map, startedAt }
-var raidScores  = new Map(); // userId -> { name, count }
-var RAID_HELP = "🔥 *Raid Bot*\n\nRally the community to boost BRICKX posts on X — top raiders win the 🎁 prize pool.\n\n*Admins:*\n• `/raid <link>` — start a raid on a post\n• `/raidstop` — end it + show results\n• `/raidwinners` — top 5 with their post links (for the prize)\n\n*Everyone:*\n• Tap *✅ I raided* after you like + RT + comment\n• *Reply to the raid with YOUR X post link* to qualify for the prize\n• `/raidtop` — leaderboard\n\nThis bot is ours — no third-party admin access needed.";
+var activeRaids = new Map();   // chatId -> { url, msgId, participants:Set, names:Map, startedAt }
+var raidScores  = new Map();   // userId -> { name, count } (in-memory fallback)
+var pendingSubmit = new Map(); // userId -> { chatId, msgId } : awaiting their X post link via DM
+// Deep link that opens the bot in a PRIVATE chat carrying the raid context, so post
+// links are submitted to the bot directly (DM) — keeps the group clean.
+function raidDeepLink(chatId, msgId){
+  return BOT_USERNAME ? ("https://t.me/" + BOT_USERNAME + "?start=raid_" + chatId + "_" + msgId) : null;
+}
+var RAID_HELP = "🔥 *Raid Bot*\n\nRally the community to boost BRICKX posts on X — top raiders win the 🎁 prize pool.\n\n*Admins:*\n• `/raid <link>` — start a raid on a post\n• `/raidstop` — end it + show results\n• `/raidwinners` — top 5 with their post links (for the prize)\n\n*Everyone:*\n• Tap *✅ I raided* after you like + RT + comment\n• Tap *🎁 Submit my post* → send YOUR X post link to the bot in DM (keeps the group clean)\n• `/raidtop` — leaderboard\n\nThis bot is ours — no third-party admin access needed.";
 
 function raidText(url, count){
-  return "🔥 *RAID TIME!* 🔥\n\nBoost BRICKX on X 🚀\n\n👉 *Like + Retweet + Comment* on this post:\n" + url + "\n\n*Join the 🎁 prize pool:*\n1️⃣ Tap *✅ I raided* below\n2️⃣ *Reply to this message with YOUR X post link*\n\n👥 *Raiders so far: " + count + "*";
+  return "🔥 *RAID TIME!* 🔥\n\nBoost BRICKX on X 🚀\n\n👉 *Like + Retweet + Comment* on this post:\n" + url + "\n\n*Join the 🎁 prize pool:*\n1️⃣ Tap *✅ I raided* below\n2️⃣ Tap *🎁 Submit my post* and send your X post link to me in DM\n\n👥 *Raiders so far: " + count + "*";
 }
-function raidKb(url){
-  return { inline_keyboard: [
+function raidKb(url, deep){
+  var rows = [
     [{ text: "🔗 Open Post", url: url }],
     [{ text: "✅ I raided", callback_data: "raid_done" }, { text: "📊 Raiders", callback_data: "raid_count" }],
-  ]};
+  ];
+  if (deep) rows.push([{ text: "🎁 Submit my post", url: deep }]);
+  return { inline_keyboard: rows };
 }
 // ── Raid persistence + submission helpers ────────────────────
 function isRaidMessage(m){
@@ -970,8 +990,13 @@ async function getDbLeaderboard(limit, requirePost){
 
 function startRaid(chatId, url){
   if (activeRaids.has(chatId)) { sendMsg(chatId, "⚠️ A raid is already running here. End it with /raidstop first."); return; }
-  bot.sendMessage(chatId, raidText(url, 0), { parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(url) })
-    .then(function(sent){ activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now(), baseCount: 0 }); })
+  bot.sendMessage(chatId, raidText(url, 0), { parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(url, null) })
+    .then(function(sent){
+      activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now(), baseCount: 0 });
+      // Now that we know the message id, add the "Submit my post" deep-link button.
+      var deep = raidDeepLink(chatId, sent.message_id);
+      if (deep) bot.editMessageReplyMarkup(raidKb(url, deep), { chat_id: chatId, message_id: sent.message_id }).catch(function(){});
+    })
     .catch(function(e){ console.error("[Raid] start:", e.message); });
 }
 // Rebuild a raid from its own message so the buttons keep working after the bot
@@ -999,8 +1024,9 @@ function handleRaidDone(query){
   raid.participants.add(uid); raid.names.set(uid, name);
   var sc = raidScores.get(uid) || { name: name, count: 0 }; sc.name = name; sc.count++; raidScores.set(uid, sc);
   recordTap({ chatId: chatId, messageId: raid.msgId, userId: uid, name: query.from.first_name, username: query.from.username, raidUrl: raid.url });
-  bot.answerCallbackQuery(query.id, { text: "🔥 Thanks! Now REPLY to this post with your X post link to join the 🎁 prize", show_alert: true }).catch(function(){});
-  bot.editMessageText(raidText(raid.url, raidTotal(raid)), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url) }).catch(function(){});
+  bot.answerCallbackQuery(query.id, { text: "🔥 Thanks! Now tap 🎁 Submit my post to send your X link to me in DM (for the prize).", show_alert: true }).catch(function(){});
+  var deep = raidDeepLink(chatId, raid.msgId);
+  bot.editMessageText(raidText(raid.url, raidTotal(raid)), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url, deep) }).catch(function(){});
 }
 function handleRaidCount(query){
   var chatId = query.message.chat.id;
@@ -1084,14 +1110,17 @@ bot.on("message", function(msg) {
     calcResult(chatId, amount);
     return;
   }
-  // Raid prize submission: a reply to a raid message containing an X post link.
-  if (msg.reply_to_message && isRaidMessage(msg.reply_to_message)) {
-    var link = extractXLink(msg.text);
-    if (link) {
-      var rr = reviveRaid(msg.reply_to_message);
-      recordSubmit({ chatId: chatId, messageId: msg.reply_to_message.message_id, userId: msg.from.id,
-        name: msg.from.first_name, username: msg.from.username, raidUrl: rr && rr.url, postUrl: link });
-      sendMsg(chatId, "✅ Logged, " + (msg.from.first_name || "raider") + "! Your X post is in for the 🎁 prize. Check the leaderboard with /raidtop.");
+  // Raid prize submission happens privately (DM): after tapping "🎁 Submit my post",
+  // the user is in pendingSubmit and sends their X post link here — never in the group.
+  if (msg.chat.type === "private") {
+    var pend = pendingSubmit.get(msg.from.id);
+    if (pend) {
+      var link = extractXLink(msg.text);
+      if (!link) { sendMsg(chatId, "That doesn't look like an X link. Please paste your post URL, e.g. https://x.com/you/status/123456"); return; }
+      recordSubmit({ chatId: pend.chatId, messageId: pend.msgId, userId: msg.from.id,
+        name: msg.from.first_name, username: msg.from.username, raidUrl: null, postUrl: link });
+      pendingSubmit.delete(msg.from.id);
+      sendMsg(chatId, "✅ Logged! Your post is in for the 🎁 prize. Thanks for raiding! 🔥\nSee the leaderboard with /raidtop.");
       return;
     }
   }

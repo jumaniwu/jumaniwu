@@ -30,16 +30,17 @@ replies when it's mentioned/replied-to or the message is clearly a question.
 > **anonymous** admin posts are supported too — you don't need to add your ID to
 > `ADMIN_TELEGRAM_IDS` to start raids in your group.
 
-**Prize-pool flow.** A member joins by (1) tapping **✅ I raided**, then (2) **replying
-to the raid message with their own X post link** as proof. `/raidwinners` ranks the
-top 5 by number of raids with a submitted link, and shows each link so you can verify
-the posts before awarding.
+**Prize-pool flow.** A member joins by (1) tapping **✅ I raided**, then (2) tapping
+**🎁 Submit my post** — which opens the bot in a **private chat (DM)** carrying the
+raid context, where they paste their own X post link. Submissions go to the bot
+privately, so the group stays clean (no link spam). `/raidwinners` ranks the top 5
+by number of raids with a submitted link and shows each link so you can verify the
+posts before awarding. (DM submission needs no privacy-mode change.)
 
 **Persistence.** Set `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (same project as the
 backend) and run `backend/migration-006-raid-prize.sql` once — then the leaderboard
 and submissions are stored in the DB and **survive restarts/redeploys**. Without
-those vars, raid tracking is in-memory and resets on restart. Reply-based link
-submissions also require the bot's **privacy mode OFF** (see above).
+those vars, raid tracking is in-memory and resets on restart.
 
 ## Env
 
