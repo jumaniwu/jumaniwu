@@ -324,7 +324,7 @@ Choose an option below or use these commands:
 ━━━━━━━━━━━━━━━━━━━
 📊 *Token Details*
 Total Supply:    1,000,000,000 BRX *(fixed forever)*
-0% VC allocation · 76% community
+76% community allocation
 Network: Polygon
 
 💎 *Seed Benefits*

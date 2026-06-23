@@ -2,11 +2,11 @@
 
 ## 13.1 Regulatory Structure
 
-| Holding Company | British Virgin Islands (BVI) — standard structure for international crypto projects |
+| Holding Company | International holding entity for the protocol, being finalized with qualified legal counsel. |
 |---|---|
-| Operating Entity | Singapore — MAS-registered, crypto-friendly jurisdiction, gateway to Southeast Asia |
-| Hotel SPV | Indonesia — local legal entity holding hotel title and operating license |
-| Token Classification | BRX: utility token. BRICK: asset-backed fractional ownership token. |
+| Operating Entity | Operating entity in a crypto-friendly jurisdiction that serves as a gateway to Southeast Asia. |
+| Hotel SPV | A local Indonesian special-purpose entity (SPV) will hold the hotel title and operating license. |
+| Token Classification | BRX: utility/governance token. BRICK: asset-backed fractional-ownership token. |
 
 ## 13.2 KYC and AML Compliance
 

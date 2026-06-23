@@ -12,7 +12,7 @@ Phase 1 raises USD 2,000,000 through the BRX governance token sale to fund full 
 | ICO Round 2 | USD 0.022 per BRX (+175% vs seed) |
 | DEX Launch | USD 0.030 per BRX (+275% vs seed) |
 | Total Raise Target | USD 2,000,000 |
-| Total BRX Supply | 1,000,000,000 (fixed forever, 0% VC) |
+| Total BRX Supply | 1,000,000,000 (fixed forever) |
 | Min / Max Investment | USD 100 minimum / USD 50,000 per wallet |
 | Payment Methods | USDT (Polygon) · USDC (Polygon) · ETH · BNB |
 
