@@ -637,7 +637,7 @@ If someone claims to be BRICKX support in DM — it's a scam. Only contact us th
 // ════════════════════════════════════════════════════════════════
 
 // /start — welcome with LIVE sale status from the backend
-bot.onText(/\/start/, async function(msg) {
+bot.onText(/^\/start\b/, async function(msg) {
   var chatId = msg.chat.id;
   var name = msg.from.first_name || "Investor";
   var live = await fetchLiveStats();
@@ -646,62 +646,62 @@ bot.onText(/\/start/, async function(msg) {
 });
 
 // /menu
-bot.onText(/\/menu/, function(msg) {
+bot.onText(/^\/menu\b/, function(msg) {
   sendMsg(msg.chat.id, "📋 *BRICKX Protocol — Main Menu*\nChoose an option:", MAIN_KEYBOARD);
 });
 
 // /buy
-bot.onText(/\/buy/, function(msg) {
+bot.onText(/^\/buy\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.buy, BACK_BTN);
 });
 
 // /price
-bot.onText(/\/price/, function(msg) {
+bot.onText(/^\/price\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.price, BACK_BTN);
 });
 
 // /hotel
-bot.onText(/\/hotel/, function(msg) {
+bot.onText(/^\/hotel\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.hotel, BACK_BTN);
 });
 
 // /dividend
-bot.onText(/\/dividend/, function(msg) {
+bot.onText(/^\/dividend\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.dividend, BACK_BTN);
 });
 
 // /kyc
-bot.onText(/\/kyc/, function(msg) {
+bot.onText(/^\/kyc\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.kyc, BACK_BTN);
 });
 
 // /wallet
-bot.onText(/\/wallet/, function(msg) {
+bot.onText(/^\/wallet\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.wallet, BACK_BTN);
 });
 
 // /faq
-bot.onText(/\/faq/, function(msg) {
+bot.onText(/^\/faq\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.faq, BACK_BTN);
 });
 
 // /roadmap
-bot.onText(/\/roadmap/, function(msg) {
+bot.onText(/^\/roadmap\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.roadmap, BACK_BTN);
 });
 
 // /referral
-bot.onText(/\/referral/, function(msg) {
+bot.onText(/^\/referral\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.referral, BACK_BTN);
 });
 
 // /whitepaper
-bot.onText(/\/whitepaper/, function(msg) {
+bot.onText(/^\/whitepaper\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.whitepaper, BACK_BTN);
 });
 
 // /contact
-bot.onText(/\/contact/, function(msg) {
+bot.onText(/^\/contact\b/, function(msg) {
   sendMsg(msg.chat.id, MSG.contact, BACK_BTN);
 });
 
@@ -744,13 +744,13 @@ const STATUS_KEYBOARD = {
   }
 };
 
-bot.onText(/\/status/, async function(msg) {
+bot.onText(/^\/status\b/, async function(msg) {
   var live = await fetchLiveStats();
   sendMsg(msg.chat.id, buildStatusMessage(live), STATUS_KEYBOARD);
 });
 
 // ── CALCULATOR ───────────────────────────────────────────────
-bot.onText(/\/calc/, function(msg) {
+bot.onText(/^\/calc\b/, function(msg) {
   var chatId = msg.chat.id;
   userState.set(chatId, { step: "awaiting_amount" });
   sendMsg(chatId,
@@ -1074,7 +1074,7 @@ bot.on("callback_query", async function(query) {
 // ════════════════════════════════════════════════════════════════
 
 // /admin — admin panel
-bot.onText(/\/admin/, function(msg) {
+bot.onText(/^\/admin\b/, function(msg) {
   if (!isAdmin(msg.from.id)) {
     sendMsg(msg.chat.id, "⛔ Admin access required.");
     return;
@@ -1093,7 +1093,7 @@ bot.onText(/\/admin/, function(msg) {
 // /broadcast — send message to every chat that has talked to the bot.
 // Note: the chat list is in-memory and resets on restart; for a durable
 // list, store chat IDs in the database.
-bot.onText(/\/broadcast (.+)/, async function(msg, match) {
+bot.onText(/^\/broadcast (.+)/, async function(msg, match) {
   if (!isAdmin(msg.from.id)) return;
   var text = match[1];
   var sent = 0, failed = 0;
@@ -1111,7 +1111,7 @@ bot.onText(/\/broadcast (.+)/, async function(msg, match) {
 });
 
 // /announce — post to official channel (admin only)
-bot.onText(/\/announce (.+)/, async function(msg, match) {
+bot.onText(/^\/announce (.+)/, async function(msg, match) {
   if (!isAdmin(msg.from.id)) return;
   var text = match[1];
   try {
@@ -1123,7 +1123,7 @@ bot.onText(/\/announce (.+)/, async function(msg, match) {
 });
 
 // /stats — bot usage stats (admin only)
-bot.onText(/\/stats/, function(msg) {
+bot.onText(/^\/stats\b/, function(msg) {
   if (!isAdmin(msg.from.id)) return;
   sendMsg(msg.chat.id,
     `📊 *Bot Statistics*\n\n` +
