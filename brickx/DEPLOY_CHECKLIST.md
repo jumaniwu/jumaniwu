@@ -23,8 +23,9 @@ Follow the steps **in order**. Do not skip the verification steps.
    column exists so KYC can be deferred during the seed raise and switched on (with
    Sumsub) before distribution, from Admin → Settings. Safe to re-run.
    (Optional, only if you run the Telegram raid prize) run
-   `backend/migration-006-raid-prize.sql` — adds the `raid_participants` table so the
-   raid leaderboard + post-link submissions persist across bot restarts. Safe to re-run.
+   `backend/migration-006-raid-prize.sql` then `backend/migration-007-raid-points.sql`
+   — adds the `raid_participants` table + points scoring (each unique X post = points,
+   no duplicate links) so the raid leaderboard persists across bot restarts. Safe to re-run.
 4. **Manual KYC storage (only if you'll run KYC manually before Sumsub is live):**
    the backend auto-creates a **private** Storage bucket named `kyc-documents` on the
    first upload. You can also pre-create it: Storage → New bucket → name `kyc-documents`,

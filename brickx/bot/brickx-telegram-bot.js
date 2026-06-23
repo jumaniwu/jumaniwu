@@ -915,14 +915,25 @@ function autoReply(msg){
 // ════════════════════════════════════════════════════════════════
 // In-memory (resets on restart): one active raid per chat + a session leaderboard.
 var activeRaids = new Map();   // chatId -> { url, msgId, participants:Set, names:Map, startedAt }
-var raidScores  = new Map();   // userId -> { name, count } (in-memory fallback)
-var pendingSubmit = new Map(); // userId -> { chatId, msgId } : awaiting their X post link via DM
+var memPoints    = new Map();   // userId -> { name, points, posts } (in-memory fallback)
+var memUsedLinks = new Set();   // canonical post links already counted (in-memory dedup)
+var pendingSubmit = new Map();  // userId -> { chatId, msgId } : awaiting their X post link via DM
+var POINTS_PER_POST = parseInt(process.env.RAID_POINTS_PER_POST, 10) || 10;
+// Canonicalize an X/Twitter post link for dedup: drop protocol/query/www, twitter→x.
+function canonLink(u){
+  try {
+    var url = new URL(String(u).trim());
+    var host = url.hostname.replace(/^www\./, "").toLowerCase().replace("twitter.com", "x.com");
+    if (host !== "x.com") return null;            // only X/Twitter post links count
+    return "https://" + host + url.pathname.replace(/\/+$/, "");
+  } catch (e) { return null; }
+}
 // Deep link that opens the bot in a PRIVATE chat carrying the raid context, so post
 // links are submitted to the bot directly (DM) — keeps the group clean.
 function raidDeepLink(chatId, msgId){
   return BOT_USERNAME ? ("https://t.me/" + BOT_USERNAME + "?start=raid_" + chatId + "_" + msgId) : null;
 }
-var RAID_HELP = "🔥 *Raid Bot*\n\nRally the community to boost BRICKX posts on X — top raiders win the 🎁 prize pool.\n\n*Admins:*\n• `/raid <link>` — start a raid on a post\n• `/raidstop` — end it + show results\n• `/raidwinners` — top 5 with their post links (for the prize)\n\n*Everyone:*\n• Tap *✅ I raided* after you like + RT + comment\n• Tap *🎁 Submit my post* → send YOUR X post link to the bot in DM (keeps the group clean)\n• `/raidtop` — leaderboard\n\nThis bot is ours — no third-party admin access needed.";
+var RAID_HELP = "🔥 *Raid Bot* — earn points, win the 🎁 prize pool.\n\n*How to earn (everyone):*\n1. Like + RT + comment the raid post, tap *✅ I raided*\n2. Tap *🎁 Submit my post* → send YOUR X post link to the bot in DM\n3. Each unique post = *" + POINTS_PER_POST + " points* (same link can't be reused)\n• `/raidtop` — points leaderboard\n\n*Admins:*\n• `/raid <link>` — start a raid\n• `/raidstop` — end it\n• `/raidwinners` — top 5 by points (with their post links)\n\nSubmissions go to the bot in DM — the group stays clean.";
 
 function raidText(url, count){
   return "🔥 *RAID TIME!* 🔥\n\nBoost BRICKX on X 🚀\n\n👉 *Like + Retweet + Comment* on this post:\n" + url + "\n\n*Join the 🎁 prize pool:*\n1️⃣ Tap *✅ I raided* below\n2️⃣ Tap *🎁 Submit my post* and send your X post link to me in DM\n\n👥 *Raiders so far: " + count + "*";
@@ -946,46 +957,55 @@ function extractXLink(t){
   var m = (t || "").match(/https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/\S+/i);
   return m ? m[0] : null;
 }
-// Persist a participation (tap). Never overwrites an existing post_url.
-function recordTap(p){
-  if (!raidDb) return;
-  raidDb.from("raid_participants").upsert({
-    chat_id: p.chatId, message_id: p.messageId, telegram_user_id: p.userId,
-    telegram_name: p.name, telegram_username: p.username, raid_url: p.raidUrl, updated_at: new Date().toISOString(),
-  }, { onConflict: "chat_id,message_id,telegram_user_id", ignoreDuplicates: true })
-    .then(function(r){ if (r && r.error) console.warn("[Raid] tap save:", r.error.message); })
-    .catch(function(e){ console.warn("[Raid] tap save:", e.message); });
-}
-// Persist/refresh a participation WITH the raider's own post link (proof).
-function recordSubmit(p){
-  if (!raidDb) return Promise.resolve();
-  return raidDb.from("raid_participants").upsert({
-    chat_id: p.chatId, message_id: p.messageId, telegram_user_id: p.userId,
-    telegram_name: p.name, telegram_username: p.username, raid_url: p.raidUrl,
-    post_url: p.postUrl, updated_at: new Date().toISOString(),
-  }, { onConflict: "chat_id,message_id,telegram_user_id" })
-    .then(function(r){ if (r && r.error) console.warn("[Raid] submit save:", r.error.message); })
-    .catch(function(e){ console.warn("[Raid] submit save:", e.message); });
-}
-// Top raiders from the DB. requirePost=true counts only participations that have a
-// submitted post link (the verified pool for the prize). Returns null if no DB.
-async function getDbLeaderboard(limit, requirePost){
-  if (!raidDb) return null;
+// Record a submitted X post for points. Each unique link counts ONCE (global dedup)
+// and is worth POINTS_PER_POST. Returns { ok, reason } — reason "duplicate" when the
+// link was already submitted. Works in-memory or persisted to Supabase.
+async function recordSubmit(p){
+  if (!raidDb) {
+    if (memUsedLinks.has(p.postUrl)) return { ok: false, reason: "duplicate" };
+    memUsedLinks.add(p.postUrl);
+    var e = memPoints.get(p.userId) || { name: p.name, points: 0, posts: 0 };
+    e.name = p.name || e.name; e.points += POINTS_PER_POST; e.posts += 1;
+    memPoints.set(p.userId, e);
+    return { ok: true, total: e.points };
+  }
   try {
-    var q = raidDb.from("raid_participants").select("telegram_user_id, telegram_name, telegram_username, post_url");
-    if (requirePost) q = q.not("post_url", "is", null);
-    var res = await q;
-    if (res.error || !res.data) return [];
+    var res = await raidDb.from("raid_participants").insert({
+      chat_id: p.chatId, message_id: p.messageId, telegram_user_id: p.userId,
+      telegram_name: p.name, telegram_username: p.username, raid_url: p.raidUrl,
+      post_url: p.postUrl, points: POINTS_PER_POST,
+    });
+    if (res.error) {
+      if (res.error.code === "23505" || /duplicate|unique/i.test(res.error.message || "")) return { ok: false, reason: "duplicate" };
+      console.warn("[Raid] submit:", res.error.message);
+      return { ok: false, reason: "error" };
+    }
+    return { ok: true };
+  } catch (e) { console.warn("[Raid] submit:", e.message); return { ok: false, reason: "error" }; }
+}
+// Leaderboard by POINTS (sum of points per user). Returns { persistent, rows }, where
+// each row is { name, points, posts, lastPost }.
+async function getLeaderboard(limit){
+  if (!raidDb) {
+    var rows = Array.from(memPoints.values())
+      .map(function(e){ return { name: e.name || "raider", points: e.points, posts: e.posts, lastPost: null }; })
+      .sort(function(a, b){ return b.points - a.points; }).slice(0, limit);
+    return { persistent: false, rows: rows };
+  }
+  try {
+    var res = await raidDb.from("raid_participants")
+      .select("telegram_user_id, telegram_name, telegram_username, points, post_url").not("post_url", "is", null);
+    if (res.error || !res.data) return { persistent: true, rows: [] };
     var map = new Map();
     res.data.forEach(function(r){
-      var e = map.get(r.telegram_user_id) || { name: r.telegram_name || (r.telegram_username ? "@" + r.telegram_username : "user " + r.telegram_user_id), count: 0, lastPost: null };
-      e.count++;
+      var e = map.get(r.telegram_user_id) || { name: r.telegram_name || (r.telegram_username ? "@" + r.telegram_username : "user " + r.telegram_user_id), points: 0, posts: 0, lastPost: null };
+      e.points += (r.points || POINTS_PER_POST); e.posts += 1;
       if (r.telegram_name) e.name = r.telegram_name;
       if (r.post_url) e.lastPost = r.post_url;
       map.set(r.telegram_user_id, e);
     });
-    return Array.from(map.values()).sort(function(a, b){ return b.count - a.count; }).slice(0, limit);
-  } catch (e) { console.warn("[Raid] leaderboard:", e.message); return []; }
+    return { persistent: true, rows: Array.from(map.values()).sort(function(a, b){ return b.points - a.points; }).slice(0, limit) };
+  } catch (e) { console.warn("[Raid] leaderboard:", e.message); return { persistent: true, rows: [] }; }
 }
 
 function startRaid(chatId, url){
@@ -1021,10 +1041,8 @@ function handleRaidDone(query){
   var uid = query.from.id;
   var name = query.from.first_name || query.from.username || "raider";
   if (raid.participants.has(uid)){ bot.answerCallbackQuery(query.id, { text: "You already raided — thank you! 🔥" }).catch(function(){}); return; }
-  raid.participants.add(uid); raid.names.set(uid, name);
-  var sc = raidScores.get(uid) || { name: name, count: 0 }; sc.name = name; sc.count++; raidScores.set(uid, sc);
-  recordTap({ chatId: chatId, messageId: raid.msgId, userId: uid, name: query.from.first_name, username: query.from.username, raidUrl: raid.url });
-  bot.answerCallbackQuery(query.id, { text: "🔥 Thanks! Now tap 🎁 Submit my post to send your X link to me in DM (for the prize).", show_alert: true }).catch(function(){});
+  raid.participants.add(uid); raid.names.set(uid, name);   // live group counter only
+  bot.answerCallbackQuery(query.id, { text: "🔥 Thanks! Now tap 🎁 Submit my post and send your X post link to me in DM to earn " + POINTS_PER_POST + " points.", show_alert: true }).catch(function(){});
   var deep = raidDeepLink(chatId, raid.msgId);
   bot.editMessageText(raidText(raid.url, raidTotal(raid)), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url, deep) }).catch(function(){});
 }
@@ -1042,13 +1060,11 @@ function stopRaid(chatId){
   sendMsg(chatId, "🏁 *Raid ended!*\n\n👥 Total raiders: *" + raidTotal(raid) + "*\n\n" + (top.length ? "🔥 Raiders:\n" + top.join("\n") : "No one tapped ✅ this time.") + "\n\nThank you all! 🚀");
 }
 async function showRaidLeaderboard(chatId){
-  var arr = await getDbLeaderboard(10, false);   // null when no DB → fall back to memory
-  var persistent = arr !== null;
-  if (!persistent) arr = Array.from(raidScores.values()).sort(function(a, b){ return b.count - a.count; }).slice(0, 10);
-  if (!arr || !arr.length){ sendMsg(chatId, "No raids recorded yet. Admins can start one with `/raid <link>`."); return; }
+  var lb = await getLeaderboard(10);
+  if (!lb.rows.length){ sendMsg(chatId, "No posts submitted yet. Join a raid: tap *✅ I raided* then *🎁 Submit my post* and send your X post link in DM (" + POINTS_PER_POST + " pts each)."); return; }
   var medals = ["🥇","🥈","🥉"];
-  var lines = arr.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " " + s.name + " — " + s.count + " raids"; });
-  sendMsg(chatId, "🏆 *Top Raiders*\n\n" + lines.join("\n") + (persistent ? "" : "\n\n_In-memory — resets on restart._"));
+  var lines = lb.rows.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " " + s.name + " — *" + s.points + " pts* (" + s.posts + " post" + (s.posts === 1 ? "" : "s") + ")"; });
+  sendMsg(chatId, "🏆 *Raid Leaderboard* (" + POINTS_PER_POST + " pts / post)\n\n" + lines.join("\n") + (lb.persistent ? "" : "\n\n_In-memory — set Supabase to keep it permanent._"));
 }
 
 // Who can run raids: the configured bot admins (ADMIN_TELEGRAM_IDS) OR the Telegram
@@ -1075,12 +1091,11 @@ bot.onText(/^\/raidstop(?:@\w+)?$/i, async function(msg){
 });
 bot.onText(/^\/raidwinners(?:@\w+)?$/i, async function(msg){
   if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can view winners."); return; }
-  if (!raidDb){ sendMsg(msg.chat.id, "⚠️ Persistent tracking is off. Set SUPABASE_URL + SUPABASE_SERVICE_KEY on the bot to rank prize winners across restarts."); return; }
-  var arr = await getDbLeaderboard(5, true);
-  if (!arr || !arr.length){ sendMsg(msg.chat.id, "No verified submissions yet. Raiders qualify by replying to a raid with their X post link."); return; }
+  var lb = await getLeaderboard(5);
+  if (!lb.rows.length){ sendMsg(msg.chat.id, "No posts submitted yet. Members earn points by submitting their X post link in DM."); return; }
   var medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
-  var lines = arr.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " *" + s.name + "* — " + s.count + " posts" + (s.lastPost ? "\n   " + s.lastPost : ""); });
-  sendMsg(msg.chat.id, "🎁 *Prize Pool — Top 5 (verified posts)*\n\n" + lines.join("\n\n") + "\n\n_Ranked by raids with a submitted X post link. Verify the links before awarding._", { disable_web_page_preview: true });
+  var lines = lb.rows.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " *" + s.name + "* — " + s.points + " pts (" + s.posts + " posts)" + (s.lastPost ? "\n   " + s.lastPost : ""); });
+  sendMsg(msg.chat.id, "🎁 *Prize Pool — Top 5 by points*\n\n" + lines.join("\n\n") + "\n\n_" + POINTS_PER_POST + " pts per unique post. Verify the posts before awarding._" + (lb.persistent ? "" : "\n⚠️ In-memory — set Supabase to keep this across restarts."), { disable_web_page_preview: true });
 });
 bot.onText(/^\/raidtop(?:@\w+)?$/i, function(msg){ showRaidLeaderboard(msg.chat.id); });
 bot.onText(/^\/raidhelp(?:@\w+)?$/i, function(msg){ sendMsg(msg.chat.id, RAID_HELP); });
@@ -1115,12 +1130,20 @@ bot.on("message", function(msg) {
   if (msg.chat.type === "private") {
     var pend = pendingSubmit.get(msg.from.id);
     if (pend) {
-      var link = extractXLink(msg.text);
-      if (!link) { sendMsg(chatId, "That doesn't look like an X link. Please paste your post URL, e.g. https://x.com/you/status/123456"); return; }
+      var link = canonLink(extractXLink(msg.text) || msg.text);
+      if (!link) { sendMsg(chatId, "That doesn't look like an X post link. Please paste your post URL, e.g. https://x.com/you/status/123456"); return; }
       recordSubmit({ chatId: pend.chatId, messageId: pend.msgId, userId: msg.from.id,
-        name: msg.from.first_name, username: msg.from.username, raidUrl: null, postUrl: link });
-      pendingSubmit.delete(msg.from.id);
-      sendMsg(chatId, "✅ Logged! Your post is in for the 🎁 prize. Thanks for raiding! 🔥\nSee the leaderboard with /raidtop.");
+        name: msg.from.first_name, username: msg.from.username, raidUrl: null, postUrl: link })
+        .then(function(r){
+          pendingSubmit.delete(msg.from.id);
+          if (r.ok) {
+            sendMsg(chatId, "✅ *+" + POINTS_PER_POST + " points!* Post logged.\n\nMade more posts? Tap *🎁 Submit my post* again on the raid for each one — every unique link earns " + POINTS_PER_POST + " pts.\nLeaderboard: /raidtop");
+          } else if (r.reason === "duplicate") {
+            sendMsg(chatId, "⚠️ That post link was *already submitted* — each post counts once. Post something new and submit that link.");
+          } else {
+            sendMsg(chatId, "⚠️ Couldn't log that right now. Please try again in a moment.");
+          }
+        });
       return;
     }
   }

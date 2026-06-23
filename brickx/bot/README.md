@@ -30,17 +30,24 @@ replies when it's mentioned/replied-to or the message is clearly a question.
 > **anonymous** admin posts are supported too — you don't need to add your ID to
 > `ADMIN_TELEGRAM_IDS` to start raids in your group.
 
-**Prize-pool flow.** A member joins by (1) tapping **✅ I raided**, then (2) tapping
-**🎁 Submit my post** — which opens the bot in a **private chat (DM)** carrying the
-raid context, where they paste their own X post link. Submissions go to the bot
-privately, so the group stays clean (no link spam). `/raidwinners` ranks the top 5
-by number of raids with a submitted link and shows each link so you can verify the
-posts before awarding. (DM submission needs no privacy-mode change.)
+**Scoring (points).** Each unique X post a member submits is worth `RAID_POINTS_PER_POST`
+points (default **10**). A given post link can only be counted **once** across the whole
+contest — duplicates (and `twitter.com`↔`x.com`/query-string variants) are rejected, so
+nobody can farm or reuse someone else's link. A member can submit many different posts;
+points add up. `/raidtop` ranks by total points; `/raidwinners` shows the top 5 with their
+post links to verify before awarding.
+
+**Prize-pool flow.** (1) Tap **✅ I raided**, then (2) tap **🎁 Submit my post** — this
+opens the bot in a **private chat (DM)** carrying the raid context, where the member
+pastes their X post link. The bot replies *+N points* (or "already submitted"). Links go
+to the bot privately, so the group stays clean. Tap *🎁 Submit my post* again for each
+additional post. (DM submission needs no privacy-mode change.)
 
 **Persistence.** Set `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (same project as the
-backend) and run `backend/migration-006-raid-prize.sql` once — then the leaderboard
-and submissions are stored in the DB and **survive restarts/redeploys**. Without
-those vars, raid tracking is in-memory and resets on restart.
+backend) and run `backend/migration-006-raid-prize.sql` **and**
+`backend/migration-007-raid-points.sql` once — then points/submissions are stored in the
+DB and **survive restarts/redeploys**. Without those vars, scoring is in-memory and
+resets on restart.
 
 ## Env
 
