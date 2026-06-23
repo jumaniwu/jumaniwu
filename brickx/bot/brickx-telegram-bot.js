@@ -876,9 +876,11 @@ var AUTO_RULES = [
 function autoReply(msg){
   var t = msg.text || "";
   if (!t || t.length > 280) return;
-  if (isGroupChat(msg) && !mentionsBot(msg) && !looksLikeQuestion(t)) return;
+  // In groups, only reply when the bot is directly addressed (@mention or a reply to
+  // it) — never chime in on normal chatter. In private chat, answer any match.
+  if (isGroupChat(msg) && !mentionsBot(msg)) return;
   for (var i = 0; i < AUTO_RULES.length; i++){
-    if (AUTO_RULES[i].re.test(t)) { sendMsg(msg.chat.id, AUTO_RULES[i].reply, AUTO_RULES[i].kb); return; }
+    if (AUTO_RULES[i].re.test(t)) { sendMsg(msg.chat.id, AUTO_RULES[i].reply); return; } // plain text, no buttons
   }
 }
 
@@ -939,6 +941,11 @@ function showRaidLeaderboard(chatId){
 // Who can run raids: the configured bot admins (ADMIN_TELEGRAM_IDS) OR the Telegram
 // group owner/admins of the chat — so the owner can start raids without any env setup.
 async function canRaid(msg){
+  // Anonymous owner/admins post "as the group": Telegram sets sender_chat to the
+  // group itself and routes the message via GroupAnonymousBot (id 1087968824).
+  // Only admins/owner can do that, so treat it as allowed.
+  if (msg.sender_chat && msg.chat && msg.sender_chat.id === msg.chat.id) return true;
+  if (msg.from && msg.from.id === 1087968824) return true;
   if (msg.from && isAdmin(msg.from.id)) return true;
   if (isGroupChat(msg) && msg.from) {
     try {
