@@ -904,31 +904,48 @@ function raidKb(url){
 function startRaid(chatId, url){
   if (activeRaids.has(chatId)) { sendMsg(chatId, "⚠️ A raid is already running here. End it with /raidstop first."); return; }
   bot.sendMessage(chatId, raidText(url, 0), { parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(url) })
-    .then(function(sent){ activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now() }); })
+    .then(function(sent){ activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now(), baseCount: 0 }); })
     .catch(function(e){ console.error("[Raid] start:", e.message); });
 }
+// Rebuild a raid from its own message so the buttons keep working after the bot
+// restarts (in-memory state is lost on redeploy, but the message persists). Reads
+// the post URL from the "Open Post" button and the running count from the text.
+function reviveRaid(m){
+  if (!m || !m.reply_markup || !m.reply_markup.inline_keyboard) return null;
+  var url = null;
+  m.reply_markup.inline_keyboard.forEach(function(row){ row.forEach(function(b){ if (b.url) url = b.url; }); });
+  if (!url) return null;
+  var base = 0;
+  var mt = (m.text || "").match(/Raiders so far:\s*(\d+)/i);
+  if (mt) base = parseInt(mt[1], 10) || 0;
+  return { url: url, msgId: m.message_id, participants: new Set(), names: new Map(), startedAt: Date.now(), baseCount: base };
+}
+function raidTotal(raid){ return (raid.baseCount || 0) + raid.participants.size; }
 function handleRaidDone(query){
   var chatId = query.message.chat.id;
   var raid = activeRaids.get(chatId);
-  if (!raid){ bot.answerCallbackQuery(query.id, { text: "No active raid right now." }).catch(function(){}); return; }
+  if (!raid){ raid = reviveRaid(query.message); if (raid) activeRaids.set(chatId, raid); }
+  if (!raid){ bot.answerCallbackQuery(query.id, { text: "This raid has ended." }).catch(function(){}); return; }
   var uid = query.from.id;
   var name = query.from.first_name || query.from.username || "raider";
   if (raid.participants.has(uid)){ bot.answerCallbackQuery(query.id, { text: "You already raided — thank you! 🔥" }).catch(function(){}); return; }
   raid.participants.add(uid); raid.names.set(uid, name);
   var sc = raidScores.get(uid) || { name: name, count: 0 }; sc.name = name; sc.count++; raidScores.set(uid, sc);
   bot.answerCallbackQuery(query.id, { text: "🔥 Thanks for raiding, " + name + "!" }).catch(function(){});
-  bot.editMessageText(raidText(raid.url, raid.participants.size), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url) }).catch(function(){});
+  bot.editMessageText(raidText(raid.url, raidTotal(raid)), { chat_id: chatId, message_id: raid.msgId, parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(raid.url) }).catch(function(){});
 }
 function handleRaidCount(query){
-  var raid = activeRaids.get(query.message.chat.id);
-  bot.answerCallbackQuery(query.id, { text: raid ? (raid.participants.size + " raider(s) so far 🔥") : "No active raid." }).catch(function(){});
+  var chatId = query.message.chat.id;
+  var raid = activeRaids.get(chatId);
+  if (!raid){ raid = reviveRaid(query.message); if (raid) activeRaids.set(chatId, raid); }
+  bot.answerCallbackQuery(query.id, { text: raid ? (raidTotal(raid) + " raider(s) so far 🔥") : "This raid has ended." }).catch(function(){});
 }
 function stopRaid(chatId){
   var raid = activeRaids.get(chatId);
   if (!raid){ sendMsg(chatId, "No active raid to stop."); return; }
   activeRaids.delete(chatId);
   var top = Array.from(raid.names.values()).slice(0, 10).map(function(n, i){ return (i + 1) + ". " + n; });
-  sendMsg(chatId, "🏁 *Raid ended!*\n\n👥 Total raiders: *" + raid.participants.size + "*\n\n" + (top.length ? "🔥 Raiders:\n" + top.join("\n") : "No one tapped ✅ this time.") + "\n\nThank you all! 🚀");
+  sendMsg(chatId, "🏁 *Raid ended!*\n\n👥 Total raiders: *" + raidTotal(raid) + "*\n\n" + (top.length ? "🔥 Raiders:\n" + top.join("\n") : "No one tapped ✅ this time.") + "\n\nThank you all! 🚀");
 }
 function showRaidLeaderboard(chatId){
   var arr = Array.from(raidScores.values()).sort(function(a, b){ return b.count - a.count; }).slice(0, 10);
