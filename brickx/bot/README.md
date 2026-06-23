@@ -20,16 +20,26 @@ replies when it's mentioned/replied-to or the message is clearly a question.
 
 | Command | Who | Action |
 |---------|-----|--------|
-| `/raid <link>` | group owner/admins (or `ADMIN_TELEGRAM_IDS`) | Start a raid on an X/Twitter post (posts it with an **✅ I raided** button). |
+| `/raid <link>` | group owner/admins (or `ADMIN_TELEGRAM_IDS`) | Start a raid on an X post (posts it with an **✅ I raided** button). |
 | `/raidstop` | group owner/admins | End the current raid and show total + raiders. |
-| `/raidtop` | everyone | Session leaderboard of top raiders. |
+| `/raidwinners` | group owner/admins | **Top 5 with their submitted post links** — the prize pool ranking. |
+| `/raidtop` | everyone | Leaderboard of top raiders. |
 | `/raidhelp` | everyone | How it works. |
 
-> The group **owner and admins are recognized automatically** (via Telegram), so you
-> don't need to add your own ID to `ADMIN_TELEGRAM_IDS` to start raids in your group.
+> The group **owner and admins are recognized automatically** (via Telegram), and
+> **anonymous** admin posts are supported too — you don't need to add your ID to
+> `ADMIN_TELEGRAM_IDS` to start raids in your group.
 
-Participation is tracked when members tap **✅ I raided**. State is in-memory and
-resets when the bot restarts (fine for short-lived raid events).
+**Prize-pool flow.** A member joins by (1) tapping **✅ I raided**, then (2) **replying
+to the raid message with their own X post link** as proof. `/raidwinners` ranks the
+top 5 by number of raids with a submitted link, and shows each link so you can verify
+the posts before awarding.
+
+**Persistence.** Set `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (same project as the
+backend) and run `backend/migration-006-raid-prize.sql` once — then the leaderboard
+and submissions are stored in the DB and **survive restarts/redeploys**. Without
+those vars, raid tracking is in-memory and resets on restart. Reply-based link
+submissions also require the bot's **privacy mode OFF** (see above).
 
 ## Env
 
