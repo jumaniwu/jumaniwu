@@ -1015,6 +1015,9 @@ async function getLeaderboard(limit){
 
 function startRaid(chatId, url){
   if (activeRaids.has(chatId)) { sendMsg(chatId, "⚠️ A raid is already running here. End it with /raidstop first."); return; }
+  // Starting a new raid always reopens submissions, even if /restart was skipped or
+  // failed after a previous /end — the admin's intent to run a fresh raid is unambiguous.
+  eventActive = true;
   bot.sendMessage(chatId, raidText(url, 0), { parse_mode: "Markdown", disable_web_page_preview: false, reply_markup: raidKb(url, null) })
     .then(function(sent){
       activeRaids.set(chatId, { url: url, msgId: sent.message_id, participants: new Set(), names: new Map(), startedAt: Date.now(), baseCount: 0 });
@@ -1085,7 +1088,7 @@ async function canRaid(msg){
     try {
       var m = await bot.getChatMember(msg.chat.id, msg.from.id);
       return !!m && (m.status === "creator" || m.status === "administrator");
-    } catch (e) { return false; }
+    } catch (e) { console.warn("[Raid] canRaid getChatMember failed:", msg.chat.id, msg.from.id, e.message); return false; }
   }
   return false;
 }
@@ -1105,9 +1108,10 @@ bot.onText(/^\/raidwinners(?:@\w+)?$/i, async function(msg){
 bot.onText(/^\/raidtop(?:@\w+)?$/i, function(msg){ showRaidLeaderboard(msg.chat.id); });
 bot.onText(/^\/raidhelp(?:@\w+)?$/i, function(msg){ sendMsg(msg.chat.id, RAID_HELP); });
 // /end — end the current raid event and announce the Top 5 winners (admins/owner).
-bot.onText(/^\/end\b/i, async function(msg){
+bot.onText(/^\/end(?:@\w+)?\b/i, async function(msg){
   if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can do that."); return; }
   eventActive = false;
+  console.log("[Raid] /end by", msg.from && (msg.from.username || msg.from.id), "in chat", msg.chat.id, "-> eventActive=false");
   activeRaids.delete(msg.chat.id);
   var lb = await getLeaderboard(5);
   if (!lb.rows.length){ sendMsg(msg.chat.id, "🏁 *Raid event ended.* No posts were submitted this time."); return; }
@@ -1116,10 +1120,11 @@ bot.onText(/^\/end\b/i, async function(msg){
   sendMsg(msg.chat.id, "🏁 *RAID EVENT ENDED* 🏁\n\n🎁 *Winners — Top 5:*\n" + lines.join("\n") + "\n\nCongratulations & thank you all for raiding! 🔥\n\n_Admins: /raidwinners for the post links, /restart to start a new event._");
 });
 // /restart — clear the leaderboard and open a fresh raid event (admins/owner).
-bot.onText(/^\/restart\b/i, async function(msg){
+bot.onText(/^\/restart(?:@\w+)?\b/i, async function(msg){
   if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can do that."); return; }
   memPoints.clear(); memUsedLinks.clear(); activeRaids.clear(); pendingSubmit.clear();
   eventActive = true;
+  console.log("[Raid] /restart by", msg.from && (msg.from.username || msg.from.id), "in chat", msg.chat.id, "-> eventActive=true");
   if (raidDb) { try { await raidDb.from("raid_participants").delete().gt("id", 0); } catch (e) { console.warn("[Raid] reset:", e.message); } }
   sendMsg(msg.chat.id, "🔄 *Raid event reset!*\n\nLeaderboard cleared — a fresh event is now open. Start a raid with `/raid <link>`.");
 });
