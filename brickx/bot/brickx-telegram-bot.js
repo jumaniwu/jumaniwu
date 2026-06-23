@@ -246,6 +246,10 @@ const MAIN_KEYBOARD = {
         { text: "🤝 Referral",     callback_data: "cmd_referral" },
         { text: "📞 Support",      callback_data: "cmd_contact" },
       ],
+      [
+        { text: "🎁 Submit Raid Post", callback_data: "raid_submit" },
+        { text: "🏆 Leaderboard",      callback_data: "raid_top" },
+      ],
     ],
   },
 };
@@ -919,6 +923,7 @@ var memPoints    = new Map();   // userId -> { name, points, posts } (in-memory 
 var memUsedLinks = new Set();   // canonical post links already counted (in-memory dedup)
 var pendingSubmit = new Map();  // userId -> { chatId, msgId } : awaiting their X post link via DM
 var POINTS_PER_POST = parseInt(process.env.RAID_POINTS_PER_POST, 10) || 10;
+var eventActive = true;         // /end pauses submissions; /restart clears + reopens
 // Canonicalize an X/Twitter post link for dedup: drop protocol/query/www, twitter→x.
 function canonLink(u){
   try {
@@ -933,7 +938,7 @@ function canonLink(u){
 function raidDeepLink(chatId, msgId){
   return BOT_USERNAME ? ("https://t.me/" + BOT_USERNAME + "?start=raid_" + chatId + "_" + msgId) : null;
 }
-var RAID_HELP = "🔥 *Raid Bot* — earn points, win the 🎁 prize pool.\n\n*How to earn (everyone):*\n1. Like + RT + comment the raid post, tap *✅ I raided*\n2. Tap *🎁 Submit my post* → send YOUR X post link to the bot in DM\n3. Each unique post = *" + POINTS_PER_POST + " points* (same link can't be reused)\n• `/raidtop` — points leaderboard\n\n*Admins:*\n• `/raid <link>` — start a raid\n• `/raidstop` — end it\n• `/raidwinners` — top 5 by points (with their post links)\n\nSubmissions go to the bot in DM — the group stays clean.";
+var RAID_HELP = "🔥 *Raid Bot* — earn points, win the 🎁 prize pool.\n\n*How to earn (everyone):*\n1. Like + RT + comment the raid post, tap *✅ I raided*\n2. Tap *🎁 Submit my post* → send YOUR X post link to the bot in DM\n3. Each unique post = *" + POINTS_PER_POST + " points* (same link can't be reused)\n\nOr in DM, use the menu buttons *🎁 Submit Raid Post* and *🏆 Leaderboard* (type /start).\n• `/raidtop` — points leaderboard\n\n*Admins / owner:*\n• `/raid <link>` — start a raid on a post\n• `/raidstop` — stop the current raid post\n• `/end` — end the event + announce Top 5 winners\n• `/restart` — clear the leaderboard, start a fresh event\n• `/raidwinners` — Top 5 by points (with post links)\n\nSubmissions go to the bot in DM — the group stays clean.";
 
 function raidText(url, count){
   return "🔥 *RAID TIME!* 🔥\n\nBoost BRICKX on X 🚀\n\n👉 *Like + Retweet + Comment* on this post:\n" + url + "\n\n*Join the 🎁 prize pool:*\n1️⃣ Tap *✅ I raided* below\n2️⃣ Tap *🎁 Submit my post* and send your X post link to me in DM\n\n👥 *Raiders so far: " + count + "*";
@@ -1064,7 +1069,7 @@ async function showRaidLeaderboard(chatId){
   if (!lb.rows.length){ sendMsg(chatId, "No posts submitted yet. Join a raid: tap *✅ I raided* then *🎁 Submit my post* and send your X post link in DM (" + POINTS_PER_POST + " pts each)."); return; }
   var medals = ["🥇","🥈","🥉"];
   var lines = lb.rows.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " " + s.name + " — *" + s.points + " pts* (" + s.posts + " post" + (s.posts === 1 ? "" : "s") + ")"; });
-  sendMsg(chatId, "🏆 *Raid Leaderboard* (" + POINTS_PER_POST + " pts / post)\n\n" + lines.join("\n") + (lb.persistent ? "" : "\n\n_In-memory — set Supabase to keep it permanent._"));
+  sendMsg(chatId, "🏆 *Raid Leaderboard* (" + POINTS_PER_POST + " pts / post)\n\n" + lines.join("\n"));
 }
 
 // Who can run raids: the configured bot admins (ADMIN_TELEGRAM_IDS) OR the Telegram
@@ -1095,10 +1100,29 @@ bot.onText(/^\/raidwinners(?:@\w+)?$/i, async function(msg){
   if (!lb.rows.length){ sendMsg(msg.chat.id, "No posts submitted yet. Members earn points by submitting their X post link in DM."); return; }
   var medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
   var lines = lb.rows.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " *" + s.name + "* — " + s.points + " pts (" + s.posts + " posts)" + (s.lastPost ? "\n   " + s.lastPost : ""); });
-  sendMsg(msg.chat.id, "🎁 *Prize Pool — Top 5 by points*\n\n" + lines.join("\n\n") + "\n\n_" + POINTS_PER_POST + " pts per unique post. Verify the posts before awarding._" + (lb.persistent ? "" : "\n⚠️ In-memory — set Supabase to keep this across restarts."), { disable_web_page_preview: true });
+  sendMsg(msg.chat.id, "🎁 *Prize Pool — Top 5 by points*\n\n" + lines.join("\n\n") + "\n\n_" + POINTS_PER_POST + " pts per unique post. Verify the posts before awarding._", { disable_web_page_preview: true });
 });
 bot.onText(/^\/raidtop(?:@\w+)?$/i, function(msg){ showRaidLeaderboard(msg.chat.id); });
 bot.onText(/^\/raidhelp(?:@\w+)?$/i, function(msg){ sendMsg(msg.chat.id, RAID_HELP); });
+// /end — end the current raid event and announce the Top 5 winners (admins/owner).
+bot.onText(/^\/end\b/i, async function(msg){
+  if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can do that."); return; }
+  eventActive = false;
+  activeRaids.delete(msg.chat.id);
+  var lb = await getLeaderboard(5);
+  if (!lb.rows.length){ sendMsg(msg.chat.id, "🏁 *Raid event ended.* No posts were submitted this time."); return; }
+  var medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
+  var lines = lb.rows.map(function(s, i){ return (medals[i] || (i + 1) + ".") + " *" + s.name + "* — " + s.points + " pts (" + s.posts + " posts)"; });
+  sendMsg(msg.chat.id, "🏁 *RAID EVENT ENDED* 🏁\n\n🎁 *Winners — Top 5:*\n" + lines.join("\n") + "\n\nCongratulations & thank you all for raiding! 🔥\n\n_Admins: /raidwinners for the post links, /restart to start a new event._");
+});
+// /restart — clear the leaderboard and open a fresh raid event (admins/owner).
+bot.onText(/^\/restart\b/i, async function(msg){
+  if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can do that."); return; }
+  memPoints.clear(); memUsedLinks.clear(); activeRaids.clear(); pendingSubmit.clear();
+  eventActive = true;
+  if (raidDb) { try { await raidDb.from("raid_participants").delete().gt("id", 0); } catch (e) { console.warn("[Raid] reset:", e.message); } }
+  sendMsg(msg.chat.id, "🔄 *Raid event reset!*\n\nLeaderboard cleared — a fresh event is now open. Start a raid with `/raid <link>`.");
+});
 bot.onText(/^\/raid(?:@\w+)?(?:\s+(\S+))?$/i, async function(msg, match){
   if (!(await canRaid(msg))){ sendMsg(msg.chat.id, "🔒 Only the group owner/admins can start a raid."); return; }
   var url = (match && match[1] || "").trim();
@@ -1130,6 +1154,7 @@ bot.on("message", function(msg) {
   if (msg.chat.type === "private") {
     var pend = pendingSubmit.get(msg.from.id);
     if (pend) {
+      if (!eventActive) { pendingSubmit.delete(msg.from.id); sendMsg(chatId, "🏁 The raid event has ended — submissions are closed. Thanks for taking part!"); return; }
       var link = canonLink(extractXLink(msg.text) || msg.text);
       if (!link) { sendMsg(chatId, "That doesn't look like an X post link. Please paste your post URL, e.g. https://x.com/you/status/123456"); return; }
       recordSubmit({ chatId: pend.chatId, messageId: pend.msgId, userId: msg.from.id,
@@ -1167,6 +1192,18 @@ bot.on("callback_query", async function(query) {
   // Raid buttons answer with their own custom text — handle before the generic ack.
   if (data === "raid_done")  { handleRaidDone(query);  return; }
   if (data === "raid_count") { handleRaidCount(query); return; }
+  if (data === "raid_top")   { bot.answerCallbackQuery(query.id).catch(function(){}); showRaidLeaderboard(chatId); return; }
+  if (data === "raid_submit") {
+    if (!eventActive) { bot.answerCallbackQuery(query.id, { text: "The raid event has ended — submissions are closed.", show_alert: true }).catch(function(){}); return; }
+    if (query.message.chat.type === "private") {
+      pendingSubmit.set(query.from.id, { chatId: 0, msgId: 0 });
+      bot.answerCallbackQuery(query.id).catch(function(){});
+      sendMsg(chatId, "🎁 Paste the link to *your X post* about BRICKX here to earn " + POINTS_PER_POST + " points.\n(Make sure you liked + retweeted + commented first.)");
+    } else {
+      bot.answerCallbackQuery(query.id, { text: "Open me in private chat (DM) and tap 🎁 Submit to send your post 🙂", show_alert: true }).catch(function(){});
+    }
+    return;
+  }
 
   bot.answerCallbackQuery(query.id).catch(function(){});
 
