@@ -150,7 +150,7 @@ main{flex:1;position:relative;z-index:1;display:flex;align-items:center;justify-
 footer{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);padding:20px;text-align:center;font-size:11px;color:var(--dim)}
 
 /* TOAST */
-#toast{position:fixed;bottom:20px;right:16px;z-index:999;border-radius:11px;padding:11px 16px;font-size:12px;font-weight:600;display:none;align-items:center;gap:7px;max-width:280px;animation:fadeUp .3s ease}
+#toast{position:fixed;top:16px;right:16px;z-index:999;border-radius:11px;padding:11px 16px;font-size:12px;font-weight:600;display:none;align-items:center;gap:7px;max-width:280px;animation:fadeUp .3s ease}
 #toast.show{display:flex}
 
 /* SCAN LINE (aesthetic) */
@@ -275,7 +275,7 @@ footer{border-top-color:var(--border)}
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div style="font-size:15px;font-weight:800;color:var(--white)">Create Your Account</div>
-        <div style="font-size:10px;color:var(--muted)">Free · KYC next</div>
+        <div style="font-size:10px;color:var(--muted)">Free · 60 seconds</div>
       </div>
 
       <div class="form-row">
@@ -539,7 +539,7 @@ function onVerified(j) {
   window._continueUrl = token ? (APP_URL + '/#token=' + encodeURIComponent(token)) : APP_URL;
   const contBtn = document.getElementById('continue-btn');
   if (contBtn) contBtn.style.display = 'block';
-  showToast('✅ Email verified! Continue to complete your KYC.', 'success');
+  showToast('✅ Email verified! Your account is ready.', 'success');
 }
 
 function verifyOtp() {
