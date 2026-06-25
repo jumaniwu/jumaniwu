@@ -13,7 +13,7 @@ Southeast Asia focus. Two-phase model. Annual dividend (June each year).
 - Auth: JWT + bcryptjs
 - KYC: Sumsub
 - Email: Resend
-- Payment Detection: Polygon RPC auto-detect
+- Payment Detection: Polygon + BNB Smart Chain RPC auto-detect
 - Deploy: Vercel (frontend) + Railway (backend)
 
 ## TWO-PHASE STRATEGY (CRITICAL — never change)
@@ -22,7 +22,7 @@ Southeast Asia focus. Two-phase model. Annual dividend (June each year).
 - Total raise target: $2,000,000 USD
 - BRX total supply: 1,000,000,000 (fixed forever)
 - Min investment: $100 | Max: $50,000 per wallet
-- Payment: USDT/USDC (Polygon), ETH, BNB
+- Payment: USDT/USDC (Polygon), USDT (BNB Smart Chain), ETH, BNB
 
 ### Phase 2: Hotel Token (After ICO)
 - Acquire existing operating hotel in Batam, Indonesia
@@ -149,10 +149,12 @@ ADMIN_EMAIL=admin@brickxprotocol.io
 SUMSUB_APP_TOKEN=
 SUMSUB_SECRET_KEY=
 POLYGON_RPC_URL=https://polygon-rpc.com
+BSC_RPC_URL=https://bsc-dataseed.binance.org
 TREASURY_USDT_POLYGON=
 TREASURY_USDC_POLYGON=
 TREASURY_ETH=
 TREASURY_BNB=
+TREASURY_USDT_BSC=
 BRX_TOKEN_ADDRESS=
 BRICK_TOKEN_ADDRESS=
 ICO_VAULT_ADDRESS=

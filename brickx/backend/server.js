@@ -72,7 +72,7 @@ if (!/^https:\/\/[^\s/]+\.supabase\.co\/?$/i.test(process.env.SUPABASE_URL)) {
 const RECOMMENDED_ENV = [
   'RESEND_API_KEY',
   'SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET',
-  'TREASURY_USDT_POLYGON', 'TREASURY_USDC_POLYGON', 'TREASURY_ETH', 'TREASURY_BNB',
+  'TREASURY_USDT_POLYGON', 'TREASURY_USDC_POLYGON', 'TREASURY_ETH', 'TREASURY_BNB', 'TREASURY_USDT_BSC',
 ];
 RECOMMENDED_ENV.filter(k => !process.env[k]).forEach(k => {
   console.warn(`[Startup] WARN — environment variable ${k} not set (related feature disabled or degraded)`);
@@ -166,6 +166,7 @@ const TREASURY = {
   usdc_polygon: process.env.TREASURY_USDC_POLYGON || '',
   eth_mainnet:  process.env.TREASURY_ETH          || '',
   bnb_chain:    process.env.TREASURY_BNB           || '',
+  usdt_bsc:     process.env.TREASURY_USDT_BSC      || '',
 };
 
 // Token contract addresses (set after deployment)
@@ -939,6 +940,7 @@ app.post('/api/ico/order', auth, async (req, res) => {
     const cryptoMap = {
       'USDT/Polygon': TREASURY.usdt_polygon,
       'USDC/Polygon': TREASURY.usdc_polygon,
+      'USDT/BSC':     TREASURY.usdt_bsc,
       'ETH':          TREASURY.eth_mainnet,
       'BNB':          TREASURY.bnb_chain,
     };
@@ -1928,10 +1930,13 @@ async function activateReferral(referredUserId) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// BLOCKCHAIN PAYMENT MONITOR — POLYGON (Every 3 minutes)
+// BLOCKCHAIN PAYMENT MONITOR — POLYGON + BNB SMART CHAIN (every 3 minutes)
 // ════════════════════════════════════════════════════════════════
 const polygonProvider = new ethers.providers.JsonRpcProvider(
   process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com'
+);
+const bscProvider = new ethers.providers.JsonRpcProvider(
+  process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org'
 );
 
 // USDT & USDC ABI (Transfer event)
@@ -1939,38 +1944,40 @@ const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 ];
 
-// Each entry is one ERC-20 contract to watch. Both USDC variants are listed
-// because most wallets now send native USDC, not the older bridged USDC.e.
+// Each entry is one ERC-20 contract to watch, tagged with the order currency it
+// settles and the treasury address that receives it. Both Polygon USDC variants
+// are listed because most wallets now send native USDC, not the older bridged USDC.e.
 const POLYGON_TOKENS = [
-  { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6 }, // USDT
-  { symbol: 'USDC', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6 }, // bridged USDC.e
-  { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359', decimals: 6 }, // native USDC
+  { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6,  currency: 'USDT/Polygon', treasury: TREASURY.usdt_polygon },
+  { symbol: 'USDC', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6,  currency: 'USDC/Polygon', treasury: TREASURY.usdc_polygon }, // bridged USDC.e
+  { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359', decimals: 6,  currency: 'USDC/Polygon', treasury: TREASURY.usdc_polygon }, // native USDC
+];
+// Binance-Peg BSC-USD (USDT on BNB Smart Chain) — note 18 decimals, unlike the
+// 6-decimal USDT contracts on Polygon/Ethereum.
+const BSC_TOKENS = [
+  { symbol: 'USDT', address: '0x55d398326f99059fF775485246999027B3197955', decimals: 18, currency: 'USDT/BSC', treasury: TREASURY.usdt_bsc, chainName: 'BNB Smart Chain' },
 ];
 
-async function checkPendingPayments() {
+async function checkChainPayments(provider, tokens, chainName) {
   try {
+    const currencies = [...new Set(tokens.map(t => t.currency))];
     const { data: pending } = await supabase
       .from('ico_orders')
       .select('*')
       .eq('status', 'pending_payment')
-      .in('crypto_currency', ['USDT/Polygon', 'USDC/Polygon'])
+      .in('crypto_currency', currencies)
       .gt('created_at', new Date(Date.now() - 72 * 3600000).toISOString()); // Last 72 hours
 
     if (!pending || !pending.length) return;
 
-    const currentBlock = await polygonProvider.getBlockNumber();
+    const currentBlock = await provider.getBlockNumber();
     const fromBlock = currentBlock - 150; // ~5 minutes of blocks
 
-    for (const token of POLYGON_TOKENS) {
-      const { symbol: tokenSymbol, address: tokenAddress, decimals } = token;
-      const contract = new ethers.Contract(tokenAddress, ERC20_ABI, polygonProvider);
-
-      const treasuryAddr = tokenSymbol === 'USDT'
-        ? TREASURY.usdt_polygon
-        : TREASURY.usdc_polygon;
-
+    for (const token of tokens) {
+      const { symbol: tokenSymbol, address: tokenAddress, decimals, currency, treasury: treasuryAddr } = token;
       if (!treasuryAddr || !ethers.utils.isAddress(treasuryAddr)) continue;
 
+      const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
       const filter = contract.filters.Transfer(null, treasuryAddr);
       const events = await contract.queryFilter(filter, fromBlock, currentBlock);
 
@@ -1985,7 +1992,7 @@ async function checkPendingPayments() {
         // match the amount but come from a different address (e.g. an exchange)
         // are deliberately left pending for the admin to confirm manually.
         const matchingOrder = pending.find(o => {
-          if (!o.crypto_currency.includes(tokenSymbol)) return false;
+          if (o.crypto_currency !== currency) return false;
           const pct = Math.abs(o.usd_amount - valueUSD) / o.usd_amount;
           if (pct >= 0.01) return false;
           return o.wallet_address && o.wallet_address.toLowerCase() === fromAddr;
@@ -2004,7 +2011,7 @@ async function checkPendingPayments() {
           if (user) {
             await sendEmail(user.email, `Order ${matchingOrder.order_id} — Payment Confirmed On-Chain`, `
               <h2>Payment Detected & Confirmed!</h2>
-              <p>Transaction detected on Polygon Network:</p>
+              <p>Transaction detected on ${chainName}:</p>
               <p>Amount: $${valueUSD.toFixed(2)} ${tokenSymbol}<br>
               Tx Hash: ${event.transactionHash}<br>
               BRX Allocated: ${matchingOrder.brx_allocated.toLocaleString()} BRX</p>
@@ -2015,17 +2022,18 @@ async function checkPendingPayments() {
           }
 
           await activateReferral(matchingOrder.user_id);
-          console.log(`[PaymentMonitor] Confirmed: ${matchingOrder.order_id} | $${valueUSD} ${tokenSymbol} | Tx: ${event.transactionHash}`);
+          console.log(`[PaymentMonitor] Confirmed: ${matchingOrder.order_id} | $${valueUSD} ${tokenSymbol} (${chainName}) | Tx: ${event.transactionHash}`);
         }
       }
     }
   } catch (e) {
-    console.error('[PaymentMonitor] Error:', e.message);
+    console.error(`[PaymentMonitor] ${chainName} error:`, e.message);
   }
 }
 
 // Run every 3 minutes
-cron.schedule('*/3 * * * *', checkPendingPayments);
+cron.schedule('*/3 * * * *', () => checkChainPayments(polygonProvider, POLYGON_TOKENS, 'Polygon Network'));
+cron.schedule('*/3 * * * *', () => checkChainPayments(bscProvider, BSC_TOKENS, 'BNB Smart Chain'));
 
 // ── AUTO-EXPIRE STALE PENDING ORDERS ──────────────────────────
 // Unpaid orders reserve capacity (they count toward the round hard cap and the
@@ -2259,8 +2267,7 @@ app.post('/api/whitelist', async (req, res) => {
           ? `The seed sale opens on <strong>${opensTxt}</strong> — mark your calendar.`
           : 'We will email you the moment the seed sale opens.'}</li>
         <li>Create your account at <a href="https://app.brickxprotocol.io" style="color:#3B82F6">app.brickxprotocol.io</a> using this same email address.</li>
-        <li>Complete KYC verification — it takes about 5 minutes.</li>
-        <li>Invest from as little as <strong>$100</strong> — USDT, USDC, ETH, and BNB accepted.</li>
+        <li>Invest from as little as <strong>$100</strong> — USDT (Polygon or BNB Smart Chain), USDC, ETH, and BNB accepted.</li>
       </ol>
       <p>Questions? Our community is here:
       <a href="https://t.me/brickxprotocol" style="color:#3B82F6">t.me/brickxprotocol</a></p>
@@ -2291,7 +2298,7 @@ const server = app.listen(PORT, () => {
   console.log(`📋 Phase 1: BRX ICO — Seed $0.008/BRX | Target: $2,000,000`);
   console.log(`🏨 Phase 2: Hotel Batam — Budget up to $18.5M USD`);
   console.log(`💰 Dividend: Annual, paid June each year (70% NOI → holders)`);
-  console.log(`🔗 Polygon network · USDT/USDC auto-detection every 3 min\n`);
+  console.log(`🔗 Polygon (USDT/USDC) + BNB Smart Chain (USDT) auto-detection every 3 min\n`);
 });
 
 // ── PROCESS-LEVEL SAFETY NETS ─────────────────────────────────

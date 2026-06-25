@@ -202,7 +202,8 @@ const TKNS=[
   {n:"DEX Liq.",v:7,c:"#10B981"},{n:"DAO",v:5,c:"#64748B"},
 ];
 const COUNTRIES=["Indonesia","Malaysia","Singapore","Philippines","Thailand","Vietnam","India","Australia","United States","Other"];
-const CURRENCIES=["USDT/Polygon","USDC/Polygon","ETH","BNB"];
+const CURRENCIES=["USDT/Polygon","USDC/Polygon","USDT/BSC","ETH","BNB"];
+const CURRENCY_NETWORK={"USDT/Polygon":"Polygon","USDC/Polygon":"Polygon","USDT/BSC":"BNB Smart Chain","ETH":"Ethereum","BNB":"BNB Smart Chain"};
 const ROUND_ORDER=["seed","round1","round2","dex"];
 const ROUND_LABEL={seed:"Seed",round1:"Round 1",round2:"Round 2",dex:"DEX Listing"};
 const ORDER_BADGE={pending_payment:{l:"PENDING PAYMENT",c:C.gold},confirmed:{l:"CONFIRMED",c:C.green},distributed:{l:"DISTRIBUTED",c:C.teal}};
@@ -1040,7 +1041,7 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
         </div>
       )}
       <div style={{background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:11,marginBottom:16,fontSize:11,color:C.gold,lineHeight:1.6}}>
-        ⏱ Polygon USDT/USDC payments from your registered wallet are auto-detected within ~5 minutes. Payments from an exchange/other wallet, and ETH/BNB, are confirmed manually within 24 hours.
+        ⏱ Polygon USDT/USDC and BNB Smart Chain USDT payments from your registered wallet are auto-detected within ~5 minutes. Payments from an exchange/other wallet, and ETH/native BNB, are confirmed manually within 24 hours.
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn ch="View Orders" full v="o" onClick={()=>onNav("portfolio")}/>
@@ -1105,7 +1106,7 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
             </div>
           )}
           <div style={{background:C.bg1,borderRadius:11,padding:13,marginBottom:13}}>
-            {[["Price",price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"],["You pay",`$${amt.toLocaleString()} (${currency})`],["You receive",`${brx.toLocaleString()} BRX`],["Min / Max",`$${minInv.toLocaleString()} / $${maxInv.toLocaleString()}`],["Network","Polygon"]].map(([k,v])=>(
+            {[["Price",price!=null?`$${Number(price).toFixed(3)} / BRX`:"—"],["You pay",`$${amt.toLocaleString()} (${currency})`],["You receive",`${brx.toLocaleString()} BRX`],["Min / Max",`$${minInv.toLocaleString()} / $${maxInv.toLocaleString()}`],["Network",CURRENCY_NETWORK[currency]||"Polygon"]].map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid rgba(15,23,42,.07)`,fontSize:12}}>
                 <span style={{color:C.muted}}>{k}</span><span style={{color:C.white,fontWeight:600}}>{v}</span>
               </div>

@@ -42,7 +42,13 @@ Follow the steps **in order**. Do not skip the verification steps.
 3. Set ALL environment variables from `ENV_TEMPLATE.env`. The server **exits at boot** if `JWT_SECRET`, `SUPABASE_URL`, or `SUPABASE_SERVICE_KEY` is missing.
    - `JWT_SECRET`: generate with `openssl rand -hex 32`
    - `SUMSUB_WEBHOOK_SECRET`: required in production or all KYC webhooks are rejected
-   - Treasury addresses: **multisig (Gnosis Safe)**, never a personal wallet
+   - Treasury addresses: **multisig (Gnosis Safe / Safe{Wallet})**, never a personal wallet
+   - `TREASURY_USDT_BSC`: deploy one Safe on **BNB Smart Chain** (app.safe.global → network
+     switcher → BNB Smart Chain → Create new Safe Account, same owners/threshold as your other
+     Safes) and use its address here. The same BSC Safe can also be `TREASURY_BNB` — one Safe on
+     BNB Smart Chain holds both native BNB and any BEP-20 token (USDT included), so one deploy
+     covers both. Without `TREASURY_USDT_BSC` set, the "USDT/BSC" payment option just won't be
+     offered (degrades gracefully, like the other optional treasury vars).
 4. Deploy → open `https://<your-api>/api/health` → must return `status: ok` and `db: ok`.
 5. In Sumsub dashboard: set webhook URL to `https://<your-api>/api/kyc/webhook` and configure the signing secret to match `SUMSUB_WEBHOOK_SECRET`.
 6. Create the first admin: register a normal account via the API, then in Supabase set that user's `is_admin = true`.
