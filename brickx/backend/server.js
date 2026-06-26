@@ -146,6 +146,11 @@ const PHASE = {
   BRX_TOTAL_SUPPLY:  1_000_000_000,
   MIN_INVESTMENT:    100,        // USD
   MAX_INVESTMENT:    50_000,     // USD per wallet per round
+  // KYC is required only once a wallet's CUMULATIVE purchases reach this total.
+  // Below it, buyers can invest with just a wallet. Set KYC_THRESHOLD_USD=0 in the
+  // environment to require KYC on every purchase (original all-or-nothing behaviour).
+  KYC_THRESHOLD_USD: (Number.isFinite(Number(process.env.KYC_THRESHOLD_USD)) && Number(process.env.KYC_THRESHOLD_USD) >= 0)
+    ? Number(process.env.KYC_THRESHOLD_USD) : 10_000,
   REFERRAL_BONUS:    500,        // BRX per referral
 
   // Phase 2: Hotel Token
@@ -789,7 +794,10 @@ function liveRoundConfig(settings) {
     totalTarget:   num(s.ico_total_target_usd, PHASE.ICO_TOTAL_TARGET),
     // KYC gate is admin-toggleable: deferred (false) during the seed raise, then
     // turned on before token distribution. Defaults to required unless explicitly off.
+    // When on, KYC is only enforced for wallets whose cumulative purchases reach
+    // kycThreshold (default $10,000) — smaller buyers need only a wallet.
     kycRequired:   s.kyc_required !== false,
+    kycThreshold:  PHASE.KYC_THRESHOLD_USD,
   };
 }
 
@@ -835,6 +843,7 @@ app.get('/api/ico/info', async (req, res) => {
       saleStartsAt:   cfg.saleStartsAt,
       saleOpen:       cfg.saleOpen,
       kycRequired:    cfg.kycRequired,
+      kycThreshold:   cfg.kycThreshold,
       seedPrice:      cfg.rounds.seed.price,
       round1Price:    cfg.rounds.round1.price,
       round2Price:    cfg.rounds.round2.price,
@@ -877,12 +886,8 @@ app.post('/api/ico/order', auth, async (req, res) => {
     // Sale gate + active round price/cap + KYC requirement come from admin settings
     const { data: settings } = await supabase.from('ico_settings').select('*').single();
     const cfg = liveRoundConfig(settings);
-    // KYC is only enforced for purchases when the admin has it turned on. While it's
-    // deferred (kycRequired=false) users can reserve their allocation now; KYC is then
-    // required before tokens are distributed (see /api/admin/distribute/batch).
-    if (cfg.kycRequired && req.user.kyc_status !== 'approved') {
-      return res.status(403).json({ error: 'KYC must be approved before purchasing. Please complete verification first.' });
-    }
+    // KYC is enforced by cumulative-total threshold below (after we know the wallet's
+    // running total), not up-front — sub-threshold buyers need only a wallet.
     if (!cfg.saleOpen) {
       const when = cfg.saleStartsAt
         ? ` The sale opens at ${cfg.saleStartsAt}.`
@@ -902,18 +907,31 @@ app.post('/api/ico/order', auth, async (req, res) => {
     const pricePerBrx = cfg.rounds[activeRound].price;
     const roundCap    = cfg.rounds[activeRound].cap;
 
-    // Check wallet investment total for this round (max $50,000 per wallet PER ROUND)
+    // Pull the buyer's active orders once: the per-round total enforces the max-per-wallet
+    // cap; the all-rounds total drives the KYC threshold check below.
     const { data: existingOrders } = await supabase
       .from('ico_orders')
-      .select('usd_amount')
+      .select('usd_amount, round')
       .eq('user_id', req.user.id)
-      .eq('round', activeRound)
       .in('status', ['pending_payment', 'confirmed', 'distributed']);
 
-    const alreadyInvested = (existingOrders || []).reduce((s, o) => s + o.usd_amount, 0);
+    const alreadyInvested = (existingOrders || [])
+      .filter(o => o.round === activeRound)
+      .reduce((s, o) => s + o.usd_amount, 0);
     if (alreadyInvested + amount > cfg.maxInvestment) {
       return res.status(400).json({
         error: `Maximum $${cfg.maxInvestment.toLocaleString()} per wallet per round. You have already invested $${alreadyInvested.toLocaleString()} in the ${activeRound} round.`
+      });
+    }
+
+    // KYC threshold: verification is required only once a wallet's CUMULATIVE purchases
+    // (across all rounds) reach kycThreshold. Smaller buyers invest with just a wallet;
+    // KYC kicks in the moment an order would push the lifetime total to/over the threshold.
+    const walletTotalInvested = (existingOrders || []).reduce((s, o) => s + o.usd_amount, 0);
+    if (cfg.kycRequired && req.user.kyc_status !== 'approved'
+        && (walletTotalInvested + amount) >= cfg.kycThreshold) {
+      return res.status(403).json({
+        error: `KYC verification is required once your total purchases reach $${cfg.kycThreshold.toLocaleString()}. You've invested $${walletTotalInvested.toLocaleString()} so far; this order would bring your total to $${(walletTotalInvested + amount).toLocaleString()}. Please complete KYC first, or reduce the amount to stay under $${cfg.kycThreshold.toLocaleString()}.`
       });
     }
 
@@ -1682,6 +1700,7 @@ app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
     // reserved while KYC was deferred.
     const { data: settings } = await supabase.from('ico_settings').select('kyc_required').single();
     const kycRequired = !settings || settings.kyc_required !== false;
+    const kycThreshold = PHASE.KYC_THRESHOLD_USD;
 
     const results = [];
     for (const orderId of orderIds) {
@@ -1693,9 +1712,19 @@ app.post('/api/admin/distribute/batch', adminAuth, async (req, res) => {
         continue;
       }
 
+      // Only buyers whose CUMULATIVE purchases reach the KYC threshold must be verified
+      // before receiving tokens — sub-threshold buyers were allowed to buy without KYC,
+      // so they can be distributed to without it.
       if (kycRequired && (!order.users || order.users.kyc_status !== 'approved')) {
-        results.push({ orderId, success: false, error: 'Buyer KYC not approved — cannot distribute' });
-        continue;
+        const { data: buyerOrders } = await supabase
+          .from('ico_orders').select('usd_amount')
+          .eq('user_id', order.user_id)
+          .in('status', ['pending_payment', 'confirmed', 'distributed']);
+        const buyerTotal = (buyerOrders || []).reduce((s, o) => s + o.usd_amount, 0);
+        if (buyerTotal >= kycThreshold) {
+          results.push({ orderId, success: false, error: `Buyer KYC not approved — total $${buyerTotal.toLocaleString()} is at/over the $${kycThreshold.toLocaleString()} KYC threshold` });
+          continue;
+        }
       }
 
       await supabase.from('ico_orders').update({

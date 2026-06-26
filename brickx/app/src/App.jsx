@@ -716,10 +716,12 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
 
   const notify=useCallback((msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);},[]);
   const kyc=user.kyc_status||"not_started";
-  // Whether KYC is currently required (admin-toggleable). When deferred, we don't nag
-  // users to verify just to invest. Defaults to required until the config loads.
+  // KYC is admin-toggleable and threshold-based: required only once a wallet's total
+  // purchases reach kycThreshold (default $10,000). We don't nag brand-new users to
+  // verify just to invest small amounts. Defaults to required until the config loads.
   const cfg=useLoad(()=>api('/api/ico/info',{auth:false}));
   const kycRequired=cfg.data?.kycRequired!==false;
+  const kycThreshold=cfg.data?.kycThreshold??10000;
 
   if(showKYC)return<KYCScreen user={user} onStatus={onKycStatus} onBack={()=>setShowKYC(false)} refreshUser={refreshUser}/>;
 
@@ -743,10 +745,10 @@ function App2({user,refreshUser,onKycStatus,onLogout}) {
         </div>
       </header>
 
-      {kycRequired&&kyc!=="approved"&&(
+      {kycRequired&&kyc!=="approved"&&kyc!=="not_started"&&(
         <div style={{background:"rgba(245,158,11,.07)",borderBottom:"1px solid rgba(245,158,11,.18)",padding:"9px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-          <div style={{fontSize:12,color:C.gold}}>⚠ {kyc==="pending"?"KYC under review — investing unlocks once approved":kyc==="needs_update"?"Action needed — please re-upload your KYC documents":"Complete KYC to invest"}</div>
-          <Btn ch={kyc==="pending"?"Status →":kyc==="needs_update"?"Fix →":"Verify →"} v="bgold" sz="sm" onClick={()=>setShowKYC(true)}/>
+          <div style={{fontSize:12,color:C.gold}}>⚠ {kyc==="pending"?`KYC under review — purchases of $${kycThreshold.toLocaleString()}+ unlock once approved`:kyc==="needs_update"?"Action needed — please re-upload your KYC documents":"Finish your KYC verification"}</div>
+          <Btn ch={kyc==="pending"?"Status →":kyc==="needs_update"?"Fix →":"Continue →"} v="bgold" sz="sm" onClick={()=>setShowKYC(true)}/>
         </div>
       )}
       <div style={{background:"rgba(20,184,166,.05)",borderBottom:"1px solid rgba(20,184,166,.1)",padding:"7px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
@@ -786,7 +788,7 @@ function Home({user,onNav,onKYC}) {
         <p style={{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:13}}>Phase 1: BRX ICO funds the protocol. Phase 2: BRICK property tokens at a fixed $10.00, paying 70% of audited hotel NOI each June.</p>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn ch="🚀 Buy BRX" v="p" sz="md" onClick={()=>onNav("ico")}/>
-          {i?.kycRequired!==false&&user.kyc_status!=="approved"&&<Btn ch="⚠ Complete KYC" v="bgold" sz="md" onClick={onKYC}/>}
+          {i?.kycRequired!==false&&user.kyc_status!=="approved"&&<Btn ch="🛡 Verify identity (KYC)" v="bgold" sz="md" onClick={onKYC}/>}
         </div>
       </div>
 
@@ -954,6 +956,7 @@ function SaleGate({status,startsAt,onOpen}) {
 // ── ICO PAGE ──────────────────────────────────────────────────
 function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
   const info=useLoad(()=>api('/api/ico/info',{auth:false}));
+  const orders=useLoad(()=>api('/api/ico/orders'));
   const [amt,setAmt]=useState(100);
   const [currency,setCurrency]=useState(CURRENCIES[0]);
   const [step,setStep]=useState("form"); // form | confirm | payment
@@ -974,10 +977,19 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
   const saleOpen=!!i?.saleOpen;
   const saleStartsAt=i?.saleStartsAt||null;
 
-  // Admin can defer KYC during the seed raise; when deferred, buying needs only a
-  // wallet. KYC is still enforced before tokens are distributed.
+  // KYC is required only once a wallet's CUMULATIVE purchases reach the threshold
+  // (default $10,000). Below that, buying needs only a wallet. Full KYC is still
+  // enforced before tokens are distributed to threshold-crossing buyers. (Admin can
+  // also fully defer KYC during the seed raise via kycRequired=false.)
   const kycRequired=i?.kycRequired!==false;
-  const kycOk=!kycRequired||user.kyc_status==="approved";
+  const kycThreshold=i?.kycThreshold??10000;
+  const priorInvested=(orders.data?.orders||[])
+    .filter(o=>["pending_payment","confirmed","distributed"].includes(o.status))
+    .reduce((s,o)=>s+Number(o.usd_amount||0),0);
+  const kycApproved=user.kyc_status==="approved";
+  // This order would push the wallet's lifetime total to/over the threshold.
+  const needsKyc=kycRequired&&(priorInvested+amt)>=kycThreshold;
+  const kycOk=!needsKyc||kycApproved;
   const walletOk=!!user.wallet_address&&WALLET_RX.test(user.wallet_address);
   const can=kycOk&&walletOk;
 
@@ -1093,6 +1105,13 @@ function ICOPage({user,notify,onKYC,onNav,refreshUser}) {
             {[100,1000,5000,50000].map(n=><Btn key={n} ch={`$${n>=1000?n/1000+"K":n}`} v={amt===n?"p":"g"} sz="sm" onClick={()=>setAmt(n)}/>)}
           </div>
           <SelField label="Pay With" val={currency} set={setCurrency} opts={CURRENCIES}/>
+          {kycRequired&&!kycApproved&&(
+            <div style={{fontSize:11,color:needsKyc?C.gold:C.muted,marginBottom:13,lineHeight:1.6}}>
+              {needsKyc
+                ? `⚠ This brings your total to $${(priorInvested+amt).toLocaleString()} — KYC verification is required from $${kycThreshold.toLocaleString()} and up.`
+                : `ℹ Purchases up to $${kycThreshold.toLocaleString()} total need only a wallet. KYC is required once your total reaches $${kycThreshold.toLocaleString()}.`}
+            </div>
+          )}
           {kycOk&&!walletOk&&(
             <div style={{marginBottom:13}}>
               <Field label="Your Polygon Wallet Address" val={wallet} set={v=>{setWallet(v);setWErr(null);}} ph="0x… (where your BRX will be sent)" icon="🔗" err={wErr} req
@@ -1454,7 +1473,7 @@ function Account({user,refreshUser,onKYC,notify,onLogout}) {
         <div style={{background:`${KYC_C[kyc]}10`,border:`1px solid ${KYC_C[kyc]}33`,borderRadius:11,padding:18,textAlign:"center",marginBottom:13}}>
           <div style={{fontSize:34,marginBottom:5}}>{kyc==="not_started"?"⭕":(kyc==="pending"||kyc==="in_progress")?"⏳":kyc==="approved"?"✅":"❌"}</div>
           <div style={{fontSize:14,fontWeight:800,color:KYC_C[kyc]||C.muted,marginBottom:3}}>{KYC_LBL[kyc]||"Unknown"}</div>
-          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Complete KYC to unlock investing.":kyc==="in_progress"?"Continue your verification to unlock investing.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest in the ICO.":"Please restart verification."}</div>
+          <div style={{fontSize:11,color:C.muted}}>{kyc==="not_started"?"Required for larger investments — smaller purchases need only a wallet.":kyc==="in_progress"?"Continue your verification to unlock larger investments.":kyc==="pending"?"Your verification is being reviewed.":kyc==="approved"?"You can invest any amount in the ICO.":"Please restart verification."}</div>
         </div>
         <div>
           {kyc==="approved"

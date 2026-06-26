@@ -36,16 +36,34 @@ describe("POST /api/ico/order (gates)", () => {
     expect(r.status).toBe(401);
   });
 
-  test("403 when KYC is not approved", async () => {
+  test("403 when a purchase at/over the KYC threshold needs KYC and it's not approved", async () => {
     global.__SB_QUEUE__ = [
-      { data: { id: "u1", is_active: true, kyc_status: "not_started", wallet_address: "0x" + "1".repeat(40) }, error: null },
+      { data: { id: "u1", is_active: true, kyc_status: "not_started", wallet_address: "0x" + "1".repeat(40) }, error: null }, // auth lookup
+      { data: { sale_status: "live", active_round: "seed", kyc_required: true }, error: null }, // ico_settings
+      { data: [], error: null }, // buyer's existing orders (none)
+    ];
+    const r = await request(app)
+      .post("/api/ico/order")
+      .set("Authorization", `Bearer ${tokenFor("u1")}`)
+      .send({ usdAmount: 10000, cryptoCurrency: "USDC" });
+    expect(r.status).toBe(403);
+    expect(r.body.error).toMatch(/KYC/i);
+  });
+
+  test("allows a sub-threshold purchase ($100) without KYC", async () => {
+    global.__SB_QUEUE__ = [
+      { data: { id: "u1", email: "u1@test.com", is_active: true, kyc_status: "not_started", wallet_address: "0x" + "1".repeat(40) }, error: null }, // auth lookup
+      { data: { sale_status: "live", active_round: "seed", kyc_required: true }, error: null }, // ico_settings
+      { data: [], error: null }, // existing orders (per-wallet + cumulative total)
+      { data: [], error: null }, // round orders (hard-cap check)
+      { data: { order_id: "ORD-1" }, error: null }, // inserted order
     ];
     const r = await request(app)
       .post("/api/ico/order")
       .set("Authorization", `Bearer ${tokenFor("u1")}`)
       .send({ usdAmount: 100, cryptoCurrency: "USDC" });
-    expect(r.status).toBe(403);
-    expect(r.body.error).toMatch(/KYC/i);
+    expect(r.status).toBe(201);
+    expect(r.body.brxAllocated).toBeGreaterThan(0);
   });
 
   test("400 when wallet address is missing", async () => {
