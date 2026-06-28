@@ -317,7 +317,7 @@ app.get('/api/health', async (req, res) => {
 // POST /api/auth/register
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, country, referralCode, acceptedTerms } = req.body;
+    const { firstName, lastName, email, password, country, referralCode, acceptedTerms, walletAddress } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'All fields required' });
@@ -331,6 +331,12 @@ app.post('/api/auth/register', async (req, res) => {
     if (acceptedTerms !== true) {
       return res.status(400).json({ error: 'You must accept the Terms of Sale and Risk Disclosure to register' });
     }
+    // A Polygon wallet is mandatory at signup — it's where BRX (and later BRICK
+    // dividends) are sent. WALLET_RX = /^0x[a-fA-F0-9]{40}$/.
+    if (!walletAddress || !WALLET_RX.test(String(walletAddress).trim())) {
+      return res.status(400).json({ error: 'A valid Polygon wallet address (0x followed by 40 hex characters) is required to register.' });
+    }
+    const wallet = String(walletAddress).trim();
     if (country && RESTRICTED_COUNTRIES.includes(String(country).trim().toLowerCase())) {
       return res.status(403).json({ error: 'Registration is not available in your jurisdiction.' });
     }
@@ -342,6 +348,14 @@ app.post('/api/auth/register', async (req, res) => {
     if (existing && existing.password_hash !== 'WHITELIST_PENDING') {
       return res.status(409).json({ error: 'Unable to register with this email' });
     }
+
+    // Wallet must be unique across accounts (it's the BRX/dividend payout address).
+    const { data: walletOwner } = await supabase
+      .from('users').select('id').eq('wallet_address', wallet).single();
+    if (walletOwner && (!existing || walletOwner.id !== existing.id)) {
+      return res.status(409).json({ error: 'This wallet address is already registered to another account.' });
+    }
+
     if (existing) {
       const passwordHash = await bcrypt.hash(password, 12);
       const { data: upgraded, error: upErr } = await supabase.from('users').update({
@@ -349,6 +363,7 @@ app.post('/api/auth/register', async (req, res) => {
         last_name:      lastName,
         password_hash:  passwordHash,
         country:        country || '',
+        wallet_address: wallet,
         is_active:      true,
         email_verified: false,
       }).eq('id', existing.id).select().single();
@@ -381,6 +396,7 @@ app.post('/api/auth/register', async (req, res) => {
         email:         email.toLowerCase(),
         password_hash: passwordHash,
         country:       country || '',
+        wallet_address: wallet,
         kyc_status:    'not_started',
         referral_code: myReferralCode,
         referred_by:   referredBy,

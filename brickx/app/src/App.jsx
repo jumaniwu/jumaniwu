@@ -324,7 +324,7 @@ function Auth({onAuth}) {
   const [step,setStep]=useState(1);
   const [ld,setLd]=useState(false);
   const [errs,setErrs]=useState({});
-  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",ref:urlRef,accept:false});
+  const [f,setF]=useState({email:"",pw:"",pw2:"",fn:"",ln:"",country:"Indonesia",wallet:"",ref:urlRef,accept:false});
   const [otp,setOtp]=useState(null); // { email } when an OTP step is required
   const [code,setCode]=useState("");
   const [note,setNote]=useState("");
@@ -341,6 +341,8 @@ function Auth({onAuth}) {
     const e={};
     if(!f.fn.trim())e.fn="Required";
     if(!f.ln.trim())e.ln="Required";
+    if(!f.wallet.trim())e.wallet="Required";
+    else if(!WALLET_RX.test(f.wallet.trim()))e.wallet="Invalid address — must be 0x + 40 hex characters";
     if(!f.accept)e.accept="You must accept the Terms & Risk Disclosure";
     setErrs(e);return !Object.keys(e).length;
   };
@@ -364,7 +366,7 @@ function Auth({onAuth}) {
     try{
       const d=await api('/api/auth/register',{method:'POST',auth:false,body:{
         firstName:f.fn.trim(),lastName:f.ln.trim(),email:f.email,password:f.pw,
-        country:f.country,referralCode:f.ref.trim()||undefined,acceptedTerms:f.accept,
+        country:f.country,walletAddress:f.wallet.trim(),referralCode:f.ref.trim()||undefined,acceptedTerms:f.accept,
       }});
       finishAuth(d);
     }catch(e){setErrs({form:e.message});}
@@ -443,6 +445,8 @@ function Auth({onAuth}) {
               <Field label="Last Name" val={f.ln} set={v=>s("ln",v)} ph="Doe" err={errs.ln} req/>
             </div>
             <SelField label="Country" val={f.country} set={v=>s("country",v)} opts={COUNTRIES} req/>
+            <Field label="Polygon Wallet Address" val={f.wallet} set={v=>s("wallet",v)} ph="0x… (where your BRX will be sent)" icon="🔗" err={errs.wallet} req
+              note="BRX and future BRICK dividends are sent to this address. Use a self-custody wallet (MetaMask, Trust, etc.) — not an exchange deposit address."/>
             <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:11,color:C.muted,lineHeight:1.5,margin:"4px 0 12px",cursor:"pointer"}}>
               <input type="checkbox" checked={f.accept} onChange={e=>s("accept",e.target.checked)} style={{marginTop:2,accentColor:C.blue,flexShrink:0}}/>
               <span>I have read and accept the <a href="https://brickxprotocol.io/terms.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Terms of Sale</a>, <a href="https://brickxprotocol.io/privacy.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Privacy Policy</a>, and <a href="https://brickxprotocol.io/risk.html" target="_blank" rel="noopener" style={{color:C.blueL}}>Risk Disclosure</a>. I confirm I am not in a restricted jurisdiction.</span>
