@@ -171,6 +171,7 @@ tbody tr:hover td{background:rgba(26,86,219,.04)}
     <button class="sb-btn" id="nav-properties" onclick="nav('properties')">🏠 Properties</button>
     <button class="sb-btn" id="nav-yield" onclick="nav('yield')">💰 Annual Dividend</button>
     <div class="sb-section">System</div>
+    <button class="sb-btn" id="nav-broadcast" onclick="nav('broadcast')">📣 Broadcast Email</button>
     <button class="sb-btn" id="nav-settings" onclick="nav('settings')">⚙️ Settings</button>
     <button class="sb-btn" id="nav-audit" onclick="nav('audit')">📋 Audit Log</button>
   </nav>
@@ -295,7 +296,7 @@ function doLogout() {
 document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
 
 // ─── NAV ──────────────────────────────────────────────────────
-var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',referrals:'Referrals',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Annual Dividend',settings:'System Settings',audit:'Audit Log'};
+var TITLES = {dashboard:'Dashboard',analytics:'Analytics',users:'User Management',kyc:'KYC Queue',wallets:'Wallet Registry',referrals:'Referrals',orders:'ICO Orders',rounds:'ICO Rounds',distribute:'Distribute BRX',properties:'Properties',yield:'Annual Dividend',broadcast:'Broadcast Email',settings:'System Settings',audit:'Audit Log'};
 function nav(p) {
   PAGE = p;
   document.querySelectorAll('.sb-btn').forEach(function(b) { b.classList.remove('on'); });
@@ -305,7 +306,7 @@ function nav(p) {
   var pgEl = document.getElementById('pg');
   pgEl.innerHTML = '';
   pgEl.className = 'content fu';
-  var fn = {dashboard:pgDash,analytics:pgAnalytics,users:pgUsers,kyc:pgKYC,wallets:pgWallets,referrals:pgReferrals,orders:pgOrders,rounds:pgRounds,distribute:pgDistribute,properties:pgProps,yield:pgYield,settings:pgSettings,audit:pgAudit}[p];
+  var fn = {dashboard:pgDash,analytics:pgAnalytics,users:pgUsers,kyc:pgKYC,wallets:pgWallets,referrals:pgReferrals,orders:pgOrders,rounds:pgRounds,distribute:pgDistribute,properties:pgProps,yield:pgYield,broadcast:pgBroadcast,settings:pgSettings,audit:pgAudit}[p];
   if (fn) fn();
   if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
 }
@@ -1107,6 +1108,60 @@ function submitDividend() {
     })
     .catch(function(e) { toast('Distribution failed: ' + e.message,'error'); })
     .then(function() { b.disabled = false; b.textContent = '💰 Calculate & Distribute'; });
+}
+
+function pgBroadcast() {
+  add(secHdr('Broadcast Email', 'Send an announcement to every active user, or a private email to one address. Sent via Resend — each recipient is emailed individually, so they never see one another.'));
+
+  var mode = 'all';
+  var card = mk('div',{cls:'card',css:'max-width:640px'});
+
+  var allBtn = mk('button',{cls:'btn bsm',txt:'📣 All active users'});
+  var oneBtn = mk('button',{cls:'btn bsm',txt:'✉ Specific email'});
+  var toggle = d('display:flex;gap:8px'); ap(toggle, allBtn, oneBtn);
+  var hint = t('div','font-size:11px;color:var(--muted);margin:6px 0 14px','');
+
+  var emailInp = mk('input',{cls:'inp',type:'email',placeholder:'recipient@example.com'});
+  var emailRow = field('Recipient email', emailInp);
+  var subjInp = mk('input',{cls:'inp',placeholder:'e.g. BRX Seed Sale is now LIVE',maxlength:'200'});
+  var msgTa = mk('textarea',{cls:'inp',css:'min-height:160px;resize:vertical;font-family:var(--f)',placeholder:'Write your message — plain text, line breaks are preserved.'});
+  var sendBtn = btn('Send Email','bp',function(){ doBroadcast(mode, emailInp, subjInp, msgTa, sendBtn); });
+
+  function paint() {
+    allBtn.style.cssText = 'background:'+(mode==='all'?'var(--blue)':'rgba(255,255,255,.05)')+';color:'+(mode==='all'?'#fff':'var(--muted)')+';border:1px solid '+(mode==='all'?'var(--blue)':'rgba(255,255,255,.18)');
+    oneBtn.style.cssText = 'background:'+(mode==='single'?'var(--blue)':'rgba(255,255,255,.05)')+';color:'+(mode==='single'?'#fff':'var(--muted)')+';border:1px solid '+(mode==='single'?'var(--blue)':'rgba(255,255,255,.18)');
+    emailRow.style.display = mode==='single' ? 'block' : 'none';
+    hint.textContent = mode==='all' ? 'Goes to every active registered account.' : 'Private — only this one address receives it.';
+  }
+  allBtn.onclick = function(){ mode='all'; paint(); };
+  oneBtn.onclick = function(){ mode='single'; paint(); };
+
+  ap(card, field('Audience', toggle), hint, emailRow, field('Subject', subjInp), field('Message', msgTa), sendBtn);
+  add(card);
+  paint();
+}
+function doBroadcast(mode, emailInp, subjInp, msgTa, sendBtn) {
+  var subject = (subjInp.value || '').trim();
+  var message = (msgTa.value || '').trim();
+  var email   = (emailInp.value || '').trim();
+  if (!subject || !message) { toast('Subject and message are both required.', 'warn'); return; }
+  if (mode === 'single') {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Enter a valid recipient email.', 'warn'); return; }
+    if (!confirm('Send this email privately to ' + email + '?')) return;
+  } else {
+    if (!confirm('Send this email to ALL active users? This goes out immediately and cannot be undone.')) return;
+  }
+  sendBtn.disabled = true;
+  var orig = sendBtn.textContent;
+  sendBtn.textContent = 'Sending…';
+  api('/api/admin/broadcast', { method: 'POST', body: { mode: mode, email: email, subject: subject, message: message } })
+    .then(function(r) {
+      toast('✅ Sent ' + num(r.sent) + (r.failed ? (' · ' + num(r.failed) + ' failed') : '') + ' of ' + num(r.total) + '.', 'success');
+      subjInp.value = ''; msgTa.value = '';
+      if (mode === 'single') emailInp.value = '';
+    })
+    .catch(function(e) { toast('Send failed: ' + e.message, 'error'); })
+    .then(function() { sendBtn.disabled = false; sendBtn.textContent = orig; });
 }
 
 function pgSettings() {

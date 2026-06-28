@@ -1427,6 +1427,66 @@ app.get('/api/admin/referrals', adminAuth, async (req, res) => {
   }
 });
 
+// POST /api/admin/broadcast — email all active users, or privately to one address.
+// mode='all' emails every active account; each message is sent individually so
+// recipients never see one another (no shared To/CC). mode='single' sends to one
+// address (registered or not). Audit-logged with the send/fail counts.
+app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
+  try {
+    const { mode, email, subject, message } = req.body || {};
+    const subj = (subject || '').trim();
+    const msg  = (message || '').trim();
+    if (!subj || !msg) return res.status(400).json({ error: 'Subject and message are both required.' });
+    if (subj.length > 200) return res.status(400).json({ error: 'Subject is too long (max 200 characters).' });
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_key') {
+      return res.status(400).json({ error: 'Email sending is not configured. Set RESEND_API_KEY (and EMAIL_FROM) in the backend env first.' });
+    }
+
+    // Admin types plain text → escape it, then turn newlines into <br> so the
+    // shared email template renders it safely (no HTML injection from the form).
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = `<p>${esc(msg).replace(/\n/g, '<br>')}</p>`;
+
+    let recipients = [];
+    if (mode === 'single') {
+      const to = (email || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+        return res.status(400).json({ error: 'Enter a valid recipient email address.' });
+      }
+      recipients = [to];
+    } else if (mode === 'all') {
+      const { data: users } = await supabase.from('users').select('email').eq('is_active', true);
+      recipients = [...new Set((users || []).map(u => (u.email || '').trim().toLowerCase()).filter(Boolean))];
+      if (!recipients.length) return res.status(400).json({ error: 'No active users to email.' });
+    } else {
+      return res.status(400).json({ error: 'Invalid mode — use "all" or "single".' });
+    }
+
+    // Send in small concurrent batches so a large list neither stalls the request
+    // nor trips the email provider's rate limit. sendEmail returns true/false.
+    let sent = 0, failed = 0;
+    const CHUNK = 15;
+    for (let i = 0; i < recipients.length; i += CHUNK) {
+      const slice = recipients.slice(i, i + CHUNK);
+      const results = await Promise.all(slice.map(to => sendEmail(to, subj, html)));
+      results.forEach(ok => (ok ? sent++ : failed++));
+    }
+
+    await supabase.from('audit_logs').insert({
+      admin_id:    req.user.id,
+      action:      'broadcast_email',
+      target_type: mode === 'single' ? 'user' : 'all_users',
+      target_id:   mode === 'single' ? recipients[0] : `${recipients.length} recipients`,
+      details:     `"${subj}" — sent ${sent}, failed ${failed}`,
+    });
+
+    res.json({ success: true, total: recipients.length, sent, failed });
+  } catch (e) {
+    console.error('Broadcast error:', e.message);
+    res.status(500).json({ error: 'Failed to send broadcast' });
+  }
+});
+
 // GET /api/admin/orders — paginated order list for the admin panel
 app.get('/api/admin/orders', adminAuth, async (req, res) => {
   try {
@@ -2208,10 +2268,12 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Returns true if the email was actually dispatched, false if skipped (no API
+// key) or it failed — callers that don't care can ignore the return value.
 async function sendEmail(to, subject, htmlBody) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_key') {
     console.log(`[Email] ${to}: ${subject}`);
-    return;
+    return false;
   }
   try {
     await resend.emails.send({
@@ -2231,8 +2293,10 @@ async function sendEmail(to, subject, htmlBody) {
         </div>
       </body></html>`,
     });
+    return true;
   } catch (e) {
     console.error('[Email] Failed:', e.message);
+    return false;
   }
 }
 
