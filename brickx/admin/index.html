@@ -1209,7 +1209,7 @@ function pgReferrals() {
 function renderReferrals(r) {
   var tot = r.totals || {};
   var per = r.bonusPerReferral || 500;
-  add(secHdr('Referrals', num(per) + ' BRX per successful referral · a referral counts once the invited user completes their first purchase'));
+  add(secHdr('Referrals', num(per) + ' BRX per referral · click a code to see who signed up. A referral becomes eligible to claim once the invited user completes a BRX purchase'));
 
   var kpiRow = mk('div',{cls:'g4',css:'margin-bottom:18px'});
   ap(kpiRow,
@@ -1223,17 +1223,59 @@ function renderReferrals(r) {
   var list = r.referrers || [];
   if (!list.length) { add(mk('div',{cls:'card',css:'text-align:center;padding:30px;color:var(--muted)',txt:'No referrals yet.'})); return; }
 
-  var rows = list.map(function(x) {
-    return [
-      x.referralCode ? bdg(x.referralCode, 'bg-blue') : s('color:var(--muted)','—'),
-      s('font-size:11px;color:var(--off)', x.name || x.email || '—'),
-      s('font-family:var(--mono);color:var(--white)', num(x.totalReferred)),
-      s('font-family:var(--mono);color:var(--green)', num(x.successfulReferrals)),
-      s('font-family:var(--mono);color:var(--gold)', num(x.earnedBrx) + ' BRX'),
-      s('font-family:var(--mono);color:var(--muted)', num(x.pendingBrx) + ' BRX')
-    ];
+  // Column header strip (aligns with each expandable row below).
+  var head = d('display:flex;align-items:center;gap:10px;padding:0 15px 6px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)');
+  ap(head,
+    s('width:14px',''),
+    s('width:118px','Code'),
+    s('flex:1','Referrer'),
+    s('width:70px;text-align:right','Invited'),
+    s('width:80px;text-align:right','Eligible'),
+    s('width:90px;text-align:right','Earned'),
+    s('width:90px;text-align:right','Pending'));
+  add(head);
+
+  var listWrap = mk('div', {cls:'card', css:'padding:0;overflow:hidden'});
+  list.forEach(function(x) {
+    var referred = x.referred || [];
+    var row = d('display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;border-bottom:1px solid var(--border)');
+    var caret = s('width:14px;color:var(--muted);font-size:11px', referred.length ? '▶' : '');
+    var codeCell = mk('div',{css:'width:118px'});
+    ap(codeCell, x.referralCode ? bdg(x.referralCode, 'bg-blue') : s('color:var(--muted)','—'));
+    ap(row,
+      caret,
+      codeCell,
+      s('flex:1;font-size:12px;color:var(--off)', x.name || x.email || '—'),
+      s('width:70px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--white)', num(x.totalReferred)),
+      s('width:80px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)', num(x.successfulReferrals)),
+      s('width:90px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--gold)', num(x.earnedBrx) + ' BRX'),
+      s('width:90px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)', num(x.pendingBrx) + ' BRX'));
+
+    var detail = mk('div', {css:'display:none;background:var(--bg1);padding:4px 15px 12px 39px;border-bottom:1px solid var(--border)'});
+    if (!referred.length) {
+      ap(detail, t('div','font-size:12px;color:var(--muted);padding:9px 0','No signups recorded under this code yet.'));
+    } else {
+      referred.forEach(function(p) {
+        var prow = d('display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)');
+        ap(prow,
+          s('flex:1;font-size:12px;color:var(--off)', p.name || p.email || '—'),
+          s('width:100px;font-size:10px;color:var(--muted)', 'Joined ' + dt(p.signupAt)),
+          p.eligible ? bdg('✓ Eligible', 'bg-green') : bdg('⏳ No purchase yet', 'bg-gold'),
+          s('width:84px;text-align:right;font-family:var(--mono);font-size:11px;color:' + (p.eligible ? 'var(--gold)' : 'var(--muted)'), num(p.bonusBrx) + ' BRX'));
+        ap(detail, prow);
+      });
+    }
+
+    var open = false;
+    row.onclick = function() {
+      if (!referred.length) return;
+      open = !open;
+      detail.style.display = open ? 'block' : 'none';
+      caret.textContent = open ? '▼' : '▶';
+    };
+    ap(listWrap, row, detail);
   });
-  add(mkTable(['Code','Referrer','Invited','Successful','Earned','Pending'], rows));
+  add(listWrap);
 }
 
 // ─── ACTIONS ──────────────────────────────────────────────────

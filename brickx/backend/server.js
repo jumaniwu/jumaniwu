@@ -1363,8 +1363,11 @@ app.get('/api/admin/referrals', adminAuth, async (req, res) => {
   try {
     const { data: bonuses } = await supabase
       .from('referral_bonuses')
-      .select('bonus_brx, status, referrer_id, referrer:referrer_id(referral_code, first_name, last_name, email)');
+      .select('id, bonus_brx, status, referrer_id, created_at, activated_at, referrer:referrer_id(referral_code, first_name, last_name, email), referred:referred_id(first_name, last_name, email, created_at, kyc_status)');
     const rows = bonuses || [];
+    // A referral is "earned"/eligible once the invited user has completed a BRX
+    // purchase — activateReferral() flips the bonus from 'pending' to 'activated'
+    // on payment confirmation (then 'distributed' at TGE).
     const isEarned = b => b.status === 'activated' || b.status === 'distributed';
 
     const byReferrer = new Map();
@@ -1377,12 +1380,30 @@ app.get('/api/admin/referrals', adminAuth, async (req, res) => {
           email:         b.referrer?.email || null,
           totalReferred: 0, successfulReferrals: 0, pendingReferrals: 0,
           earnedBrx:     0, pendingBrx: 0,
+          referred:      [], // drill-down: who signed up under this code + eligibility
         });
       }
       const r = byReferrer.get(b.referrer_id);
       r.totalReferred += 1;
-      if (isEarned(b)) { r.successfulReferrals += 1; r.earnedBrx += b.bonus_brx || 0; }
-      else             { r.pendingReferrals    += 1; r.pendingBrx += b.bonus_brx || 0; }
+      const earned = isEarned(b);
+      if (earned) { r.successfulReferrals += 1; r.earnedBrx += b.bonus_brx || 0; }
+      else        { r.pendingReferrals    += 1; r.pendingBrx += b.bonus_brx || 0; }
+      r.referred.push({
+        name:        [b.referred?.first_name, b.referred?.last_name].filter(Boolean).join(' ') || null,
+        email:       b.referred?.email || null,
+        signupAt:    b.referred?.created_at || b.created_at || null,
+        kycStatus:   b.referred?.kyc_status || null,
+        bonusBrx:    b.bonus_brx || 0,
+        status:      b.status,           // pending | activated | distributed
+        eligible:    earned,             // true once they've made a BRX purchase
+        purchasedAt: b.activated_at || null,
+      });
+    }
+
+    // Within each code, surface eligible (purchased) signups first, then newest.
+    for (const r of byReferrer.values()) {
+      r.referred.sort((a, b) =>
+        (b.eligible - a.eligible) || (String(b.signupAt || '').localeCompare(String(a.signupAt || ''))));
     }
 
     // Leaderboard: most successful referrals first, then most BRX earned.
