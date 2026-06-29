@@ -900,6 +900,11 @@ app.post('/api/ico/order', auth, async (req, res) => {
   try {
     const { usdAmount, cryptoCurrency } = req.body;
 
+    // Polygon-only for now — USDT/BSC, ETH, and native BNB are not accepted.
+    if (!['USDT/Polygon', 'USDC/Polygon'].includes(cryptoCurrency)) {
+      return res.status(400).json({ error: 'Only USDT/Polygon and USDC/Polygon are accepted for payment.' });
+    }
+
     if (!req.user.wallet_address) {
       return res.status(400).json({ error: 'Please register your Polygon wallet address before purchasing.' });
     }
@@ -975,15 +980,12 @@ app.post('/api/ico/order', auth, async (req, res) => {
     const brxAllocated = Math.floor(amount / pricePerBrx);
     const orderId = 'ORD-' + Date.now();
 
-    // Get treasury wallet for selected crypto
+    // Get treasury wallet for selected crypto (Polygon-only — validated above)
     const cryptoMap = {
       'USDT/Polygon': TREASURY.usdt_polygon,
       'USDC/Polygon': TREASURY.usdc_polygon,
-      'USDT/BSC':     TREASURY.usdt_bsc,
-      'ETH':          TREASURY.eth_mainnet,
-      'BNB':          TREASURY.bnb_chain,
     };
-    const payToAddress = cryptoMap[cryptoCurrency] || TREASURY.usdt_polygon;
+    const payToAddress = cryptoMap[cryptoCurrency];
 
     // Create order
     const { data: order, error } = await supabase.from('ico_orders').insert({

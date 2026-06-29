@@ -32,7 +32,7 @@ describe("GET /api/ico/info", () => {
 
 describe("POST /api/ico/order (gates)", () => {
   test("401 without a token", async () => {
-    const r = await request(app).post("/api/ico/order").send({ usdAmount: 100, cryptoCurrency: "USDC" });
+    const r = await request(app).post("/api/ico/order").send({ usdAmount: 100, cryptoCurrency: "USDC/Polygon" });
     expect(r.status).toBe(401);
   });
 
@@ -45,7 +45,7 @@ describe("POST /api/ico/order (gates)", () => {
     const r = await request(app)
       .post("/api/ico/order")
       .set("Authorization", `Bearer ${tokenFor("u1")}`)
-      .send({ usdAmount: 10000, cryptoCurrency: "USDC" });
+      .send({ usdAmount: 10000, cryptoCurrency: "USDC/Polygon" });
     expect(r.status).toBe(403);
     expect(r.body.error).toMatch(/KYC/i);
   });
@@ -61,9 +61,21 @@ describe("POST /api/ico/order (gates)", () => {
     const r = await request(app)
       .post("/api/ico/order")
       .set("Authorization", `Bearer ${tokenFor("u1")}`)
-      .send({ usdAmount: 100, cryptoCurrency: "USDC" });
+      .send({ usdAmount: 100, cryptoCurrency: "USDC/Polygon" });
     expect(r.status).toBe(201);
     expect(r.body.brxAllocated).toBeGreaterThan(0);
+  });
+
+  test("400 when the currency is not USDT/Polygon or USDC/Polygon", async () => {
+    global.__SB_QUEUE__ = [
+      { data: { id: "u1", is_active: true, kyc_status: "approved", wallet_address: "0x" + "1".repeat(40) }, error: null },
+    ];
+    const r = await request(app)
+      .post("/api/ico/order")
+      .set("Authorization", `Bearer ${tokenFor("u1")}`)
+      .send({ usdAmount: 100, cryptoCurrency: "BNB" });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toMatch(/Polygon/);
   });
 
   test("400 when wallet address is missing", async () => {
@@ -73,7 +85,7 @@ describe("POST /api/ico/order (gates)", () => {
     const r = await request(app)
       .post("/api/ico/order")
       .set("Authorization", `Bearer ${tokenFor("u1")}`)
-      .send({ usdAmount: 100, cryptoCurrency: "USDC" });
+      .send({ usdAmount: 100, cryptoCurrency: "USDC/Polygon" });
     expect(r.status).toBe(400);
     expect(r.body.error).toMatch(/wallet/i);
   });

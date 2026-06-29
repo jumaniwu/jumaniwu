@@ -202,8 +202,8 @@ const TKNS=[
   {n:"DEX Liq.",v:7,c:"#10B981"},{n:"DAO",v:5,c:"#64748B"},
 ];
 const COUNTRIES=["Indonesia","Malaysia","Singapore","Philippines","Thailand","Vietnam","India","Australia","United States","Other"];
-const CURRENCIES=["USDT/Polygon","USDC/Polygon","USDT/BSC","ETH","BNB"];
-const CURRENCY_NETWORK={"USDT/Polygon":"Polygon","USDC/Polygon":"Polygon","USDT/BSC":"BNB Smart Chain","ETH":"Ethereum","BNB":"BNB Smart Chain"};
+const CURRENCIES=["USDT/Polygon","USDC/Polygon"];
+const CURRENCY_NETWORK={"USDT/Polygon":"Polygon","USDC/Polygon":"Polygon"};
 const ROUND_ORDER=["seed","round1","round2","dex"];
 const ROUND_LABEL={seed:"Seed",round1:"Round 1",round2:"Round 2",dex:"DEX Listing"};
 const ORDER_BADGE={pending_payment:{l:"PENDING PAYMENT",c:C.gold},confirmed:{l:"CONFIRMED",c:C.green},distributed:{l:"DISTRIBUTED",c:C.teal}};
