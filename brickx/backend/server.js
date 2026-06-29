@@ -1476,9 +1476,13 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       }
       recipients = [to];
     } else if (mode === 'all') {
-      const { data: users } = await supabase.from('users').select('email').eq('is_active', true);
+      // is_active only distinguishes "completed full registration" from
+      // "whitelist-only pre-registration" (see /api/whitelist) — it is not an
+      // unsubscribe/ban flag, so filtering by it here silently skipped every
+      // whitelist-only signup. Email everyone who has given us an address.
+      const { data: users } = await supabase.from('users').select('email');
       recipients = [...new Set((users || []).map(u => (u.email || '').trim().toLowerCase()).filter(Boolean))];
-      if (!recipients.length) return res.status(400).json({ error: 'No active users to email.' });
+      if (!recipients.length) return res.status(400).json({ error: 'No users to email.' });
     } else {
       return res.status(400).json({ error: 'Invalid mode — use "all" or "single".' });
     }
