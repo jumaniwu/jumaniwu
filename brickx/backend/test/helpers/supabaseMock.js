@@ -7,7 +7,7 @@ function shift() {
 }
 function builder() {
   const b = {};
-  ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "gt", "lt", "filter", "range", "delete", "abortSignal"]
+  ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "gt", "lt", "ilike", "like", "filter", "range", "delete", "abortSignal"]
     .forEach((m) => { b[m] = () => b; });
   b.single = () => Promise.resolve(shift());
   b.maybeSingle = () => Promise.resolve(shift());

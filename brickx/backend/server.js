@@ -350,10 +350,14 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // Wallet must be unique across accounts (it's the BRX/dividend payout address).
-    const { data: walletOwner } = await supabase
-      .from('users').select('id').eq('wallet_address', wallet).single();
-    if (walletOwner && (!existing || walletOwner.id !== existing.id)) {
-      return res.status(409).json({ error: 'This wallet address is already registered to another account.' });
+    // Case-insensitive (ilike) so 0xABC… and 0xabc… count as the same address, and
+    // array-based (not .single(), which errors on >1 match and would let further
+    // duplicates slip through once any already exist).
+    const { data: walletOwners } = await supabase
+      .from('users').select('id').ilike('wallet_address', wallet);
+    const walletTaken = (walletOwners || []).some(u => !existing || u.id !== existing.id);
+    if (walletTaken) {
+      return res.status(409).json({ error: 'This wallet address is already registered. Each wallet can be linked to only one account — please use a different wallet, or sign in to the account that already uses it.' });
     }
 
     if (existing) {
@@ -570,11 +574,12 @@ app.put('/api/auth/wallet', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid Polygon wallet address' });
     }
 
-    // Check if wallet already registered to another user
-    const { data: existing } = await supabase
-      .from('users').select('id').eq('wallet_address', walletAddress).single();
-    if (existing && existing.id !== req.user.id) {
-      return res.status(409).json({ error: 'Wallet already registered to another account' });
+    // Check if wallet already registered to another user (case-insensitive + multi-row
+    // safe, so address-case variants and any existing duplicates are caught).
+    const { data: owners } = await supabase
+      .from('users').select('id').ilike('wallet_address', walletAddress);
+    if ((owners || []).some(u => u.id !== req.user.id)) {
+      return res.status(409).json({ error: 'This wallet address is already registered to another account. Each wallet can be linked to only one account.' });
     }
 
     const { error } = await supabase
