@@ -315,6 +315,10 @@ footer{border-top-color:var(--border)}
         <option>Other</option>
       </select>
 
+      <label class="form-label">Polygon Wallet Address <span style="color:var(--red)">*</span></label>
+      <input id="f-wallet" type="text" class="form-input" placeholder="0x… (where your BRX will be sent)" style="margin-bottom:4px">
+      <div class="form-sub">BRX and future BRICK dividends are sent to this address. Use a self-custody wallet (MetaMask, Trust, etc.) — not an exchange deposit address.</div>
+
       <label class="form-label">Referral Code (optional)</label>
       <input id="f-ref" type="text" class="form-input" placeholder="BRX-XXXXX" style="margin-bottom:4px">
       <div class="form-sub">Have a friend's referral code? Enter it — they earn 500 BRX when you complete your first purchase.</div>
@@ -390,7 +394,7 @@ footer{border-top-color:var(--border)}
         <div style="font-size:12px;font-weight:700;color:var(--white);margin-bottom:10px">What happens next:</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">1.</span> Continue to your dashboard (button above) — you're already signed in</div>
-          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">2.</span> Add your Polygon wallet address</div>
+          <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">2.</span> Your wallet is on file — BRX is sent there at distribution</div>
           <div style="display:flex;gap:9px;font-size:12px;color:var(--muted)"><span style="color:var(--gold)">3.</span> Seed sale opens → send USDT/USDC to treasury → BRX allocated</div>
         </div>
       </div>
@@ -472,12 +476,14 @@ function submitForm() {
   const email = document.getElementById('f-email').value.trim();
   const pw = document.getElementById('f-pw').value;
   const pw2 = document.getElementById('f-pw2').value;
+  const wallet = document.getElementById('f-wallet').value.trim();
   const errEl = document.getElementById('form-err');
 
   if (!fn || !ln) { errEl.textContent = '⚠ Please enter your first and last name.'; errEl.style.display = 'block'; return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = '⚠ Please enter a valid email address.'; errEl.style.display = 'block'; return; }
   if (pw.length < 8) { errEl.textContent = '⚠ Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
   if (pw !== pw2) { errEl.textContent = '⚠ Passwords do not match.'; errEl.style.display = 'block'; return; }
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { errEl.textContent = '⚠ Enter a valid Polygon wallet address (0x followed by 40 hex characters).'; errEl.style.display = 'block'; return; }
   if (!document.getElementById('f-accept').checked) { errEl.textContent = '⚠ Please accept the Terms, Privacy Policy, and Risk Disclosure.'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
 
@@ -493,7 +499,7 @@ function submitForm() {
   fetch(API + '/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pw, country, referralCode: referral || undefined, acceptedTerms: true })
+    body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pw, country, walletAddress: wallet, referralCode: referral || undefined, acceptedTerms: true })
   })
   .then(r => r.json().then(j => ({ ok: r.ok, j })))
   .then(res => {
