@@ -704,6 +704,9 @@ const app = (() => {
     // Nav links
     document.querySelectorAll('.nav-link').forEach(link => {
       link.addEventListener('click', e => {
+        // Links without a data-page are ordinary hrefs to another page
+        // (e.g. TOTO) — let the browser follow them.
+        if (!link.dataset.page) return;
         e.preventDefault();
         navigate(link.dataset.page);
       });

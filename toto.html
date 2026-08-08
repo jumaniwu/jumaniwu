@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TotoAnalyst — Singapore TOTO Number Analysis & Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/toto.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">&#127920;</span>
+        <span class="logo-text">TotoAnalyst</span>
+      </div>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">Crypto</a>
+        <a href="toto.html" class="nav-link active">TOTO</a>
+      </nav>
+      <div class="header-right">
+        <button id="dataBtn" class="btn-secondary">Manage data</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Honest framing, shown up front rather than buried in a footnote. -->
+  <div class="disclaimer-bar">
+    <strong>Read this first:</strong> TOTO draws are independent random events.
+    Past results carry <em>no</em> information about future draws, so no analysis
+    here — or anywhere — can improve your odds of winning
+    (1 in 13,983,816 for the jackpot). This tool describes what has happened;
+    it does not predict what will happen. The built-in backtest measures the
+    generator against pure chance so you can see that for yourself.
+    Play only what you can afford to lose.
+  </div>
+
+  <div class="stats-bar">
+    <div class="stats-bar-inner">
+      <span class="stat-item"><span class="stat-label">Draws loaded</span><span class="stat-value" id="statDraws">—</span></span>
+      <span class="stat-item"><span class="stat-label">Window</span><span class="stat-value" id="statWindow">—</span></span>
+      <span class="stat-item"><span class="stat-label">Data source</span><span class="stat-value" id="statSource">—</span></span>
+      <span class="stat-item"><span class="stat-label">Avg sum</span><span class="stat-value" id="statSum">—</span></span>
+      <span class="stat-item"><span class="stat-label">Fairness test</span><span class="stat-value" id="statChi">—</span></span>
+    </div>
+  </div>
+
+  <main class="main">
+
+    <!-- ============ GENERATOR ============ -->
+    <section class="page active">
+      <div class="page-header">
+        <h1 class="page-title">Number Generator</h1>
+        <p class="page-sub">Weighted by the analysis below. Adjust the model, then generate.</p>
+      </div>
+
+      <div class="gen-layout">
+
+        <!-- Controls -->
+        <div class="card gen-controls">
+          <h3 class="card-title">Model</h3>
+
+          <label class="field">
+            <span class="field-label">Strategy</span>
+            <select id="strategySelect" class="select"></select>
+          </label>
+          <p class="field-hint" id="strategyBlurb"></p>
+
+          <label class="field">
+            <span class="field-label">Sets to generate <b id="setCountVal">5</b></span>
+            <input type="range" id="setCount" min="1" max="20" value="5" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Weight bias <b id="biasVal">2.0</b></span>
+            <input type="range" id="bias" min="0" max="50" value="20" />
+            <span class="field-hint">Low = nearly uniform. High = leans hard on the top-scoring numbers.</span>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Recency half-life <b id="halfLifeVal">20</b> draws</span>
+            <input type="range" id="halfLife" min="5" max="60" value="20" />
+          </label>
+
+          <h4 class="sub-title">Signal weights</h4>
+          <label class="field slim">
+            <span class="field-label">Frequency <b id="wFreqVal">0.30</b></span>
+            <input type="range" id="wFreq" min="0" max="100" value="30" />
+          </label>
+          <label class="field slim">
+            <span class="field-label">Overdue <b id="wOverVal">0.30</b></span>
+            <input type="range" id="wOver" min="0" max="100" value="30" />
+          </label>
+          <label class="field slim">
+            <span class="field-label">Recency <b id="wRecVal">0.25</b></span>
+            <input type="range" id="wRec" min="0" max="100" value="25" />
+          </label>
+          <label class="field slim">
+            <span class="field-label">Pairing <b id="wPairVal">0.15</b></span>
+            <input type="range" id="wPair" min="0" max="100" value="15" />
+          </label>
+
+          <h4 class="sub-title">Shape filters</h4>
+          <label class="check"><input type="checkbox" id="cSum" checked /> <span>Sum within &plusmn;1.5&sigma; of historical mean</span></label>
+          <label class="check"><input type="checkbox" id="cOdd" checked /> <span>2&ndash;4 odd numbers</span></label>
+          <label class="check"><input type="checkbox" id="cHigh" checked /> <span>2&ndash;4 numbers above 24</span></label>
+          <label class="check"><input type="checkbox" id="cRun" checked /> <span>Max 2 consecutive</span></label>
+          <label class="check"><input type="checkbox" id="cDec" checked /> <span>Spread over 3+ decade bands</span></label>
+          <label class="check"><input type="checkbox" id="cPast" checked /> <span>Never repeat a past winning set</span></label>
+
+          <button id="generateBtn" class="btn-primary btn-block">Generate numbers</button>
+        </div>
+
+        <!-- Output -->
+        <div class="gen-output">
+          <div id="genNotice" class="notice hidden"></div>
+          <div id="ticketList" class="ticket-list">
+            <div class="empty-state">Set your model and hit <b>Generate numbers</b>.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BACKTEST ============ -->
+    <section class="page active">
+      <div class="page-header">
+        <h2 class="page-title">Does it actually work?</h2>
+        <p class="page-sub">
+          Walk-forward test: for each draw, the model is rebuilt from only the
+          draws before it, sets are generated, and they are scored against the
+          real result. A pure-random control runs on the same draws.
+        </p>
+      </div>
+      <div class="card">
+        <button id="backtestBtn" class="btn-primary">Run backtest</button>
+        <div id="backtestOut" class="backtest-out"></div>
+      </div>
+    </section>
+
+    <!-- ============ ANALYSIS ============ -->
+    <section class="page active">
+      <div class="page-header">
+        <h2 class="page-title">Analysis</h2>
+        <p class="page-sub">Descriptive statistics over the loaded draw window.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">Frequency by number</h3>
+          <p class="card-sub">Bars are actual counts; the dashed line is the count expected from a fair draw.</p>
+          <div class="chart-wrap"><canvas id="freqChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Composite score by number</h3>
+          <p class="card-sub">The blended signal the generator samples from.</p>
+          <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3 class="card-title">Hot <span class="tag tag-green">most drawn</span></h3>
+          <div id="hotList" class="rank-list"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Cold <span class="tag tag-red">least drawn</span></h3>
+          <div id="coldList" class="rank-list"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Overdue <span class="tag tag-yellow">vs own avg gap</span></h3>
+          <div id="overdueList" class="rank-list"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">Draw shape</h3>
+          <div id="patternGrid" class="pattern-grid"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Most frequent pairs</h3>
+          <p class="card-sub">Numbers that landed in the same draw most often.</p>
+          <div id="pairList" class="pair-list"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">Odd / even split</h3>
+          <div class="chart-wrap short"><canvas id="oddChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Decade distribution</h3>
+          <div class="chart-wrap short"><canvas id="decadeChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section class="page active">
+      <div class="page-header">
+        <h2 class="page-title">Draw history</h2>
+      </div>
+      <div class="card">
+        <div id="coverageNote" class="notice notice-warn"></div>
+        <div class="table-wrap">
+          <table class="draw-table">
+            <thead>
+              <tr><th>Draw</th><th>Date</th><th>Winning numbers</th><th>Add.</th><th>Sum</th><th>O/E</th></tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ DATA MODAL ============ -->
+  <div id="dataModal" class="modal hidden">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h3>Manage draw data</h3>
+        <button id="closeModal" class="btn-icon">&times;</button>
+      </div>
+      <p class="modal-note">
+        The bundled dataset covers only part of a year, because complete
+        official history could not be fetched from this environment. Paste
+        the full list below to analyse a proper 12-month window.
+      </p>
+      <p class="modal-note">
+        <b>Accepted formats</b> — one draw per line, any of:<br />
+        <code>4205,2026-08-03,9,29,30,35,36,40,11</code><br />
+        <code>2026-08-03 9 29 30 35 36 40 11</code><br />
+        <code>9 29 30 35 36 40 + 11</code> (date optional)
+      </p>
+      <textarea id="importText" class="import-box" rows="10" placeholder="Paste draw results here..."></textarea>
+      <div id="importFeedback" class="import-feedback"></div>
+      <div class="modal-actions">
+        <label class="btn-secondary file-btn">
+          Upload CSV<input type="file" id="csvFile" accept=".csv,.txt" hidden />
+        </label>
+        <button id="appendBtn" class="btn-secondary">Add to existing</button>
+        <button id="replaceBtn" class="btn-primary">Replace all</button>
+        <button id="resetBtn" class="btn-danger">Reset to bundled</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/totoData.js"></script>
+  <script src="js/totoAnalysis.js"></script>
+  <script src="js/totoGenerator.js"></script>
+  <script src="js/toto.js"></script>
+</body>
+</html>
