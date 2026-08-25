@@ -125,6 +125,12 @@ Layar dan aplikasi tambahan yang berbagi satu basis data dengan kasir:
   melalui `localStorage`), lengkap dengan promo berjalan.
 - **Order Display** — papan antrean "sedang disiapkan" dan "siap diambil"
   untuk pelanggan bungkus, menyegarkan diri otomatis.
+- **Materi Promosi Layar** — ganti tampilan promosi di Customer Display dengan
+  **foto/desain sendiri**. Unggah lewat tarik-lepas, gambar otomatis dikecilkan
+  ke ukuran baku dan dikompres, lengkap dengan **peringatan bila resolusi
+  terlalu rendah** (berpotensi pecah) atau rasionya jauh dari 16:9. Bisa
+  beberapa gambar bergantian (slideshow), diatur urutannya, dijadwalkan tanggal
+  tayangnya, dan langsung berubah di layar pelanggan tanpa perlu muat ulang.
 - **QR Meja & Label Produk** — pembuat **QR Code** dan **barcode Code128** asli
   (tanpa pustaka pihak ketiga). Cetak kartu QR per meja dan label harga
   berbarcode untuk seluruh produk.
@@ -167,9 +173,10 @@ pos/
     │   ├── auth.js             Peran, hak akses, sesi, router hash
     │   ├── ledger.js           Mesin akuntansi double-entry & auto-posting
     │   ├── inventory.js        Stok, resep berjenjang, HPP rata-rata bergerak
-    │   └── qr.js               Pembuat QR Code & barcode Code128
+    │   ├── qr.js               Pembuat QR Code & barcode Code128
+    │   └── media.js            Penyimpanan foto (IndexedDB) & pemroses gambar
     ├── data/                   Data contoh (master + riwayat transaksi)
-    ├── modules/                14 modul tampilan
+    ├── modules/                15 modul tampilan
     └── app.js                  Navigasi, rute, boot
 ```
 
@@ -205,6 +212,30 @@ diperbarui → kas shift bertambah → seluruh laporan ikut berubah.
 `F1` cari menu · `F2` kasir · `F3` daftar pesanan · `F4` meja · `F9` bayar ·
 `Esc` tutup dialog · `Enter` konfirmasi
 
+### Ukuran materi promosi layar
+
+| | |
+|---|---|
+| **Ukuran ideal** | **1920 × 1080 px** (rasio 16:9, landscape) |
+| Minimum agar tidak pecah | 1280 × 720 px |
+| Format | JPG, PNG, atau WebP · maks 12 MB |
+| Area aman teks | tengah **60% lebar × 90% tinggi** |
+
+Gambar yang lebih besar otomatis dikecilkan ke 1920 × 1080 dan dikompres
+(4K 182 KB → 1920×1080 23 KB pada pengujian). **Proporsi gambar tidak pernah
+diubah**, sehingga tidak pernah tampak gepeng.
+
+Kenapa ada area aman: saat kasir sedang memasukkan pesanan, panel struk muncul
+di sisi kanan sehingga bidang promosi menyempit dan sisi gambar ikut terpotong.
+Ketika tidak ada transaksi, promosi kembali memenuhi layar penuh 16:9 tanpa
+terpotong sama sekali. Letakkan logo dan teks penting di dalam area aman agar
+terbaca pada kedua kondisi — pratinjau di halaman pengelola menampilkan batas
+area aman ini.
+
+Foto disimpan di **IndexedDB**, terpisah dari basis data aplikasi, supaya tidak
+menghabiskan kuota localStorage yang hanya ~5 MB. Berkas backup tetap
+menyertakan seluruh gambar sehingga pemulihan data benar-benar utuh.
+
 ### Menyiapkan layar pendamping
 
 Buka aplikasi di jendela/tab terpisah lalu arahkan ke alamat berikut:
@@ -239,3 +270,6 @@ Seluruh modul diverifikasi otomatis menggunakan Playwright:
   dibaca kembali oleh pustaka pemindai independen
 - Perilaku penyegaran otomatis diuji: meninggalkan halaman KDS/Order Display
   tidak lagi menimpa halaman yang sedang dibuka
+- Unggah materi promosi diuji dengan gambar 4K, HD, resolusi rendah, dan rasio
+  1:1 — pengecilan, kompresi, peringatan mutu, slideshow, penjadwalan, serta
+  perubahan langsung pada layar pelanggan di jendela lain

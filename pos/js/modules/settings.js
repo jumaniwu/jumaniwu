@@ -335,7 +335,8 @@ App.Views.data = function (root) {
           <button class="btn btn--danger btn--block" id="reset">🗑️ Atur Ulang & Muat Data Contoh</button>
           <p class="small muted mt-8">Menghapus seluruh data lalu membuat ulang data demo (outlet, menu, transaksi 21 hari).</p>
         </div></div>
-        <div class="card"><div class="card__head"><h3>Isi Basis Data</h3></div>
+        <div class="card"><div class="card__head"><h3>Isi Basis Data</h3>
+            <span class="sub" id="media-usage" style="margin-left:auto"></span></div>
           <div class="card__body" style="max-height:420px;overflow:auto">
             ${st.rows.map(r => `<div class="kv"><span class="k">${U.esc(r.koleksi)}</span><span class="v">${U.num(r.jumlah)}</span></div>`).join('')}
           </div></div>
@@ -348,18 +349,42 @@ App.Views.data = function (root) {
         <div class="kv"><span class="k">Penyimpanan</span><span class="v">${st.memoryOnly ? 'Memori (sementara)' : 'localStorage browser'}</span></div>
       </div></div>`;
 
-    root.querySelector('#bk').onclick = () => {
-      const ok = U.download(`sajipos-backup-${U.today()}.json`, DB.exportJSON(), 'application/json');
-      App.UI.toast(ok ? 'Backup diunduh' : 'Gagal mengunduh', ok ? 'ok' : 'err');
+    root.querySelector('#bk').onclick = async () => {
+      const btn = root.querySelector('#bk');
+      btn.disabled = true; btn.textContent = '⏳ Menyiapkan backup…';
+      try {
+        const data = JSON.parse(DB.exportJSON());
+        /* Foto materi promosi disimpan di IndexedDB — ikut disertakan sebagai
+           data URL agar berkas backup benar-benar utuh. */
+        data._media = await App.Media.exportAll();
+        const json = JSON.stringify(data, null, 2);
+        const ok = U.download(`sajipos-backup-${U.today()}.json`, json, 'application/json');
+        const mb = (json.length / 1048576).toFixed(2).replace('.', ',');
+        App.UI.toast(ok ? `Backup diunduh (${mb} MB, termasuk ${Object.keys(data._media).length} gambar)` : 'Gagal mengunduh', ok ? 'ok' : 'err');
+      } catch (e) {
+        App.UI.toast('Gagal membuat backup: ' + e.message, 'err');
+      }
+      btn.disabled = false; btn.textContent = '⬇️ Unduh Backup (JSON)';
     };
+    App.Media.usage().then(u => {
+      const el = root.querySelector('#media-usage');
+      if (el) el.textContent = `+ ${u.count} gambar (${(u.bytes/1048576).toFixed(2).replace('.',',')} MB) di IndexedDB`;
+    }).catch(() => {});
     root.querySelector('#rs').onclick = () => root.querySelector('#file').click();
     root.querySelector('#file').onchange = e => {
       const f = e.target.files[0]; if (!f) return;
       const rd = new FileReader();
       rd.onload = async () => {
         if (!await App.UI.confirm('Pulihkan data dari backup? Seluruh data saat ini akan ditimpa.', { danger:true, okText:'Pulihkan' })) return;
-        try { DB.importJSON(rd.result); App.UI.toast('Data dipulihkan', 'ok'); setTimeout(() => location.reload(), 700); }
-        catch (err) { App.UI.toast('Berkas backup tidak valid: ' + err.message, 'err'); }
+        try {
+          const parsed = JSON.parse(rd.result);
+          const media = parsed._media; delete parsed._media;
+          DB.importJSON(JSON.stringify(parsed));
+          let n = 0;
+          if (media) { await App.Media.clear(); n = await App.Media.importAll(media); }
+          App.UI.toast(`Data dipulihkan${n ? ` beserta ${n} gambar` : ''}`, 'ok');
+          setTimeout(() => location.reload(), 900);
+        } catch (err) { App.UI.toast('Berkas backup tidak valid: ' + err.message, 'err'); }
       };
       rd.readAsText(f);
     };
@@ -367,6 +392,7 @@ App.Views.data = function (root) {
       if (!await App.UI.confirm('Hapus <b>seluruh data</b> dan muat ulang data contoh? Tindakan ini tidak bisa dibatalkan.',
         { danger:true, okText:'Ya, atur ulang' })) return;
       DB.reset();
+      try { await App.Media.clear(); } catch (e) {}
       try { sessionStorage.clear(); } catch (e) {}
       location.reload();
     };

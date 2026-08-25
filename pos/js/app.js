@@ -18,6 +18,7 @@
       { path:'selforder',      icon:'📱', label:'Self Order (E-Menu)' },
       { path:'customerdisplay',icon:'🖥️', label:'Customer Display' },
       { path:'orderdisplay',   icon:'📺', label:'Order Display' },
+      { path:'promomedia',     icon:'🖼️', label:'Materi Promosi Layar' },
       { path:'qrtools',        icon:'🔳', label:'QR Meja & Label' },
       { path:'ownerapp',       icon:'👑', label:'Aplikasi Owner' },
       { path:'teamsapp',       icon:'🧑‍🍳', label:'Aplikasi Teams' }
@@ -246,6 +247,7 @@
     R('selforder',      { title:'Self Order', group:'Perangkat', flush:true, render:App.Views.selforder });
     R('customerdisplay',{ title:'Customer Display', group:'Perangkat', flush:true, render:App.Views.customerdisplay });
     R('orderdisplay',   { title:'Order Display', group:'Perangkat', flush:true, render:App.Views.orderdisplay });
+    R('promomedia',     { title:'Materi Promosi Layar', group:'Perangkat', permission:'crm.manage', render:App.Views.promomedia });
     R('qrtools',        { title:'QR Meja & Label Produk', group:'Perangkat', permission:'settings.manage', render:App.Views.qrtools });
     R('ownerapp',       { title:'Aplikasi Owner', group:'Perangkat', flush:true, permission:'report.view', render:App.Views.ownerapp });
     R('teamsapp',       { title:'Aplikasi Teams', group:'Perangkat', flush:true, render:App.Views.teamsapp });

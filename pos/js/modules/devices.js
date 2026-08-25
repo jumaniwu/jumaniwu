@@ -8,8 +8,15 @@ window.App = window.App || {}; App.Views = App.Views || {};
 /* Saluran antar-tab: kasir menyiarkan keranjang, customer display menyimak. */
 App.Bridge = (function () {
   const KEY = 'sajipos.bridge';
+  /* Tulisan ke basis data ditunda (debounce) demi hemat I/O. Sebelum memberi
+     tahu jendela lain, tulisan itu harus dipaksa selesai — kalau tidak, jendela
+     penerima akan membaca data lama. Pesan 'cart' tidak menyentuh basis data
+     sehingga tidak perlu di-flush. */
   function send(type, payload) {
-    try { localStorage.setItem(KEY, JSON.stringify({ type, payload, at: Date.now() })); } catch (e) {}
+    try {
+      if (type !== 'cart' && App.DB && App.DB.saveNow) App.DB.saveNow();
+      localStorage.setItem(KEY, JSON.stringify({ type, payload, at: Date.now() }));
+    } catch (e) {}
   }
   function listen(fn) {
     const handler = e => {
@@ -222,7 +229,7 @@ App.Views.selforder = function (root, params) {
    ============================================================= */
 App.Views.customerdisplay = function (root) {
   const U = App.U, DB = App.DB;
-  let stop = null;
+  let stop = null, slideTimer = null, slideIdx = 0, mediaURLs = [], slideStart = 0, visibilityHooked = false;
 
   function promoSlide() {
     const promos = App.POS.activePromos(App.State.outletId());
@@ -233,18 +240,73 @@ App.Views.customerdisplay = function (root) {
           s: DB.settings().receipt.subheader || 'Terima kasih atas kunjungan Anda' };
   }
 
+  /* Muat foto materi promosi (IndexedDB) lalu jalankan slideshow. */
+  async function loadMedia() {
+    const c = App.Promo.cfg();
+    if (!c.showOnCustomer) return [];
+    const items = App.Promo.active();
+    const out = [];
+    for (const m of items) {
+      const u = await App.Media.url(m.id);
+      if (u) out.push({ ...m, url: u });
+    }
+    return out;
+  }
+
+  function mountSlides() {
+    const holder = root.querySelector('#cd-media');
+    if (!holder) return;
+    clearInterval(slideTimer);
+    if (!mediaURLs.length) return;
+    const c = App.Promo.cfg();
+    if (slideIdx >= mediaURLs.length) slideIdx = 0;      /* pertahankan posisi slide antar-render */
+    holder.innerHTML = mediaURLs.map((m, i) =>
+      `<div class="cd__slide ${i === slideIdx ? 'is-on' : ''}" style="background-image:url('${m.url}');background-size:${c.fit}"></div>`).join('');
+    holder.classList.add('has-media');
+    if (mediaURLs.length < 2) return;
+
+    /* Slide ditentukan dari waktu berjalan, bukan dari hitungan tick. Browser
+       memperlambat timer pada jendela yang tidak terlihat; dengan cara ini
+       slide tetap benar begitu layar kembali tampak. */
+    const periodMs = Math.max(3, c.interval) * 1000;
+    if (!slideStart) slideStart = Date.now();
+    const sync = () => {
+      if (!document.body.contains(root)) { clearInterval(slideTimer); return; }
+      const slides = holder.querySelectorAll('.cd__slide');
+      if (slides.length < 2) return;
+      const want = Math.floor((Date.now() - slideStart) / periodMs) % slides.length;
+      if (want === slideIdx) return;
+      slides[slideIdx] && slides[slideIdx].classList.remove('is-on');
+      slideIdx = want;
+      slides[slideIdx].classList.add('is-on');
+    };
+    slideTimer = setInterval(sync, Math.min(1000, periodMs / 2));
+    if (!visibilityHooked) {
+      visibilityHooked = true;
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+    }
+  }
+
   function draw(cart) {
     const outlet = App.State.outlet();
     const slide = promoSlide();
     const items = (cart && cart.items) || [];
-    root.innerHTML = `<div class="device"><div class="device__body" style="overflow:hidden"><div class="cd">
-      <div class="cd__promo">
-        <span class="tag">${U.esc(slide.tag)}</span>
-        <h1>${U.esc(slide.h)}</h1>
-        <p>${U.esc(slide.s)}</p>
-        <div style="margin-top:26px;display:flex;gap:20px;color:#9fd3c8;font-size:12.5px">
-          <span>📍 ${U.esc(outlet.name)}</span><span>🕐 ${U.esc(outlet.openHour)}–${U.esc(outlet.closeHour)}</span>
-        </div>
+    const c = App.Promo.cfg();
+    const hasMedia = mediaURLs.length > 0;
+    const idle = items.length === 0;
+    root.innerHTML = `<div class="device"><div class="device__body" style="overflow:hidden">
+      <div class="cd ${idle ? 'cd--idle' : ''}">
+      <div class="cd__promo ${hasMedia ? 'cd__promo--media' : ''}">
+        <div class="cd__media" id="cd-media"></div>
+        ${hasMedia ? '' : `
+        <div class="cd__promo-text">
+          <span class="tag">${U.esc(slide.tag)}</span>
+          <h1>${U.esc(slide.h)}</h1>
+          <p>${U.esc(slide.s)}</p>
+          <div style="margin-top:26px;display:flex;gap:20px;color:#9fd3c8;font-size:12.5px">
+            <span>📍 ${U.esc(outlet.name)}</span><span>🕐 ${U.esc(outlet.openHour)}–${U.esc(outlet.closeHour)}</span>
+          </div>
+        </div>`}
       </div>
       <div class="cd__side">
         <div class="cd__head"><b style="font-size:15px">Pesanan Anda</b>
@@ -265,14 +327,23 @@ App.Views.customerdisplay = function (root) {
              <div style="font-size:12px;margin-top:4px">Pesanan akan tampil di sini</div></div></div>`}
       </div>
     </div></div></div>`;
+    mountSlides();
   }
 
+  let lastCart = null;
   const lastMsg = App.Bridge.last();
-  draw(lastMsg && lastMsg.type === 'cart' ? lastMsg.payload : null);
+  lastCart = lastMsg && lastMsg.type === 'cart' ? lastMsg.payload : null;
+
+  loadMedia().then(list => { mediaURLs = list; draw(lastCart); }).catch(() => draw(lastCart));
+
   stop = App.Bridge.listen((type, payload) => {
-    if (!document.body.contains(root)) { stop && stop(); return; }
-    if (type === 'cart') draw(payload);
-    if (type === 'paid') { draw(null); App.UI.toast('Terima kasih! 🙏'); }
+    if (!document.body.contains(root)) { stop && stop(); clearInterval(slideTimer); return; }
+    if (type === 'cart') { lastCart = payload; draw(payload); }
+    if (type === 'paid') { lastCart = null; draw(null); }
+    if (type === 'promo') {
+      DB.reload();                       /* ambil ulang data terbaru dari jendela admin */
+      loadMedia().then(list => { mediaURLs = list; draw(lastCart); });
+    }
   });
 };
 
@@ -283,14 +354,18 @@ App.Views.orderdisplay = function (root) {
   const U = App.U, DB = App.DB;
   let timer = null;
 
+  /* Layar ini biasanya dibuka di jendela terpisah — ambil ulang data setiap
+     kali menggambar agar pesanan baru dari kasir/self-order ikut tampil. */
   function draw() {
+    DB.reload();
     const oid = App.State.outletId();
     const open = DB.all('orders').filter(o => o.status === 'open' && (oid === 'ALL' || o.outletId === oid));
     const cooking = open.filter(o => o.kitchenStatus !== 'ready' && o.kitchenStatus !== 'served');
     const ready = open.filter(o => o.kitchenStatus === 'ready');
     const shortNo = o => o.no.split('/').pop();
 
-    root.innerHTML = `<div class="device"><div class="device__body" style="overflow:hidden"><div class="od">
+    root.innerHTML = `<div class="device"><div class="device__body" style="overflow:hidden">
+      <div class="od" id="od-root">
       <div class="od__col">
         <div class="od__title">👨‍🍳 Sedang Disiapkan <span style="color:#7d959e;font-weight:600">${cooking.length}</span></div>
         <div class="od__grid">${cooking.map(o => `<div class="od__no">${U.esc(shortNo(o))}
@@ -304,6 +379,17 @@ App.Views.orderdisplay = function (root) {
           || '<div style="color:#5f7880;font-size:13px">Belum ada pesanan siap</div>'}</div>
       </div>
     </div></div></div>`;
+    if (App.Promo.cfg().showOnOrder) {
+      const first = App.Promo.active()[0];
+      if (first) App.Media.url(first.id).then(u => {
+        const el = root.querySelector('#od-root');
+        if (el && u) {
+          el.style.backgroundImage = `linear-gradient(rgba(12,20,23,.86),rgba(12,20,23,.92)), url('${u}')`;
+          el.style.backgroundSize = 'cover';
+          el.style.backgroundPosition = 'center';
+        }
+      });
+    }
     clearTimeout(timer);
     timer = setTimeout(() => { if (document.body.contains(root)) draw(); }, 8000);
   }

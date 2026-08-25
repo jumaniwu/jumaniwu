@@ -9,7 +9,7 @@ App.DB = (function () {
   const COLLECTIONS = [
     'outlets','users','roles','categories','products','stock','stockMoves',
     'suppliers','purchaseRequests','purchaseOrders','goodsReceipts','bills','billPayments','purchaseReturns',
-    'customers','customerGroups','tiers','promos','campaigns','vouchers','feedback',
+    'customers','customerGroups','tiers','promos','campaigns','vouchers','feedback','promoMedia',
     'orders','tables','areas','reservations','shifts','cashMoves',
     'accounts','journals','expenses','assets',
     'employees','attendance','schedules','leaves','payrolls','commissions',
@@ -151,6 +151,11 @@ App.DB = (function () {
   function peekNo(key) { return (load().counters[key] || 0) + 1; }
 
   /* ---------- utilitas basis data ---------- */
+  /* Buang cache memori agar pembacaan berikutnya mengambil ulang dari
+     localStorage. Dipakai layar pendamping (jendela lain) supaya melihat
+     perubahan yang dilakukan di jendela admin. */
+  function reload() { mem = null; return load(); }
+
   function raw() { return load(); }
   function replaceAll(data) { mem = data; saveNow(); }
   function reset() { mem = blank(); saveNow(); }
@@ -187,6 +192,6 @@ App.DB = (function () {
   return {
     COLLECTIONS, all, find, where, first, insert, insertMany, update, upsert, remove, removeWhere,
     settings, setSetting, nextNo, peekNo,
-    raw, replaceAll, reset, exportJSON, importJSON, stats, isMemoryOnly, save, saveNow, log
+    raw, reload, replaceAll, reset, exportJSON, importJSON, stats, isMemoryOnly, save, saveNow, log
   };
 })();
