@@ -14,6 +14,14 @@
       { path:'kds',         icon:'👨‍🍳', label:'Kitchen Display', badge:'kitchen' },
       { path:'shifts',      icon:'💰', label:'Kas & Shift' }
     ]},
+    { group:'Perangkat', items:[
+      { path:'selforder',      icon:'📱', label:'Self Order (E-Menu)' },
+      { path:'customerdisplay',icon:'🖥️', label:'Customer Display' },
+      { path:'orderdisplay',   icon:'📺', label:'Order Display' },
+      { path:'qrtools',        icon:'🔳', label:'QR Meja & Label' },
+      { path:'ownerapp',       icon:'👑', label:'Aplikasi Owner' },
+      { path:'teamsapp',       icon:'🧑‍🍳', label:'Aplikasi Teams' }
+    ]},
     { group:'Inventori', items:[
       { path:'products',    icon:'🍽️', label:'Produk & Resep' },
       { path:'stock',       icon:'📦', label:'Stok & Opname', badge:'lowStock' },
@@ -235,6 +243,13 @@
     R('kds',        { title:'Kitchen Display System', group:'Operasional', permission:'kds.use', render:App.Views.kds });
     R('shifts',     { title:'Kas & Shift Kasir', group:'Operasional', permission:'pos.use', render:App.Views.shifts });
 
+    R('selforder',      { title:'Self Order', group:'Perangkat', flush:true, render:App.Views.selforder });
+    R('customerdisplay',{ title:'Customer Display', group:'Perangkat', flush:true, render:App.Views.customerdisplay });
+    R('orderdisplay',   { title:'Order Display', group:'Perangkat', flush:true, render:App.Views.orderdisplay });
+    R('qrtools',        { title:'QR Meja & Label Produk', group:'Perangkat', permission:'settings.manage', render:App.Views.qrtools });
+    R('ownerapp',       { title:'Aplikasi Owner', group:'Perangkat', flush:true, permission:'report.view', render:App.Views.ownerapp });
+    R('teamsapp',       { title:'Aplikasi Teams', group:'Perangkat', flush:true, render:App.Views.teamsapp });
+
     R('products',   { title:'Produk & Resep', group:'Inventori', permission:'inventory.view', render:App.Views.products });
     R('stock',      { title:'Stok & Opname', group:'Inventori', permission:'inventory.view', render:App.Views.stock });
     R('stockmoves', { title:'Mutasi Stok', group:'Inventori', permission:'inventory.view', render:App.Views.stockmoves });
@@ -302,6 +317,33 @@
     });
   }
 
+  /* ---------------- Mode perangkat ----------------
+     Layar yang menghadap pelanggan (self order, customer display, order
+     display) tidak memerlukan login staf. Sesi tamu dibuat tanpa hak akses
+     apa pun dan navigasinya dikunci hanya pada layar-layar tersebut. */
+  const DEVICE_ROUTES = ['selforder', 'customerdisplay', 'orderdisplay'];
+
+  function deviceBoot() {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').classList.add('is-ready');
+    App.Auth.setUser({ id:'device', name:'Perangkat', role:'device', roleId:null,
+      outletIds:['ALL'], active:true, guest:true });
+
+    const params = App.Router.parse().params;
+    if (params.o && DB.find('outlets', params.o)) App.State.setOutlet(params.o);
+
+    /* Kunci navigasi: rute lain dialihkan kembali ke layar perangkat. */
+    const origRender = App.Router.render;
+    App.Router.render = function () {
+      const { path } = App.Router.parse();
+      if (!DEVICE_ROUTES.includes(path)) { App.Router.go(DEVICE_ROUTES[0]); return; }
+      origRender();
+    };
+    document.querySelector('.sidebar').style.display = 'none';
+    document.querySelector('.topbar').style.display = 'none';
+    App.Router.start();
+  }
+
   /* ---------------- Mulai ---------------- */
   function init() {
     App.State.setTheme(App.State.theme());
@@ -333,7 +375,9 @@
       setTimeout(() => App.UI.toast('Penyimpanan browser tidak tersedia — data hanya bertahan selama sesi ini. Jalankan lewat server lokal untuk penyimpanan permanen.', 'warn', 6000), 800);
     }
     const restored = App.Auth.restore();
-    if (restored) boot(); else renderLogin();
+    if (restored) { boot(); return; }
+    if (DEVICE_ROUTES.includes(App.Router.parse().path)) { deviceBoot(); return; }
+    renderLogin();
   }
 
   document.addEventListener('DOMContentLoaded', init);

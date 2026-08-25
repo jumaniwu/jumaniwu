@@ -429,13 +429,15 @@ App.Views.financeReports = function (root) {
     root.querySelector('#period').insertBefore(App.Period.bar(state, draw), root.querySelector('#print-rep'));
     root.querySelector('#tabs').appendChild(App.UI.tabs([
       { key:'pl', label:'Laba Rugi' }, { key:'bs', label:'Neraca' },
-      { key:'cf', label:'Arus Kas' }, { key:'tb', label:'Neraca Saldo' }, { key:'ar', label:'Piutang & Hutang' }
+      { key:'cf', label:'Arus Kas' }, { key:'tb', label:'Neraca Saldo' },
+      { key:'ar', label:'Piutang & Hutang' }, { key:'cmp', label:'Laporan Pembanding' }
     ], tab, k => { tab = k; draw(); }));
     const body = root.querySelector('#body');
     if (tab === 'pl') plView(body);
     else if (tab === 'bs') bsView(body);
     else if (tab === 'cf') cfView(body);
     else if (tab === 'tb') tbView(body);
+    else if (tab === 'cmp') cmpView(body);
     else arView(body);
     root.querySelector('#print-rep').onclick = () => App.UI.print(
       `<div style="font-family:sans-serif;padding:20px">
@@ -574,6 +576,81 @@ App.Views.financeReports = function (root) {
       footRow: rows => `<td colspan="3">TOTAL</td><td class="num">${U.rp(U.sum(rows, r => r.debit))}</td>
         <td class="num">${U.rp(U.sum(rows, r => r.credit))}</td><td></td>`
     }));
+  }
+
+  /* Laporan pembanding: periode berjalan vs periode sebelumnya, dan antar outlet */
+  function cmpView(body) {
+    const oid = App.State.outletId();
+    const days = U.dateRangeDays(state.from, state.to).length;
+    const prevTo = U.addDays(state.from, -1), prevFrom = U.addDays(prevTo, -(days - 1));
+    const cur = L.profitLoss(state.from, state.to, oid);
+    const prev = L.profitLoss(prevFrom, prevTo, oid);
+    const comparable = App.Sales.periodComparable(prevFrom);
+
+    const line = (label, a, b, invert) => {
+      const diff = a - b;
+      const pct = b ? (diff / Math.abs(b)) * 100 : null;
+      const good = invert ? diff <= 0 : diff >= 0;
+      return `<tr><td>${U.esc(label)}</td>
+        <td class="num">${U.rp(a)}</td><td class="num">${U.rp(b)}</td>
+        <td class="num" style="color:${good ? 'var(--lime)' : 'var(--rose)'}">${diff >= 0 ? '+' : ''}${U.rp(diff)}</td>
+        <td class="num">${pct === null ? '-' : (pct >= 0 ? '+' : '') + pct.toFixed(1).replace('.', ',') + '%'}</td></tr>`;
+    };
+
+    const outlets = DB.all('outlets');
+    const perOutlet = outlets.map(o => ({ o, pl:L.profitLoss(state.from, state.to, o.id),
+      t:App.Sales.totals(App.Sales.orders({ from:state.from, to:state.to, outletId:o.id })) }));
+
+    body.innerHTML = `
+      <div class="card mb-16">
+        <div class="card__head"><h3>Periode Berjalan vs Periode Sebelumnya</h3>
+          <span class="sub">${U.fmtDate(state.from)}–${U.fmtDate(state.to)} vs ${U.fmtDate(prevFrom)}–${U.fmtDate(prevTo)}</span></div>
+        ${comparable ? `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Pos</th><th class="num">Periode Ini</th><th class="num">Periode Lalu</th>
+          <th class="num">Selisih</th><th class="num">%</th></tr></thead>
+          <tbody>
+            ${line('Penjualan bersih', cur.netSales, prev.netSales)}
+            ${line('Harga pokok penjualan', cur.totalCogs, prev.totalCogs, true)}
+            ${line('Laba kotor', cur.grossProfit, prev.grossProfit)}
+            ${line('Beban operasional', cur.totalOpex, prev.totalOpex, true)}
+            ${line('Laba bersih', cur.netProfit, prev.netProfit)}
+          </tbody></table></div>
+          <div class="card__foot small muted">
+            Margin kotor ${cur.grossMargin.toFixed(1).replace('.',',')}% vs ${prev.grossMargin.toFixed(1).replace('.',',')}% ·
+            margin bersih ${cur.netMargin.toFixed(1).replace('.',',')}% vs ${prev.netMargin.toFixed(1).replace('.',',')}%
+          </div>`
+        : `<div class="card__body">${App.UI.emptyState('Periode pembanding belum memiliki data',
+            'Pilih periode yang lebih pendek atau lebih baru agar perbandingan bermakna.', '📉')}</div>`}
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h3>Perbandingan Antar Outlet</h3>
+          <span class="sub">${U.fmtDate(state.from)} – ${U.fmtDate(state.to)}</span></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Outlet</th><th class="num">Transaksi</th><th class="num">Omzet Bersih</th>
+          <th class="num">HPP</th><th class="num">Food Cost</th><th class="num">Laba Kotor</th>
+          <th class="num">Beban</th><th class="num">Laba Bersih</th><th class="num">Margin</th></tr></thead>
+          <tbody>${perOutlet.map(({ o, pl, t }) => `<tr>
+            <td><b>${U.esc(o.name)}</b><div class="small muted">${U.esc(o.type)}</div></td>
+            <td class="num">${U.num(t.trx)}</td>
+            <td class="num">${U.rp(pl.netSales)}</td>
+            <td class="num">${U.rp(pl.totalCogs)}</td>
+            <td class="num">${U.pct(pl.totalCogs, pl.netSales || 1)}</td>
+            <td class="num">${U.rp(pl.grossProfit)}</td>
+            <td class="num">${U.rp(pl.totalOpex)}</td>
+            <td class="num"><b style="color:${pl.netProfit >= 0 ? 'var(--lime)' : 'var(--rose)'}">${U.rp(pl.netProfit)}</b></td>
+            <td class="num">${pl.netMargin.toFixed(1).replace('.', ',')}%</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td>KONSOLIDASI</td>
+            <td class="num">${U.num(U.sum(perOutlet, x => x.t.trx))}</td>
+            <td class="num">${U.rp(U.sum(perOutlet, x => x.pl.netSales))}</td>
+            <td class="num">${U.rp(U.sum(perOutlet, x => x.pl.totalCogs))}</td>
+            <td class="num">${U.pct(U.sum(perOutlet, x => x.pl.totalCogs), U.sum(perOutlet, x => x.pl.netSales) || 1)}</td>
+            <td class="num">${U.rp(U.sum(perOutlet, x => x.pl.grossProfit))}</td>
+            <td class="num">${U.rp(U.sum(perOutlet, x => x.pl.totalOpex))}</td>
+            <td class="num">${U.rp(U.sum(perOutlet, x => x.pl.netProfit))}</td>
+            <td class="num"></td></tr></tfoot>
+        </table></div>
+      </div>`;
   }
 
   function arView(body) {

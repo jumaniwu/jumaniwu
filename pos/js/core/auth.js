@@ -184,9 +184,16 @@ App.Router = (function () {
     }
     App.Shell.setTitle(def.title, def.group);
     App.Shell.highlight(path);
-    const view = document.getElementById('view');
+
+    /* Elemen tampilan diganti (bukan sekadar dikosongkan) agar root milik
+       halaman sebelumnya benar-benar terlepas dari dokumen. Dengan begitu
+       penjaga `document.body.contains(root)` pada halaman yang menyegarkan
+       diri sendiri (KDS, Order Display) berhenti bekerja saat ditinggalkan. */
+    const old = document.getElementById('view');
+    const view = document.createElement('main');
+    view.id = 'view';
     view.className = def.flush ? 'view view--flush' : 'view';
-    view.innerHTML = '';
+    old.parentNode.replaceChild(view, old);
     window.scrollTo(0, 0);
     try {
       def.render(view, params);

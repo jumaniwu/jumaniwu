@@ -641,6 +641,16 @@ App.Views.pos = function (root, params) {
       if (v !== null) cart.note = v;
     };
 
+    /* Siarkan ke Customer Display (jendela/tab lain) */
+    if (App.Bridge) App.Bridge.send('cart', {
+      items: cart.items.map(it => ({
+        name: it.name, qty: it.qty, subtotal: P.lineTotal(it),
+        opts: [...(it.variants || []).map(v => v.name), ...(it.modifiers || []).map(x => x.name)].join(' · ')
+      })),
+      subtotal: c.subtotal, discount: c.discount, promoName: c.promoName,
+      svc: c.svc, tax: c.tax, total: c.total
+    });
+
     root.querySelector('#cart-title').textContent = cart.no ? 'Pesanan ' + cart.no : 'Pesanan Baru';
     root.querySelector('#btn-pay').disabled = !cart.items.length;
     root.querySelector('#btn-hold').disabled = !cart.items.length;
@@ -878,6 +888,7 @@ App.Views.pos = function (root, params) {
       submitting = true;
       const doPrint = m.el.querySelector('#pay-print').checked;
       const order = P.finalize(cart, finalPayments.filter(p => p.amount > 0), { change, cashReceived: cash });
+      if (App.Bridge) App.Bridge.send('paid', { no: order.no, total: order.total });
       m.close();
       P.clearCart();
       successDialog(order, change, doPrint);

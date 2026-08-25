@@ -84,8 +84,9 @@ App.Views.tables = function (root) {
       footer: o ? `<button class="btn" data-a="move">↔️ Pindah Meja</button>
                    <button class="btn" data-a="bill">🧾 Minta Bill</button>
                    <button class="btn btn--primary" data-a="open">Buka di Kasir</button>`
-                : `<button class="btn" data-a="edit">✏️ Ubah Meja</button>
-                   <button class="btn" data-a="reserve">📅 Tandai Reservasi</button>
+                : `<button class="btn" data-a="edit">✏️ Ubah</button>
+                   <button class="btn" data-a="qr">📱 E-Menu</button>
+                   <button class="btn" data-a="reserve">📅 Reservasi</button>
                    <button class="btn btn--primary" data-a="new">🧾 Pesanan Baru</button>`
     });
     const a = k => m.el.querySelector(`[data-a="${k}"]`);
@@ -94,6 +95,7 @@ App.Views.tables = function (root) {
     if (a('bill')) a('bill').onclick = () => { DB.update('tables', t.id, { status:'billed' }); m.close(); draw(); App.UI.toast('Meja ditandai minta bill'); };
     if (a('edit')) a('edit').onclick = () => { m.close(); tableForm(t); };
     if (a('reserve')) a('reserve').onclick = () => { DB.update('tables', t.id, { status:'reserved' }); m.close(); draw(); };
+    if (a('qr')) a('qr').onclick = () => { m.close(); App.Router.go('selforder', { o:t.outletId, t:t.id }); };
     if (a('move')) a('move').onclick = () => {
       m.close();
       const free = DB.where('tables', x => x.outletId === t.outletId && x.status === 'free');

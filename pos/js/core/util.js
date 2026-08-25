@@ -38,18 +38,35 @@ App.U = (function () {
   function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
   function round4(n) { return Math.round((Number(n) || 0) * 10000) / 10000; }
 
-  /* ---------- tanggal ---------- */
-  function today() { return new Date().toISOString().slice(0, 10); }
+  /* ---------- tanggal ----------
+     Seluruh perhitungan tanggal memakai zona waktu lokal perangkat.
+     Penting untuk usaha F&B di WIB/WITA/WIT: memakai UTC akan membuat
+     transaksi dini hari masuk ke tanggal yang salah. */
+  const pad2 = n => String(n).padStart(2, '0');
+
+  /* String 'YYYY-MM-DD' diurai sebagai tanggal LOKAL, bukan UTC. */
+  function parseDate(d) {
+    if (d instanceof Date) return new Date(d.getTime());
+    const s = String(d ?? '');
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    return new Date(s);
+  }
+  function ymd(d) {
+    const x = d === undefined || d === null ? new Date() : parseDate(d);
+    if (isNaN(x)) return '';
+    return `${x.getFullYear()}-${pad2(x.getMonth() + 1)}-${pad2(x.getDate())}`;
+  }
+  function today() { return ymd(new Date()); }
   function now()   { return new Date().toISOString(); }
-  function ymd(d)  { return new Date(d).toISOString().slice(0, 10); }
-  function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return ymd(x); }
-  function addMonths(d, n) { const x = new Date(d); x.setMonth(x.getMonth() + n); return ymd(x); }
-  function startOfMonth(d) { const x = new Date(d); return ymd(new Date(x.getFullYear(), x.getMonth(), 1)); }
-  function endOfMonth(d)   { const x = new Date(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 0)); }
+  function addDays(d, n) { const x = parseDate(d); x.setDate(x.getDate() + n); return ymd(x); }
+  function addMonths(d, n) { const x = parseDate(d); x.setMonth(x.getMonth() + n); return ymd(x); }
+  function startOfMonth(d) { const x = parseDate(d); return ymd(new Date(x.getFullYear(), x.getMonth(), 1)); }
+  function endOfMonth(d)   { const x = parseDate(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 0)); }
   function monthKey(d) { return String(d).slice(0, 7); }
   function fmtDate(d, style = 'short') {
     if (!d) return '-';
-    const x = new Date(d);
+    const x = parseDate(d);
     if (isNaN(x)) return '-';
     if (style === 'long')  return `${x.getDate()} ${BULAN[x.getMonth()]} ${x.getFullYear()}`;
     if (style === 'full')  return `${HARI[x.getDay()]}, ${x.getDate()} ${BULAN[x.getMonth()]} ${x.getFullYear()}`;
@@ -59,7 +76,7 @@ App.U = (function () {
   }
   function fmtTime(d) {
     if (!d) return '-';
-    const x = new Date(d);
+    const x = parseDate(d);
     if (isNaN(x)) return '-';
     return `${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;
   }
@@ -186,7 +203,7 @@ App.U = (function () {
   return {
     BULAN, HARI,
     rupiah, rp, num, compact, pct, parseNum, round2, round4,
-    today, now, ymd, addDays, addMonths, startOfMonth, endOfMonth, monthKey,
+    today, now, ymd, parseDate, addDays, addMonths, startOfMonth, endOfMonth, monthKey,
     fmtDate, fmtTime, fmtDateTime, ago, minutesSince, mmss, dateRangeDays,
     uid, docNo, initials, esc, slug, titleCase, terbilang,
     sum, groupBy, sortBy, unique, chunk, clone, pick, randInt,

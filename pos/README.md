@@ -93,7 +93,9 @@ operasional terposting otomatis:
 | Deposit pelanggan | Kas ← Deposit Pelanggan |
 
 Laporan: **Laba Rugi, Neraca, Arus Kas, Neraca Saldo, Buku Besar per akun,
-umur piutang & hutang**, plus jurnal manual dan pencatatan pengeluaran.
+umur piutang & hutang**, serta **Laporan Pembanding** (periode berjalan vs
+periode sebelumnya dan perbandingan antar outlet), plus jurnal manual dan
+pencatatan pengeluaran.
 
 ### 👥 HR & Payroll
 Data karyawan, struktur gaji (pokok, tunjangan, potongan BPJS), absensi
@@ -109,6 +111,29 @@ batasan hari, jam, kategori, dan minimum belanja. Kampanye marketing
 WhatsApp/SMS/email per segmen (aktif, berisiko churn, ulang tahun, per tier).
 Toko online & E-Menu QR dengan rekap performa per kanal (GoFood, GrabFood,
 ShopeeFood, webstore) termasuk estimasi komisi platform.
+
+### 📱 Perangkat Pendamping
+Layar dan aplikasi tambahan yang berbagi satu basis data dengan kasir:
+
+- **Self Order (E-Menu QR)** — pelanggan memindai QR di meja, memilih menu,
+  menambahkan catatan, dan mengirim pesanan sendiri. Pesanan langsung muncul di
+  Kitchen Display, Order Display, dan Daftar Pesanan kasir; meja otomatis
+  berubah menjadi terisi. Layar ini **tidak memerlukan login** dan navigasinya
+  dikunci hanya pada layar pelanggan.
+- **Customer Display** — layar menghadap pelanggan yang menampilkan isi
+  keranjang kasir **secara langsung dari jendela lain** (tersinkron antar tab
+  melalui `localStorage`), lengkap dengan promo berjalan.
+- **Order Display** — papan antrean "sedang disiapkan" dan "siap diambil"
+  untuk pelanggan bungkus, menyegarkan diri otomatis.
+- **QR Meja & Label Produk** — pembuat **QR Code** dan **barcode Code128** asli
+  (tanpa pustaka pihak ketiga). Cetak kartu QR per meja dan label harga
+  berbarcode untuk seluruh produk.
+- **Aplikasi Owner** — tampilan ponsel untuk pemilik: omzet real-time,
+  perbandingan antar outlet, posisi kas & tagihan, absensi hari ini,
+  persetujuan cuti, notifikasi, dan **kirim pesan ke outlet**.
+- **Aplikasi Teams** — tampilan ponsel untuk karyawan: absen masuk/pulang,
+  jadwal shift 14 hari, riwayat absensi, struktur gaji, **slip gaji**, dan
+  pengajuan cuti.
 
 ### 📑 Laporan & Analisa
 **33 jenis laporan** siap ekspor CSV/Excel, mencakup penjualan, inventori,
@@ -141,9 +166,10 @@ pos/
     │   ├── charts.js           Grafik SVG (garis, batang, donat, heatmap)
     │   ├── auth.js             Peran, hak akses, sesi, router hash
     │   ├── ledger.js           Mesin akuntansi double-entry & auto-posting
-    │   └── inventory.js        Stok, resep berjenjang, HPP rata-rata bergerak
+    │   ├── inventory.js        Stok, resep berjenjang, HPP rata-rata bergerak
+    │   └── qr.js               Pembuat QR Code & barcode Code128
     ├── data/                   Data contoh (master + riwayat transaksi)
-    ├── modules/                12 modul tampilan
+    ├── modules/                14 modul tampilan
     └── app.js                  Navigasi, rute, boot
 ```
 
@@ -168,11 +194,31 @@ diperbarui → kas shift bertambah → seluruh laporan ikut berubah.
 - **Outlet Kemang** menanggung gaji staf pusat (owner, manager, HRD, akuntan)
   sehingga marginnya tampak paling tipis — kondisi yang memang ingin
   ditonjolkan pada laporan perbandingan antar outlet.
+- **Zona waktu.** Seluruh perhitungan tanggal memakai waktu lokal perangkat,
+  bukan UTC — penting agar transaksi dini hari di WIB/WITA/WIT tidak masuk ke
+  tanggal yang salah.
+- **QR & barcode** dibuat sendiri (Reed–Solomon, masking, penempatan format
+  sesuai ISO/IEC 18004) dan diverifikasi dengan pustaka pembaca independen.
 
 ### Pintasan papan ketik
 
 `F1` cari menu · `F2` kasir · `F3` daftar pesanan · `F4` meja · `F9` bayar ·
 `Esc` tutup dialog · `Enter` konfirmasi
+
+### Menyiapkan layar pendamping
+
+Buka aplikasi di jendela/tab terpisah lalu arahkan ke alamat berikut:
+
+| Layar | Alamat |
+|---|---|
+| Self Order meja tertentu | `#/selforder?o=<id-outlet>&t=<id-meja>` |
+| Customer Display | `#/customerdisplay` |
+| Order Display | `#/orderdisplay` |
+
+QR siap cetak untuk tiap meja dibuat otomatis di menu **QR Meja & Label**.
+Agar bisa dipindai dari HP pelanggan, ganti alamat dasar pada halaman tersebut
+dengan alamat jaringan komputer kasir (mis. `http://192.168.1.10:8080/`),
+bukan `localhost`.
 
 ---
 
@@ -180,9 +226,16 @@ diperbarui → kas shift bertambah → seluruh laporan ikut berubah.
 
 Seluruh modul diverifikasi otomatis menggunakan Playwright:
 
-- 30 rute dimuat tanpa error JavaScript
+- 36 rute dimuat tanpa error JavaScript
 - 33 laporan dirender dan diekspor
 - Alur penjualan, void, opname, PO → penerimaan → tagihan → pembayaran, dan
   payroll diuji ujung ke ujung
 - Integritas akuntansi diperiksa setiap langkah: total debit = kredit,
   neraca seimbang, tidak ada jurnal timpang, tidak ada stok negatif
+- Alur self-order diuji dari pemilihan menu sampai muncul di Kitchen Display,
+  Order Display, dan Daftar Pesanan kasir
+- Sinkronisasi Customer Display diuji lintas jendela browser
+- 200 QR Code di seluruh versi 1–10 (termasuk teks Unicode) diverifikasi dapat
+  dibaca kembali oleh pustaka pemindai independen
+- Perilaku penyegaran otomatis diuji: meninggalkan halaman KDS/Order Display
+  tidak lagi menimpa halaman yang sedang dibuka

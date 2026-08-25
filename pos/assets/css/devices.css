@@ -1,0 +1,101 @@
+/* ==========================================================================
+   Perangkat pendamping: Self Order, Customer Display, Order Display,
+   Aplikasi Owner & Teams
+   ========================================================================== */
+
+/* ---------- Kerangka layar penuh (mode perangkat) ---------- */
+.device{position:fixed;inset:0;z-index:120;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+.device__bar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--surface);
+  border-bottom:1px solid var(--border);flex:0 0 auto}
+.device__bar .title{font-weight:800;font-size:14px}
+.device__bar .sub{font-size:11.5px;color:var(--text-3)}
+.device__body{flex:1;overflow:auto;min-height:0}
+
+/* ---------- Self Order (pelanggan) ---------- */
+.so{max-width:520px;margin:0 auto;background:var(--surface);min-height:100%;display:flex;flex-direction:column}
+.so__hero{background:linear-gradient(140deg,var(--brand-500),var(--brand-800));color:#fff;padding:20px 18px 16px}
+.so__hero h2{font-size:20px;letter-spacing:-.02em}
+.so__hero p{font-size:12.5px;color:#c6eae2;margin-top:3px}
+.so__meja{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(255,255,255,.16);
+  padding:5px 11px;border-radius:20px;font-size:12.5px;font-weight:700}
+.so__cats{display:flex;gap:6px;padding:11px 14px;overflow-x:auto;position:sticky;top:0;background:var(--surface);
+  border-bottom:1px solid var(--border);z-index:5}
+.so__cats::-webkit-scrollbar{height:0}
+.so__list{padding:8px 14px 100px;flex:1}
+.so-item{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);align-items:center}
+.so-item__img{width:56px;height:56px;border-radius:12px;background:var(--surface-3);display:grid;place-items:center;font-size:26px;flex:0 0 56px}
+.so-item__main{flex:1;min-width:0}
+.so-item__name{font-size:14px;font-weight:700;line-height:1.3}
+.so-item__desc{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.so-item__price{font-size:13.5px;font-weight:800;color:var(--brand-600);margin-top:4px}
+.so-item__add{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--brand-500);background:var(--brand-50);
+  color:var(--brand-700);font-size:19px;font-weight:800;cursor:pointer;flex:0 0 34px;line-height:1}
+.so-item__add:hover{background:var(--brand-500);color:#fff}
+.so-item.habis{opacity:.45;pointer-events:none}
+.so__bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);
+  padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 -4px 16px rgba(0,0,0,.07)}
+.so__cartbtn{flex:1;padding:13px;border-radius:12px;border:0;background:var(--brand-500);color:#fff;
+  font-size:15px;font-weight:800;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.so__cartbtn:disabled{opacity:.4;cursor:not-allowed}
+.so-badge{background:rgba(255,255,255,.25);border-radius:20px;padding:1px 9px;font-size:12.5px}
+.so__done{text-align:center;padding:40px 20px}
+.so__done .no{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:10px 0}
+
+/* ---------- Customer Display (layar menghadap pelanggan) ---------- */
+.cd{display:grid;grid-template-columns:1fr 380px;height:100%;background:#0c1417;color:#e8f1f3}
+@media(max-width:900px){.cd{grid-template-columns:1fr}}
+.cd__promo{padding:34px;display:flex;flex-direction:column;justify-content:center;
+  background:radial-gradient(900px 500px at 20% 20%,#0b5147,#0a2b28)}
+.cd__promo h1{font-size:36px;line-height:1.15;letter-spacing:-.03em}
+.cd__promo p{color:#9fd3c8;font-size:15px;margin-top:10px;max-width:460px}
+.cd__promo .tag{display:inline-block;background:rgba(255,255,255,.13);padding:5px 13px;border-radius:20px;
+  font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;width:max-content}
+.cd__side{background:#101d21;border-left:1px solid #22363d;display:flex;flex-direction:column}
+.cd__head{padding:15px 18px;border-bottom:1px solid #22363d}
+.cd__items{flex:1;overflow:auto;padding:8px 18px}
+.cd__line{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #1c2f35;font-size:14px}
+.cd__line small{display:block;color:#7d959e;font-size:11.5px}
+.cd__sum{padding:15px 18px;border-top:1px solid #22363d;background:#0c1417}
+.cd__total{display:flex;justify-content:space-between;align-items:baseline;font-size:26px;font-weight:800;margin-top:8px}
+.cd__empty{flex:1;display:grid;place-items:center;color:#5f7880;text-align:center;padding:24px}
+
+/* ---------- Order Display (antrean pesanan siap) ---------- */
+.od{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:22px;height:100%;background:#0c1417;color:#e8f1f3}
+.od__col{display:flex;flex-direction:column;min-height:0}
+.od__title{font-size:17px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding-bottom:11px;border-bottom:2px solid #22363d;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.od__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:11px;overflow:auto;align-content:start}
+.od__no{background:#17252a;border:1px solid #22363d;border-radius:13px;padding:15px 8px;text-align:center;
+  font-size:23px;font-weight:800;letter-spacing:-.02em}
+.od__no small{display:block;font-size:11px;font-weight:600;color:#7d959e;margin-top:4px;letter-spacing:0}
+.od__no.ready{background:var(--brand-600);border-color:var(--brand-400);color:#fff;animation:odpulse 2s infinite}
+@keyframes odpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+
+/* ---------- Aplikasi mobile (Owner / Teams) ---------- */
+.phone{max-width:430px;margin:0 auto;background:var(--surface);min-height:100%;
+  display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.12)}
+.phone__head{background:linear-gradient(140deg,var(--brand-500),var(--brand-800));color:#fff;padding:18px 18px 22px}
+.phone__head h3{font-size:17px}
+.phone__head p{font-size:12px;color:#bfe6de;margin-top:2px}
+.phone__body{flex:1;padding:14px;overflow:auto}
+.phone__nav{display:flex;border-top:1px solid var(--border);background:var(--surface);position:sticky;bottom:0}
+.phone__nav button{flex:1;border:0;background:none;padding:9px 4px 10px;font-size:10.5px;font-weight:600;
+  color:var(--text-3);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.phone__nav button .ic{font-size:17px}
+.phone__nav button.is-active{color:var(--brand-600)}
+.mini-stat{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:11px 12px}
+.mini-stat .l{font-size:11px;color:var(--text-3);font-weight:600}
+.mini-stat .v{font-size:17px;font-weight:800;margin-top:3px;letter-spacing:-.02em}
+.mini-stat .s{font-size:10.5px;color:var(--text-3);margin-top:2px}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.list-row:last-child{border-bottom:0}
+
+/* ---------- Label & QR cetak ---------- */
+.labels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.label{border:1px dashed #999;border-radius:6px;padding:8px;text-align:center;background:#fff;color:#111;break-inside:avoid}
+.label .n{font-size:11px;font-weight:700;line-height:1.25;min-height:26px}
+.label .p{font-size:12px;font-weight:800;margin-top:3px}
+.qr-card{border:1px dashed #999;border-radius:10px;padding:14px;text-align:center;background:#fff;color:#111;break-inside:avoid}
+.qr-card h4{font-size:15px;margin-bottom:2px}
+.qr-card .meja{font-size:22px;font-weight:800;margin:6px 0}
+.qr-card .hint{font-size:10.5px;color:#555;margin-top:6px;line-height:1.4}
