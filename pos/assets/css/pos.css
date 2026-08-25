@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Kasir (POS), Kitchen Display, Table Map, Struk
+   ========================================================================== */
+
+.pos{display:grid;grid-template-columns:1fr 400px;height:calc(100vh - 58px);overflow:hidden;background:var(--surface-2)}
+@media(max-width:1080px){.pos{grid-template-columns:1fr}.pos__cart{position:fixed;inset:58px 0 0 auto;width:min(400px,100%);z-index:60;transform:translateX(100%);transition:transform .2s}.pos__cart.is-open{transform:none}}
+
+.pos__left{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.pos__bar{display:flex;gap:8px;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.pos__cats{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border)}
+.pos__cats::-webkit-scrollbar{height:5px}
+.pos__grid{flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px;align-content:start}
+
+.prod{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;
+  transition:.13s;display:flex;flex-direction:column;text-align:left;padding:0;position:relative}
+.prod:hover{border-color:var(--brand-400);box-shadow:var(--shadow);transform:translateY(-2px)}
+.prod:active{transform:none}
+.prod__img{height:74px;display:grid;place-items:center;font-size:32px;background:var(--surface-3)}
+.prod__body{padding:8px 10px 10px}
+.prod__name{font-size:12.8px;font-weight:600;line-height:1.32;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.prod__price{font-size:13px;font-weight:800;color:var(--brand-600);margin-top:4px}
+.prod__stock{position:absolute;top:6px;right:6px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;background:rgba(255,255,255,.92);color:var(--text-2)}
+.prod__stock.low{background:var(--amber);color:#3d2800}
+.prod.is-out{opacity:.5;cursor:not-allowed}
+.prod.is-out::after{content:"HABIS";position:absolute;inset:auto 0 40% 0;text-align:center;font-size:11px;font-weight:800;color:var(--rose)}
+.prod__flag{position:absolute;top:6px;left:6px;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:6px;background:var(--violet);color:#fff}
+
+/* Cart */
+.pos__cart{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+.cart__head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center}
+.cart__type{display:flex;gap:5px;padding:9px 14px;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.cart__type::-webkit-scrollbar{height:0}
+.cart__meta{padding:9px 14px;border-bottom:1px solid var(--border);display:grid;gap:7px;background:var(--surface-2)}
+.cart__items{flex:1;overflow-y:auto;padding:6px 10px}
+.citem{padding:9px 6px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr auto;gap:5px}
+.citem:last-child{border-bottom:0}
+.citem__name{font-size:13px;font-weight:600;line-height:1.3}
+.citem__opts{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
+.citem__note{font-size:11px;color:var(--amber);font-style:italic;margin-top:2px}
+.citem__price{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.citem__ctrl{display:flex;align-items:center;gap:6px;margin-top:5px}
+.qty-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border-strong);background:var(--surface);
+  cursor:pointer;font-weight:800;font-size:14px;line-height:1;display:grid;place-items:center;color:var(--text-2)}
+.qty-btn:hover{background:var(--brand-50);border-color:var(--brand-400);color:var(--brand-700)}
+.qty-val{min-width:26px;text-align:center;font-weight:700;font-size:13px}
+.citem__x{border:0;background:none;color:var(--text-3);cursor:pointer;font-size:13px;padding:2px 4px;margin-left:auto}
+.citem__x:hover{color:var(--rose)}
+.cart__sum{border-top:1px solid var(--border);padding:11px 14px;background:var(--surface-2)}
+.cart__total{display:flex;justify-content:space-between;align-items:baseline;font-size:19px;font-weight:800;margin-top:6px;padding-top:8px;border-top:1px dashed var(--border-strong)}
+.cart__actions{padding:11px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--border)}
+.cart__actions .btn--pay{grid-column:1/-1;padding:13px;font-size:15px;font-weight:800}
+
+/* Tables map */
+.tmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:11px}
+.tbl-card{border:1.5px solid var(--border);border-radius:12px;padding:12px 10px;background:var(--surface);cursor:pointer;
+  text-align:center;transition:.13s;position:relative}
+.tbl-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.tbl-card__no{font-size:16px;font-weight:800}
+.tbl-card__cap{font-size:11px;color:var(--text-3)}
+.tbl-card__st{font-size:10.5px;font-weight:700;margin-top:6px;padding:2px 8px;border-radius:20px;display:inline-block}
+.tbl-card.free{border-color:var(--border)}
+.tbl-card.free .tbl-card__st{background:var(--surface-3);color:var(--text-3)}
+.tbl-card.occupied{border-color:var(--amber);background:var(--amber-soft)}
+.tbl-card.occupied .tbl-card__st{background:var(--amber);color:#3d2800}
+.tbl-card.billed{border-color:var(--sky);background:var(--sky-soft)}
+.tbl-card.billed .tbl-card__st{background:var(--sky);color:#fff}
+.tbl-card.reserved{border-color:var(--violet);background:var(--violet-soft)}
+.tbl-card.reserved .tbl-card__st{background:var(--violet);color:#fff}
+.tbl-card__amt{font-size:11.5px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* Kitchen Display */
+.kds{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:13px}
+.kds-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;border-top:4px solid var(--brand-500);display:flex;flex-direction:column}
+.kds-card.late{border-top-color:var(--rose);animation:pulse 1.6s infinite}
+.kds-card.warn{border-top-color:var(--amber)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,.35)}50%{box-shadow:0 0 0 7px rgba(229,72,77,0)}}
+.kds-card__head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.kds-card__no{font-weight:800;font-size:14px}
+.kds-card__time{margin-left:auto;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-2)}
+.kds-card__items{padding:8px 12px;flex:1}
+.kds-item{padding:6px 0;border-bottom:1px dashed var(--border);display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.kds-item:last-child{border-bottom:0}
+.kds-item.done{opacity:.42;text-decoration:line-through}
+.kds-item__q{background:var(--brand-50);color:var(--brand-700);font-weight:800;border-radius:7px;padding:1px 7px;font-size:12.5px;flex:0 0 auto}
+.kds-item__n{font-size:13px;font-weight:600;line-height:1.35}
+.kds-item__o{font-size:11px;color:var(--text-3)}
+.kds-card__foot{padding:9px 12px;border-top:1px solid var(--border);display:flex;gap:7px;background:var(--surface-2)}
+
+/* Receipt */
+.receipt{font-family:var(--mono);font-size:11.5px;line-height:1.5;width:302px;margin:0 auto;color:#111;background:#fff;padding:14px}
+.receipt hr{border:0;border-top:1px dashed #999;margin:7px 0}
+.receipt .c{text-align:center}
+.receipt .r{text-align:right}
+.receipt .row{display:flex;justify-content:space-between;gap:8px}
+.receipt .big{font-size:14px;font-weight:700}
+.receipt table{width:100%;border-collapse:collapse}
+.receipt td{padding:1px 0;vertical-align:top}
+@media print{
+  body *{visibility:hidden !important}
+  #print-area,#print-area *{visibility:visible !important}
+  #print-area{position:absolute;inset:0;background:#fff}
+  .receipt{width:100%;padding:0}
+  @page{margin:6mm}
+}
+
+/* Order queue / online */
+.oq{display:grid;gap:9px}
+.oq-card{display:flex;gap:11px;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface);cursor:pointer}
+.oq-card:hover{border-color:var(--brand-300);box-shadow:var(--shadow-sm)}
+.oq-card__ch{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:16px;flex:0 0 34px}
+.oq-card__main{flex:1;min-width:0}
+.oq-card__no{font-size:12.5px;font-weight:700}
+.oq-card__sub{font-size:11.5px;color:var(--text-3)}
+
+/* Numpad in payment modal */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.numpad button{padding:14px 0;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);
+  font-size:16px;font-weight:700;cursor:pointer}
+.numpad button:hover{background:var(--brand-50);border-color:var(--brand-300)}
+.pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pay-m{padding:11px 6px;border:1.5px solid var(--border);border-radius:11px;background:var(--surface);cursor:pointer;text-align:center;font-size:11.5px;font-weight:700}
+.pay-m:hover{border-color:var(--brand-400)}
+.pay-m.is-active{border-color:var(--brand-500);background:var(--brand-50);color:var(--brand-700)}
+.pay-m .ic{display:block;font-size:19px;margin-bottom:3px}
+.quick-cash{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.quick-cash button{padding:8px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);
+  font-size:11.5px;font-weight:700;cursor:pointer}
+.quick-cash button:hover{background:var(--brand-50);border-color:var(--brand-300)}
+.pay-line{display:flex;gap:8px;align-items:center;padding:7px 10px;background:var(--surface-2);border-radius:9px;margin-bottom:6px}
+
+/* Self order / e-menu preview */
+.emenu{max-width:420px;margin:0 auto;border:10px solid #1a1a1a;border-radius:28px;overflow:hidden;background:var(--surface)}

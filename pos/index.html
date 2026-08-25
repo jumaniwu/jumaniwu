@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="SajiPOS — sistem POS terintegrasi untuk cafe & restoran: kasir, inventori, procurement, akuntansi, HR/payroll, dan CRM dalam satu aplikasi.">
+<meta name="theme-color" content="#0d9c86">
+<title>SajiPOS — Sistem POS Terintegrasi Cafe &amp; Restoran</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/pos.css">
+</head>
+<body>
+
+<!-- ============ LAYAR MASUK ============ -->
+<div class="login" id="login">
+  <div class="login__card">
+    <div class="login__side">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:21px">☕</div>
+        <div>
+          <div style="font-weight:800;font-size:19px;letter-spacing:-.02em">SajiPOS</div>
+          <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8fd3c7">Cafe &amp; Restaurant Suite</div>
+        </div>
+      </div>
+      <h1>Satu aplikasi<br>untuk seluruh<br>operasional bisnis F&amp;B</h1>
+      <p>Kasir, inventori, pembelian, akuntansi, karyawan, dan pelanggan — terhubung otomatis dalam satu sistem.</p>
+      <div class="login__feats">
+        <div class="login__feat"><span>🧾</span><span>Kasir online &amp; offline, multi outlet, multi kasir</span></div>
+        <div class="login__feat"><span>📦</span><span>Inventori resep, HPP otomatis, opname &amp; mutasi</span></div>
+        <div class="login__feat"><span>🛒</span><span>Purchase order, penerimaan barang &amp; hutang supplier</span></div>
+        <div class="login__feat"><span>📊</span><span>Akuntansi double-entry, laba rugi &amp; neraca otomatis</span></div>
+        <div class="login__feat"><span>👥</span><span>Absensi, jadwal shift, komisi &amp; payroll</span></div>
+        <div class="login__feat"><span>💚</span><span>CRM: membership, poin, promo &amp; kampanye marketing</span></div>
+      </div>
+    </div>
+
+    <div class="login__form">
+      <h2 style="font-size:19px">Masuk ke sistem</h2>
+      <p class="muted small mb-16">Pilih pengguna lalu masukkan PIN.</p>
+      <div class="user-pick" id="user-pick"></div>
+      <div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>
+      <div id="login-err" class="small center" style="color:var(--rose);min-height:17px"></div>
+      <div class="pinpad" id="pinpad"></div>
+      <div class="small muted center mt-12" id="login-hint">PIN demo tertera di bawah nama pengguna.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APLIKASI ============ -->
+<div class="app" id="app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">☕</div>
+        <div>
+          <div class="sidebar__name">SajiPOS</div>
+          <div class="sidebar__tag">Cafe &amp; Resto Suite</div>
+        </div>
+      </div>
+      <nav class="sidebar__nav" id="nav"></nav>
+      <div class="sidebar__foot">
+        <button class="nav-item" id="btn-theme"><span class="nav-item__icon">🌙</span><span>Mode Gelap</span></button>
+        <button class="nav-item" id="btn-logout"><span class="nav-item__icon">🚪</span><span>Keluar</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <div class="topbar__crumb" id="crumb"></div>
+          <div class="topbar__title" id="title">Dashboard</div>
+        </div>
+        <div class="topbar__spacer"></div>
+        <button class="topbar__chip" id="chip-outlet">🏪 <span id="outlet-name">Outlet</span> ▾</button>
+        <button class="topbar__chip" id="chip-notif">🔔 <span id="notif-count">0</span></button>
+        <button class="topbar__chip" id="chip-pos" style="background:var(--brand-500);color:#fff;border-color:var(--brand-500)">🧾 Buka Kasir</button>
+        <div class="avatar" id="chip-user" title="Profil pengguna">?</div>
+      </header>
+      <main class="view" id="view"></main>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div id="print-area"></div>
+
+<!-- Inti -->
+<script src="js/core/util.js"></script>
+<script src="js/core/db.js"></script>
+<script src="js/core/ui.js"></script>
+<script src="js/core/charts.js"></script>
+<script src="js/core/auth.js"></script>
+<script src="js/core/ledger.js"></script>
+<script src="js/core/inventory.js"></script>
+<!-- Data contoh -->
+<script src="js/data/seed-master.js"></script>
+<script src="js/data/seed-history.js"></script>
+<!-- Modul -->
+<script src="js/modules/dashboard.js"></script>
+<script src="js/modules/pos.js"></script>
+<script src="js/modules/orders.js"></script>
+<script src="js/modules/tables.js"></script>
+<script src="js/modules/kds.js"></script>
+<script src="js/modules/inventory.js"></script>
+<script src="js/modules/procurement.js"></script>
+<script src="js/modules/accounting.js"></script>
+<script src="js/modules/hr.js"></script>
+<script src="js/modules/crm.js"></script>
+<script src="js/modules/reports.js"></script>
+<script src="js/modules/settings.js"></script>
+<!-- Boot -->
+<script src="js/app.js"></script>
+</body>
+</html>
