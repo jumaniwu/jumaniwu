@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Penambang Bitcoin Web</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Solo mining Bitcoin (SHA-256d) langsung di browser, lengkap dengan hitungan peluang dan hasil yang jujur.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: satu kolom kerja. Kendali di atas, papan hash di tengah, hitungan jujur dan konteks di bawah. */
+:root {
+  --bg: #ECEEE9;
+  --surface: #FAFBF8;
+  --ink: #15191B;
+  --muted: #586266;
+  --line: #D2D8D1;
+  --ore: #A94A16;
+  --ore-ink: #FFFFFF;
+  --zero: #F3DCCB;
+  --code: #E3E7E0;
+  --ok: #0E7357;
+  --warn: #8F5B00;
+  --bad: #B42318;
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1012; --surface: #151A1D; --ink: #E6EBE7; --muted: #95A1A4; --line: #273035;
+    --ore: #EE8B50; --ore-ink: #1B0E05; --zero: #3B2516; --code: #1C2327;
+    --ok: #4CCB9F; --warn: #F0B648; --bad: #FF7B6C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1012; --surface: #151A1D; --ink: #E6EBE7; --muted: #95A1A4; --line: #273035;
+  --ore: #EE8B50; --ore-ink: #1B0E05; --zero: #3B2516; --code: #1C2327;
+  --ok: #4CCB9F; --warn: #F0B648; --bad: #FF7B6C;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--f-body); }
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+code, .mono { font-family: var(--f-mono); }
+
+/* Kepala halaman */
+.top { border-bottom: 1px solid var(--line); }
+.top .wrap { padding-block: 40px 28px; display: grid; gap: 14px; }
+.eyebrow { margin: 0; font: 600 12px/1.2 var(--f-mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ore); }
+h1 {
+  margin: 0; font-family: var(--f-display); font-weight: 850; font-stretch: 125%;
+  font-size: clamp(34px, 6.4vw, 62px); line-height: .98; letter-spacing: -.012em; text-wrap: balance;
+}
+.lede { margin: 0; max-width: 62ch; color: var(--muted); font-size: 17px; }
+.selftest { margin: 4px 0 0; font: 13px/1.4 var(--f-mono); color: var(--muted); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.selftest b { font-weight: 600; }
+.selftest[data-ok="1"] b { color: var(--ok); }
+.selftest[data-ok="0"] b { color: var(--bad); }
+
+main.wrap { display: grid; gap: 20px; padding-block: 24px 56px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; min-width: 0; }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 760; font-stretch: 112%; font-size: 21px; line-height: 1.2; text-wrap: balance; }
+h3 { margin: 0; font-family: var(--f-display); font-weight: 720; font-stretch: 106%; font-size: 17px; line-height: 1.25; text-wrap: balance; }
+.intro { margin: 6px 0 0; color: var(--muted); max-width: 66ch; }
+.panel-head { display: grid; gap: 2px; margin-bottom: 16px; }
+
+/* Kendali */
+.control { display: grid; gap: 18px; }
+.fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; }
+.field { display: grid; gap: 6px; min-width: 0; align-content: start; }
+label, .label { font-weight: 600; font-size: 14px; }
+input[type="text"], input[type="number"] {
+  width: 100%; min-width: 0; font: 15px/1.3 var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px;
+}
+input[type="text"]:focus-visible, input[type="number"]:focus-visible { outline: 2px solid var(--ore); outline-offset: 1px; border-color: transparent; }
+input[type="range"] { width: 100%; accent-color: var(--ore); }
+input:disabled { opacity: .65; }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+.hint[data-tone="ok"] { color: var(--ok); }
+.hint[data-tone="bad"] { color: var(--bad); }
+.actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.btn {
+  font: 600 16px/1 var(--f-body); border-radius: 4px; padding: 13px 22px; cursor: pointer;
+  border: 1px solid var(--ore); background: var(--ore); color: var(--ore-ink);
+}
+.btn[data-running="1"] { background: transparent; color: var(--ore); }
+.btn:disabled { opacity: .6; cursor: progress; }
+.btn:focus-visible, .ghost:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.ghost { font: 500 14px/1 var(--f-body); background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 9px 14px; cursor: pointer; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--f-mono); letter-spacing: .06em;
+  text-transform: uppercase; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+}
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill[data-state="live"] { color: var(--ok); border-color: currentColor; }
+.pill[data-state="bench"] { color: var(--warn); border-color: currentColor; }
+.pill[data-run="1"]::before { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.net { margin: 0; font-size: 14px; color: var(--muted); max-width: 75ch; }
+.net[data-tone="ok"] { color: var(--ink); }
+
+/* Angka live */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0; }
+.stat { padding: 16px 18px; display: grid; gap: 4px; align-content: start; min-width: 0; border-left: 1px solid var(--line); }
+.stat:first-child { border-left: 0; }
+.stat .k { font: 600 11px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font: 600 clamp(20px, 2.6vw, 28px)/1.15 var(--f-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat .sub { font-size: 12.5px; color: var(--muted); }
+
+/* Papan hash */
+.hashes { display: grid; gap: 10px; }
+.hrow { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.hrow .lbl { font: 600 11px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hrow code {
+  display: block; background: var(--code); border-radius: 4px; padding: 8px 10px;
+  font-size: 13.5px; line-height: 1.5; word-break: break-all; overflow-wrap: anywhere; letter-spacing: .02em;
+}
+.hrow code .z { background: var(--zero); color: var(--ore); font-weight: 600; }
+.hrow .bits { font: 600 13px/1.2 var(--f-mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 14px; margin-top: 18px; background: var(--code); border-radius: 3px; overflow: hidden; }
+.meter-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--ore); transition: width .4s ease; }
+.meter-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: .55; }
+.meter-scale { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font: 12px/1.3 var(--f-mono); color: var(--muted); flex-wrap: wrap; }
+.meter-cap { margin: 12px 0 0; max-width: 70ch; }
+
+/* Header blok */
+.hdr { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.hdr dt { font: 600 11px/1.9 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hdr dd { margin: 0; font: 13.5px/1.6 var(--f-mono); word-break: break-all; overflow-wrap: anywhere; min-width: 0; }
+.hdr dd small { font-family: var(--f-body); color: var(--muted); font-size: 12.5px; word-break: normal; }
+.tag { display: inline-block; margin-left: 6px; font: 600 11px/1 var(--f-mono); padding: 3px 6px; border-radius: 3px; background: var(--code); color: var(--warn); vertical-align: 1px; word-break: normal; }
+
+/* Blok ditemukan */
+.found { border-color: var(--ok); }
+.found textarea { width: 100%; min-height: 120px; font: 12px/1.4 var(--f-mono); background: var(--code); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
+
+/* Hitungan */
+.calc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 24px; }
+.inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: start; }
+.inputs .field label { font-size: 13px; }
+.results { display: grid; gap: 0; align-content: start; border-top: 1px solid var(--line); }
+.res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.res .k { font-size: 14.5px; }
+.res .v { font: 600 15px/1.3 var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.res .note { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+.res.big .v { color: var(--bad); }
+.verdict { margin: 16px 0 0; padding: 14px 16px; border-left: 3px solid var(--ore); background: var(--code); border-radius: 0 4px 4px 0; max-width: 72ch; }
+.basis { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* Tabel perbandingan */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+th { font: 600 11px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.you td:first-child { font-weight: 600; color: var(--ore); }
+
+/* Catatan */
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 32px; }
+.note-card { display: grid; gap: 6px; align-content: start; }
+.note-card p { margin: 0; color: var(--muted); font-size: 15px; }
+footer .wrap { padding-block: 0 40px; font-size: 13px; color: var(--muted); }
+footer p { margin: 0; max-width: 80ch; }
+
+@media (max-width: 760px) {
+  .fields, .calc-grid, .notes { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:nth-child(3) { border-left: 0; }
+  .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .hrow { grid-template-columns: minmax(0, 1fr) auto; }
+  .hrow .lbl { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .inputs { grid-template-columns: minmax(0, 1fr); }
+  .hdr { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .hdr dd { margin-bottom: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill[data-run="1"]::before { animation: none; }
+  .meter-fill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">SHA-256d · proof of work · solo mining</p>
+    <h1>Penambang Bitcoin Web</h1>
+    <p class="lede">Ini penambangan Bitcoin sungguhan yang berjalan di prosesor perangkat Anda, tanpa GPU dan tanpa instalasi. Halaman ini juga menghitung secara terbuka berapa peluang Anda menemukan blok dan berapa hasilnya.</p>
+    <p class="selftest" id="selftest"><b>Menguji mesin hash…</b></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="panel control" aria-labelledby="ctlTitle">
+    <h2 id="ctlTitle" hidden>Kendali penambang</h2>
+    <div class="fields">
+      <div class="field">
+        <label for="addr">Alamat Bitcoin penerima hadiah</label>
+        <input type="text" id="addr" placeholder="bc1q… atau bc1p… atau 1… atau 3…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p class="hint" id="addrHint">Kalau Anda menemukan blok, hadiah blok masuk ke alamat ini. Kosongkan untuk uji kecepatan saja.</p>
+      </div>
+      <div class="field">
+        <label for="threads">Thread CPU: <output id="threadsOut" for="threads">1</output> dari <span id="cores">1</span></label>
+        <input type="range" id="threads" min="1" max="1" value="1">
+        <p class="hint">Makin banyak thread, makin cepat, makin panas, dan baterai makin cepat habis.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="toggle">Mulai menambang</button>
+      <span class="pill" id="modePill" data-state="idle">Siap</span>
+    </div>
+    <p class="net" id="netStatus">Mengambil data blok terbaru dari mempool.space…</p>
+  </section>
+
+  <section class="panel stats" aria-label="Angka penambangan saat ini" aria-live="off">
+    <div class="stat"><span class="k">Kecepatan</span><span class="v" id="sRate">0 H/s</span><span class="sub" id="sRateSub">belum diukur</span></div>
+    <div class="stat"><span class="k">Total hash</span><span class="v" id="sTotal">0</span><span class="sub" id="sTime">0 detik menambang</span></div>
+    <div class="stat"><span class="k">Share diff-1</span><span class="v" id="sShares">0</span><span class="sub">hash dengan 32+ bit nol</span></div>
+    <div class="stat"><span class="k">Blok yang ditambang</span><span class="v" id="sHeight">–</span><span class="sub" id="sHeightSub">belum ada data</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="raceTitle">
+    <div class="panel-head">
+      <h2 id="raceTitle">Hash terbaik Anda vs target jaringan</h2>
+      <p class="intro">Blok dianggap sah jika hash header-nya lebih kecil dari target. Setiap satu angka nol tambahan di depan membuatnya 16 kali lebih sulit.</p>
+    </div>
+    <div class="hashes">
+      <div class="hrow"><span class="lbl">Target</span><code id="hTarget">–</code><span class="bits" id="hTargetBits">–</span></div>
+      <div class="hrow"><span class="lbl">Terbaik Anda</span><code id="hBest">belum ada</code><span class="bits" id="hBestBits">0 bit</span></div>
+    </div>
+    <div class="meter" role="img" id="meter" aria-label="Kemajuan bit nol">
+      <div class="meter-fill" id="meterFill"></div>
+      <div class="meter-mark" id="meterMark" title="Share diff-1: 32 bit nol"></div>
+    </div>
+    <div class="meter-scale"><span>0 bit</span><span id="markLbl">diff-1 = 32 bit</span><span id="needLbl">blok = – bit</span></div>
+    <p class="meter-cap" id="meterCap">Skala ini dalam bit. Setiap 1 bit tambahan berarti rata-rata dua kali lebih banyak hash.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="hdrTitle">
+    <div class="panel-head">
+      <h2 id="hdrTitle">Header blok yang sedang di-hash</h2>
+      <p class="intro">80 byte ini di-hash dua kali dengan SHA-256 untuk setiap nonce. Blok berisi satu transaksi coinbase yang membayar hadiah ke alamat Anda.</p>
+    </div>
+    <dl class="hdr">
+      <dt>Versi</dt><dd id="fVer">–</dd>
+      <dt>Blok sebelumnya</dt><dd id="fPrev">–</dd>
+      <dt>Merkle root</dt><dd id="fMerkle">–</dd>
+      <dt>Waktu</dt><dd id="fTime">–</dd>
+      <dt>Bits</dt><dd id="fBits">–</dd>
+      <dt>Nonce</dt><dd id="fNonce">–</dd>
+      <dt>Hadiah</dt><dd id="fReward">–</dd>
+    </dl>
+  </section>
+
+  <section class="panel found" id="found" hidden aria-labelledby="foundTitle">
+    <div class="panel-head">
+      <h2 id="foundTitle">Hash memenuhi target</h2>
+      <p class="intro" id="foundText">Kirim blok ini secepatnya lewat node Bitcoin Anda dengan perintah <code>bitcoin-cli submitblock &lt;hex&gt;</code>. Blok ini kedaluwarsa begitu jaringan menerima blok lain di ketinggian yang sama.</p>
+    </div>
+    <textarea id="blockHex" readonly aria-label="Blok lengkap dalam hex"></textarea>
+    <div class="actions"><button type="button" class="ghost" id="copyBlock">Salin hex blok</button><span class="hint" id="copyMsg"></span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="calcTitle">
+    <div class="panel-head">
+      <h2 id="calcTitle">Hitungan jujur</h2>
+      <p class="intro">Angka jaringan diisi otomatis jika data live tersedia. Semua kolom bisa Anda ubah.</p>
+    </div>
+    <div class="calc-grid">
+      <div class="inputs">
+        <div class="field"><label for="inDiff">Kesulitan jaringan (triliun)</label><input type="number" id="inDiff" min="0.000001" step="any" value="148.36"></div>
+        <div class="field"><label for="inPrice">Harga 1 BTC (USD)</label><input type="number" id="inPrice" min="0" step="any" value="100000"></div>
+        <div class="field"><label for="inKurs">Kurs (Rp per USD)</label><input type="number" id="inKurs" min="0" step="any" value="16200"></div>
+        <div class="field"><label for="inWatt">Tambahan daya perangkat (watt)</label><input type="number" id="inWatt" min="0" step="any" value="15"></div>
+        <div class="field"><label for="inTarif">Tarif listrik (Rp per kWh)</label><input type="number" id="inTarif" min="0" step="any" value="1444.70"></div>
+        <div class="field"><label for="inRate">Kecepatan dihitung (MH/s)</label><input type="number" id="inRate" min="0" step="any" value="5"><p class="hint" id="rateHint">Contoh 5 MH/s. Tekan Mulai untuk memakai kecepatan perangkat Anda.</p></div>
+      </div>
+      <div>
+        <div class="results">
+          <div class="res"><span class="k">Peluang menemukan blok dalam 24 jam</span><span class="v" id="rChance">–</span></div>
+          <div class="res"><span class="k">Rata-rata waktu sampai 1 blok</span><span class="v" id="rTime">–</span><span class="note" id="rTimeNote"></span></div>
+          <div class="res"><span class="k">Hasil rata-rata per hari (lewat pool)</span><span class="v" id="rSats">–</span><span class="note" id="rRp"></span></div>
+          <div class="res big"><span class="k">Biaya listrik per hari</span><span class="v" id="rCost">–</span><span class="note" id="rCostNote"></span></div>
+        </div>
+        <p class="verdict" id="verdict">–</p>
+        <p class="basis" id="basis"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="cmpTitle">
+    <div class="panel-head">
+      <h2 id="cmpTitle">Perbandingan perangkat</h2>
+      <p class="intro">Waktu rata-rata untuk menemukan satu blok jika menambang sendiri (solo), dengan kesulitan di atas.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Perangkat</th><th scope="col">Kecepatan</th><th scope="col">Rata-rata 1 blok</th><th scope="col">Hasil per hari</th></tr></thead>
+        <tbody id="cmpBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Yang perlu Anda tahu">
+    <div class="note-card">
+      <h3>Kenapa hasilnya hampir nol</h3>
+      <p>Bitcoin sekarang ditambang mesin ASIC yang dibuat khusus untuk SHA-256. Satu mesin menghitung sekitar 200 triliun hash per detik, jutaan kali lebih cepat dari browser. Kesulitan jaringan menyesuaikan diri setiap 2.016 blok supaya rata-rata tetap satu blok per 10 menit, jadi makin banyak mesin, makin sulit.</p>
+    </div>
+    <div class="note-card">
+      <h3>Koin lain yang bisa ditambang CPU</h3>
+      <p>Monero (algoritma RandomX) memang dirancang untuk CPU. Tapi di browser kecepatannya jauh di bawah program native seperti XMRig, dan dengan CPU laptop biasa hasilnya umumnya tetap di bawah biaya listrik. Layanan mining browser seperti Coinhive sudah tutup sejak 2019, dan skrip semacam itu kini diblokir antivirus.</p>
+    </div>
+    <div class="note-card">
+      <h3>Waspadai cloud mining</h3>
+      <p>Aplikasi atau situs yang menjanjikan profit tetap dari mining tanpa alat hampir selalu skema ponzi: uang anggota baru dipakai membayar anggota lama. Cek daftar entitas ilegal Satgas PASTI OJK sebelum menyetor dana.</p>
+    </div>
+    <div class="note-card">
+      <h3>Hanya untuk perangkat sendiri</h3>
+      <p>Memasang penambang di website agar berjalan di perangkat pengunjung tanpa izin disebut cryptojacking. Browser dan antivirus memblokirnya, dan di banyak negara itu bisa dipidana. Jalankan halaman ini hanya di perangkat Anda sendiri.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Data blok dan harga: API publik mempool.space. Halaman ini tidak mengirim apa pun selain permintaan data blok publik tersebut. Alamat Anda hanya disimpan di browser ini.</p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+/* ===== Mesin SHA-256 (dipakai di halaman dan di Web Worker) ===== */
+function MinerCore() {
+  var K = new Int32Array([
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  var IV = new Int32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+
+  // Satu blok kompresi SHA-256. w: 64 kata (16 pertama terisi). out boleh sama dengan st.
+  function compress(st, w, out) {
+    for (var i = 16; i < 64; i++) {
+      var x = w[i - 15], y = w[i - 2];
+      w[i] = (((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3)) +
+             (((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10)) + w[i - 16] + w[i - 7] | 0;
+    }
+    var a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
+    for (var j = 0; j < 64; j++) {
+      var t1 = h + (((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7))) +
+               ((e & f) ^ (~e & g)) + K[j] + w[j] | 0;
+      var t2 = (((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10))) +
+               ((a & b) ^ (a & c) ^ (b & c)) | 0;
+      h = g; g = f; f = e; e = d + t1 | 0; d = c; c = b; b = a; a = t1 + t2 | 0;
+    }
+    out[0] = st[0] + a | 0; out[1] = st[1] + b | 0; out[2] = st[2] + c | 0; out[3] = st[3] + d | 0;
+    out[4] = st[4] + e | 0; out[5] = st[5] + f | 0; out[6] = st[6] + g | 0; out[7] = st[7] + h | 0;
+  }
+
+  function sha256(bytes) {
+    var len = bytes.length, total = ((len + 9 + 63) >> 6) << 6;
+    var p = new Uint8Array(total); p.set(bytes); p[len] = 0x80;
+    var dv = new DataView(p.buffer);
+    dv.setUint32(total - 8, Math.floor(len / 0x20000000));
+    dv.setUint32(total - 4, (len * 8) >>> 0);
+    var h = Int32Array.from(IV), w = new Int32Array(64);
+    for (var o = 0; o < total; o += 64) {
+      for (var i = 0; i < 16; i++) w[i] = dv.getInt32(o + 4 * i);
+      compress(h, w, h);
+    }
+    var out = new Uint8Array(32), odv = new DataView(out.buffer);
+    for (var k = 0; k < 8; k++) odv.setInt32(4 * k, h[k]);
+    return out;
+  }
+  function sha256d(bytes) { return sha256(sha256(bytes)); }
+
+  function midstate(first64) {
+    var dv = new DataView(first64.buffer, first64.byteOffset, 64);
+    var w = new Int32Array(64);
+    for (var i = 0; i < 16; i++) w[i] = dv.getInt32(4 * i);
+    var h = Int32Array.from(IV);
+    compress(h, w, h);
+    return h;
+  }
+
+  function bswap(x) { return ((x >>> 24) | ((x >>> 8) & 0xff00) | ((x << 8) & 0xff0000) | (x << 24)) >>> 0; }
+
+  // Hash dalam urutan tampilan (seperti di block explorer).
+  function hashHex(h) {
+    var s = '';
+    for (var i = 7; i >= 0; i--) s += ('0000000' + bswap(h[i]).toString(16)).slice(-8);
+    return s;
+  }
+
+  function meets(h, t) {
+    for (var i = 0; i < 8; i++) {
+      var v = bswap(h[7 - i]);
+      if (v < t[i]) return true;
+      if (v > t[i]) return false;
+    }
+    return true;
+  }
+
+  // Coba `count` nonce mulai dari `start`. Kata nonce = 4 byte terakhir header dibaca big-endian.
+  function mine(job, start, count) {
+    var ms = job.midstate, t = job.target, t0 = t[0];
+    var w1 = new Int32Array(64), w2 = new Int32Array(64), h1 = new Int32Array(8), h2 = new Int32Array(8);
+    w1[0] = job.tail[0]; w1[1] = job.tail[1]; w1[2] = job.tail[2]; w1[4] = -2147483648; w1[15] = 640;
+    w2[8] = -2147483648; w2[15] = 256;
+    var best = -1, bestWord = 0, bestHash = '', shares = 0, found = null;
+    for (var n = 0; n < count; n++) {
+      var word = (start + n) | 0;
+      w1[3] = word;
+      compress(ms, w1, h1);
+      w2[0] = h1[0]; w2[1] = h1[1]; w2[2] = h1[2]; w2[3] = h1[3];
+      w2[4] = h1[4]; w2[5] = h1[5]; w2[6] = h1[6]; w2[7] = h1[7];
+      compress(IV, w2, h2);
+      var top = bswap(h2[7]), z;
+      if (top !== 0) {
+        z = Math.clz32(top);
+        if (top <= t0 && !found && meets(h2, t)) found = { word: word, hash: hashHex(h2) };
+        if (z <= best) continue;
+      } else {
+        shares++;
+        z = 32;
+        for (var i = 6; i >= 0; i--) {
+          var v = bswap(h2[i]);
+          if (v === 0) z += 32; else { z += Math.clz32(v); break; }
+        }
+        if (!found && meets(h2, t)) found = { word: word, hash: hashHex(h2) };
+      }
+      if (z > best) { best = z; bestWord = word; bestHash = hashHex(h2); }
+    }
+    return { best: best, bestWord: bestWord, bestHash: bestHash, shares: shares, found: found };
+  }
+
+  return { sha256: sha256, sha256d: sha256d, midstate: midstate, mine: mine, bswap: bswap, hashHex: hashHex };
+}
+
+/* ===== Loop pekerja: dijalankan di Web Worker, atau di halaman jika Worker tidak tersedia ===== */
+function workerMain(scope, core, makeYield, sliceMs) {
+  var job = null, pos = 0, running = false, size = 4096;
+  var next = makeYield(step);
+  scope.onmessage = function (e) {
+    var m = e.data;
+    if (m.type === 'job') {
+      job = { id: m.id, midstate: Int32Array.from(m.midstate), tail: Int32Array.from(m.tail), target: Uint32Array.from(m.target) };
+      pos = 0;
+      if (!running) { running = true; next(); }
+    } else if (m.type === 'stop') {
+      running = false; job = null;
+    }
+  };
+  function step() {
+    if (!running || !job) { running = false; return; }
+    var n = Math.min(size, 4294967296 - pos);
+    var t0 = performance.now();
+    var r = core.mine(job, pos, n);
+    var dt = performance.now() - t0;
+    pos += n;
+    if (dt < sliceMs * 0.6) size = Math.min(size * 2, 1 << 24);
+    else if (dt > sliceMs * 1.6 && size > 1024) size = size >> 1;
+    scope.postMessage({ type: 'progress', id: job.id, hashes: n, best: r.best, bestHash: r.bestHash,
+      bestNonce: core.bswap(r.bestWord), shares: r.shares, nonce: core.bswap((pos - 1) | 0), tried: pos });
+    if (r.found) {
+      scope.postMessage({ type: 'found', id: job.id, nonce: core.bswap(r.found.word), hash: r.found.hash });
+      running = false; job = null; return;
+    }
+    if (pos >= 4294967296) {
+      scope.postMessage({ type: 'exhausted', id: job.id });
+      running = false; job = null; return;
+    }
+    next();
+  }
+}
+
+/* ===== Utilitas byte ===== */
+var core = MinerCore();
+function hexToBytes(hex) { var o = new Uint8Array(hex.length / 2); for (var i = 0; i < o.length; i++) o[i] = parseInt(hex.substr(i * 2, 2), 16); return o; }
+function bytesToHex(b) { var s = ''; for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16); return s; }
+function concat() {
+  var parts = Array.prototype.slice.call(arguments), len = 0, off = 0;
+  parts.forEach(function (p) { len += p.length; });
+  var out = new Uint8Array(len);
+  parts.forEach(function (p) { out.set(p, off); off += p.length; });
+  return out;
+}
+function u32le(n) { var b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n >>> 0, true); return b; }
+function u64le(n) { var b = new Uint8Array(8), dv = new DataView(b.buffer); dv.setUint32(0, n % 4294967296, true); dv.setUint32(4, Math.floor(n / 4294967296), true); return b; }
+function varint(n) {
+  if (n < 0xfd) return new Uint8Array([n]);
+  if (n <= 0xffff) return new Uint8Array([0xfd, n & 0xff, n >> 8]);
+  return concat(new Uint8Array([0xfe]), u32le(n));
+}
+function pushData(b) { if (b.length > 75) throw new Error('push terlalu panjang'); return concat(new Uint8Array([b.length]), b); }
+function scriptNum(n) {
+  var out = [];
+  while (n > 0) { out.push(n & 0xff); n = Math.floor(n / 256); }
+  if (out.length && (out[out.length - 1] & 0x80)) out.push(0);
+  return new Uint8Array(out);
+}
+function utf8(s) { return new TextEncoder().encode(s); }
+
+/* ===== Alamat Bitcoin (mainnet) -> scriptPubKey ===== */
+var B32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+function polymod(values) {
+  var G = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3], chk = 1;
+  for (var i = 0; i < values.length; i++) {
+    var top = chk >>> 25;
+    chk = ((chk & 0x1ffffff) << 5) ^ values[i];
+    for (var j = 0; j < 5; j++) if ((top >>> j) & 1) chk ^= G[j];
+  }
+  return chk >>> 0;
+}
+function hrpExpand(h) { var r = [], i; for (i = 0; i < h.length; i++) r.push(h.charCodeAt(i) >> 5); r.push(0); for (i = 0; i < h.length; i++) r.push(h.charCodeAt(i) & 31); return r; }
+function bech32Decode(s) {
+  if (s.toLowerCase() !== s && s.toUpperCase() !== s) return null;
+  s = s.toLowerCase();
+  var p = s.lastIndexOf('1');
+  if (p < 1 || p + 7 > s.length || s.length > 90) return null;
+  var hrp = s.slice(0, p), data = [];
+  for (var i = p + 1; i < s.length; i++) { var d = B32.indexOf(s[i]); if (d < 0) return null; data.push(d); }
+  var pm = polymod(hrpExpand(hrp).concat(data));
+  var enc = pm === 1 ? 'bech32' : pm === 0x2bc830a3 ? 'bech32m' : null;
+  if (!enc) return null;
+  return { hrp: hrp, data: data.slice(0, -6), enc: enc };
+}
+function convertBits(data, from, to, pad) {
+  var acc = 0, bits = 0, out = [], maxv = (1 << to) - 1, maxAcc = (1 << (from + to - 1)) - 1;
+  for (var i = 0; i < data.length; i++) {
+    var v = data[i];
+    if (v < 0 || (v >> from)) return null;
+    acc = ((acc << from) | v) & maxAcc; bits += from;
+    while (bits >= to) { bits -= to; out.push((acc >> bits) & maxv); }
+  }
+  if (pad) { if (bits > 0) out.push((acc << (to - bits)) & maxv); }
+  else if (bits >= from || ((acc << (to - bits)) & maxv)) return null;
+  return out;
+}
+var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58Decode(s) {
+  var bytes = [];
+  for (var i = 0; i < s.length; i++) {
+    var carry = B58.indexOf(s[i]);
+    if (carry < 0) return null;
+    for (var j = 0; j < bytes.length; j++) { carry += bytes[j] * 58; bytes[j] = carry & 0xff; carry >>= 8; }
+    while (carry) { bytes.push(carry & 0xff); carry >>= 8; }
+  }
+  for (var k = 0; k < s.length && s[k] === '1'; k++) bytes.push(0);
+  return new Uint8Array(bytes.reverse());
+}
+function parseAddress(raw) {
+  var s = (raw || '').trim();
+  if (!s) return { ok: false, empty: true };
+  if (/^(tb1|bcrt1|[mn2])/i.test(s)) return { ok: false, msg: 'Ini alamat testnet. Penambang ini hanya untuk mainnet.' };
+  if (/^bc1/i.test(s)) {
+    var d = bech32Decode(s);
+    if (!d || d.hrp !== 'bc' || d.data.length < 1) return { ok: false, msg: 'Checksum alamat bc1 tidak cocok. Periksa lagi hurufnya.' };
+    var ver = d.data[0], prog = convertBits(d.data.slice(1), 5, 8, false);
+    if (ver > 16 || !prog || prog.length < 2 || prog.length > 40) return { ok: false, msg: 'Alamat bc1 tidak sah.' };
+    if (ver === 0 && prog.length !== 20 && prog.length !== 32) return { ok: false, msg: 'Panjang alamat SegWit tidak sah.' };
+    if ((ver === 0 && d.enc !== 'bech32') || (ver !== 0 && d.enc !== 'bech32m')) return { ok: false, msg: 'Format checksum alamat tidak sesuai versinya.' };
+    var label = ver === 0 ? (prog.length === 20 ? 'SegWit (P2WPKH)' : 'SegWit (P2WSH)') : ver === 1 ? 'Taproot (P2TR)' : 'SegWit v' + ver;
+    return { ok: true, type: label, spk: concat(new Uint8Array([ver === 0 ? 0 : 0x50 + ver, prog.length]), new Uint8Array(prog)) };
+  }
+  var b = base58Decode(s);
+  if (!b || b.length !== 25) return { ok: false, msg: 'Alamat tidak dikenali. Gunakan alamat Bitcoin mainnet (bc1…, 1…, atau 3…).' };
+  var sum = core.sha256d(b.subarray(0, 21));
+  for (var i = 0; i < 4; i++) if (sum[i] !== b[21 + i]) return { ok: false, msg: 'Checksum alamat tidak cocok. Periksa lagi hurufnya.' };
+  var h160 = b.subarray(1, 21);
+  if (b[0] === 0x00) return { ok: true, type: 'Legacy (P2PKH)', spk: concat(new Uint8Array([0x76, 0xa9, 0x14]), h160, new Uint8Array([0x88, 0xac])) };
+  if (b[0] === 0x05) return { ok: true, type: 'Script (P2SH)', spk: concat(new Uint8Array([0xa9, 0x14]), h160, new Uint8Array([0x87])) };
+  return { ok: false, msg: 'Versi alamat tidak didukung.' };
+}
+
+/* ===== Aturan Bitcoin ===== */
+function subsidySats(height) { var hv = Math.floor(height / 210000); return hv >= 64 ? 0 : Math.floor(5e9 / Math.pow(2, hv)); }
+function bitsToTargetBytes(bits) {
+  var e = bits >>> 24, m = bits & 0x7fffff, t = new Uint8Array(32);
+  for (var i = 0; i < 3; i++) { var p = 32 - e + i; if (p >= 0 && p < 32) t[p] = (m >>> (8 * (2 - i))) & 0xff; }
+  return t;
+}
+function bitsToTargetWords(bits) {
+  var t = bitsToTargetBytes(bits), w = new Uint32Array(8);
+  for (var i = 0; i < 8; i++) w[i] = ((t[4 * i] << 24) | (t[4 * i + 1] << 16) | (t[4 * i + 2] << 8) | t[4 * i + 3]) >>> 0;
+  return w;
+}
+function bitsToDifficulty(bits) { var e = bits >>> 24, m = bits & 0xffffff; return (0xffff / m) * Math.pow(256, 0x1d - e); }
+function difficultyToBits(D) {
+  var e = 0x1d, m = 0xffff / D;
+  while (m < 0x8000 && e > 3) { m *= 256; e--; }
+  return ((e << 24) | Math.floor(m)) >>> 0;
+}
+function targetZeroBits(bits) { var e = bits >>> 24, m = bits & 0xffffff; return 256 - (Math.log2(m) + 8 * (e - 3)); }
+
+function coinbaseTx(scriptSig, valueSats, spk) {
+  return concat(
+    u32le(1), new Uint8Array([1]), new Uint8Array(32), u32le(0xffffffff),
+    varint(scriptSig.length), scriptSig, u32le(0xffffffff),
+    new Uint8Array([1]), u64le(valueSats), varint(spk.length), spk, u32le(0));
+}
+function makeHeader(version, prevHashHex, merkleInternal, time, bits, nonce) {
+  var h = new Uint8Array(80), dv = new DataView(h.buffer);
+  dv.setUint32(0, version >>> 0, true);
+  h.set(hexToBytes(prevHashHex).reverse(), 4);
+  h.set(merkleInternal, 36);
+  dv.setUint32(68, time >>> 0, true);
+  dv.setUint32(72, bits >>> 0, true);
+  dv.setUint32(76, nonce >>> 0, true);
+  return h;
+}
+
+/* ===== Uji mandiri: hitung ulang blok genesis Bitcoin ===== */
+function selfTest() {
+  try {
+    var sig = hexToBytes('04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73');
+    var spk = hexToBytes('4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac');
+    var cb = coinbaseTx(sig, 5e9, spk);
+    var txid = core.sha256d(cb);
+    if (bytesToHex(txid.slice().reverse()) !== '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b') return false;
+    var hdr = makeHeader(1, '00'.repeat(32), txid, 1231006505, 0x1d00ffff, 0);
+    var dv = new DataView(hdr.buffer);
+    var job = { midstate: core.midstate(hdr.subarray(0, 64)), tail: [dv.getInt32(64), dv.getInt32(68), dv.getInt32(72)], target: bitsToTargetWords(0x1d00ffff) };
+    var r = core.mine(job, 0x1dac2b7c - 4, 9);
+    return !!r.found && r.found.hash === '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f' && core.bswap(r.found.word) === 2083236893;
+  } catch (e) { return false; }
+}
+
+/* ===== Format angka (Bahasa Indonesia) ===== */
+function nf(v, maxFrac) { return v.toLocaleString('id-ID', { maximumFractionDigits: maxFrac == null ? 0 : maxFrac }); }
+var SUP = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' };
+function sci(v) {
+  if (!isFinite(v) || v === 0) return '0';
+  var exp = Math.floor(Math.log10(Math.abs(v))), man = v / Math.pow(10, exp);
+  if (Math.abs(man) >= 9.95) { man /= 10; exp += 1; }
+  return nf(man, 1) + ' × 10' + String(exp).split('').map(function (c) { return SUP[c]; }).join('');
+}
+var WORDS = [[1e18, 'kuintiliun'], [1e15, 'kuadriliun'], [1e12, 'triliun'], [1e9, 'miliar'], [1e6, 'juta']];
+function words(n) {
+  if (!isFinite(n)) return '∞';
+  if (n >= 1e21) return sci(n);
+  for (var i = 0; i < WORDS.length; i++) if (n >= WORDS[i][0]) { var x = n / WORDS[i][0]; return nf(x, x >= 100 ? 0 : 1) + ' ' + WORDS[i][1]; }
+  return nf(n, n < 10 ? 2 : 0);
+}
+function fmtRate(h) {
+  var u = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s', 'ZH/s'], i = 0;
+  while (h >= 1000 && i < u.length - 1) { h /= 1000; i++; }
+  return nf(h, h >= 100 ? 0 : h >= 10 ? 1 : 2) + ' ' + u[i];
+}
+function fmtDuration(sec) {
+  if (!isFinite(sec)) return '∞';
+  if (sec < 90) return nf(sec, 0) + ' detik';
+  if (sec < 5400) return nf(sec / 60, 0) + ' menit';
+  if (sec < 172800) return nf(sec / 3600, 1) + ' jam';
+  var days = sec / 86400;
+  if (days < 730) return nf(days, 0) + ' hari';
+  return words(days / 365.25) + ' tahun';
+}
+function fmtRp(v) {
+  if (!isFinite(v)) return '–';
+  if (v === 0) return 'Rp 0';
+  if (Math.abs(v) >= 1) return 'Rp ' + nf(v, 0);
+  if (Math.abs(v) >= 0.01) return 'Rp ' + nf(v, 2);
+  return 'Rp ' + sci(v);
+}
+function fmtSats(s) {
+  if (s >= 1) return nf(s, s >= 100 ? 0 : 2) + ' satoshi';
+  if (s >= 0.001) return nf(s, 4) + ' satoshi';
+  return sci(s) + ' satoshi';
+}
+
+/* ===== Status aplikasi ===== */
+var $ = function (id) { return document.getElementById(id); };
+var API = 'https://mempool.space/api';
+var TAG = '/web-miner/';
+var EXAMPLE_RATE = 5e6;
+var S = {
+  running: false, workers: [], workerJob: [], jobs: new Map(), jobSeq: 0,
+  tpl: null, activeTpl: null, activeSpk: null, mode: 'idle', netNote: '',
+  total: 0, shares: 0, best: -1, bestHash: '', bestNonce: 0, lastNonce: 0, tried: 0,
+  recent: [], startedAt: 0, minedMs: 0, rate: 0, measured: 0, timer: null,
+  sessionId: (crypto.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] : Math.floor(Math.random() * 4294967296)) >>> 0,
+  workerUrl: null, inlineFallback: false, rateTouched: false
+};
+
+function store(k, v) { try { localStorage.setItem('webminer.' + k, v); } catch (e) {} }
+function load(k) { try { return localStorage.getItem('webminer.' + k); } catch (e) { return null; } }
+
+function readDifficulty() { var v = parseFloat($('inDiff').value); return v > 0 ? v * 1e12 : 148.36e12; }
+function benchTemplate() {
+  var prev = new Uint8Array(32);
+  if (crypto.getRandomValues) crypto.getRandomValues(prev);
+  for (var i = 0; i < 9; i++) prev[i] = 0;
+  return { live: false, height: 975000, prevHash: bytesToHex(prev), bits: difficultyToBits(readDifficulty()), version: 0x20000000, tipTime: 0 };
+}
+
+async function getJSON(url) {
+  var ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, 8000);
+  try {
+    var r = await fetch(url, { signal: ctl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(tm); }
+}
+
+async function loadNetwork() {
+  try {
+    var blocks = await getJSON(API + '/blocks');
+    var tip = blocks[0];
+    if (!tip || typeof tip.height !== 'number' || !/^[0-9a-f]{64}$/.test(tip.id) || !tip.bits) throw new Error('data blok tidak lengkap');
+    S.tpl = { live: true, height: tip.height + 1, prevHash: tip.id, bits: tip.bits >>> 0, version: 0x20000000, tipTime: tip.timestamp || 0 };
+    $('inDiff').value = +(bitsToDifficulty(S.tpl.bits) / 1e12).toFixed(2);
+    var retarget = S.tpl.height % 2016 === 0;
+    S.netNote = 'Terhubung ke jaringan. Blok terakhir #' + nf(tip.height) + ', kesulitan ' + words(bitsToDifficulty(S.tpl.bits)) + '.' +
+      (retarget ? ' Blok berikutnya adalah blok penyesuaian kesulitan, jadi nilai bits bisa berubah dan template bisa tidak sah.' : '');
+    $('netStatus').dataset.tone = 'ok';
+  } catch (e) {
+    S.tpl = null;
+    S.netNote = 'Data blok live tidak bisa diambil dari mempool.space di tampilan ini. Hashing tetap nyata, tapi memakai header contoh, jadi berjalan sebagai uji kecepatan. Untuk solo mining sungguhan, buka file ini di browser biasa atau host di Vercel.';
+    $('netStatus').dataset.tone = '';
+  }
+  $('netStatus').textContent = S.netNote;
+  try {
+    var p = await getJSON(API + '/v1/prices');
+    if (p && p.USD > 0) $('inPrice').value = Math.round(p.USD);
+  } catch (e) {}
+  renderAll();
+}
+
+function buildJob(tpl, spk) {
+  var id = ++S.jobSeq;
+  var en = new Uint8Array(8), dv = new DataView(en.buffer);
+  dv.setUint32(0, S.sessionId); dv.setUint32(4, id);
+  var scriptSig = concat(pushData(scriptNum(tpl.height)), pushData(en), pushData(utf8(TAG)));
+  var reward = subsidySats(tpl.height);
+  var cb = coinbaseTx(scriptSig, reward, spk);
+  var txid = core.sha256d(cb);
+  var time = Math.max(Math.floor(Date.now() / 1000), (tpl.tipTime || 0) + 1);
+  var header = makeHeader(tpl.version, tpl.prevHash, txid, time, tpl.bits, 0);
+  var hv = new DataView(header.buffer);
+  var job = {
+    id: id, tpl: tpl, header: header, coinbase: cb, time: time, reward: reward,
+    midstate: core.midstate(header.subarray(0, 64)),
+    tail: [hv.getInt32(64), hv.getInt32(68), hv.getInt32(72)],
+    target: bitsToTargetWords(tpl.bits),
+    merkle: bytesToHex(txid.slice().reverse())
+  };
+  S.jobs.set(id, job);
+  return job;
+}
+
+function sendJob(i) {
+  var w = S.workers[i];
+  if (!w) return;
+  if (S.workerJob[i]) S.jobs.delete(S.workerJob[i]);
+  var job = buildJob(S.activeTpl, S.activeSpk);
+  S.workerJob[i] = job.id;
+  w.postMessage({ type: 'job', id: job.id, midstate: Array.from(job.midstate), tail: job.tail, target: Array.from(job.target) });
+}
+
+function workerSource() {
+  return MinerCore.toString() + '\n' + workerMain.toString() +
+    '\nworkerMain(self, MinerCore(), function (fn) { var c = new MessageChannel(); c.port1.onmessage = fn; return function () { c.port2.postMessage(0); }; }, 150);';
+}
+function makeInlineWorker() {
+  var api = { onmessage: null };
+  var scope = { onmessage: null, postMessage: function (d) { setTimeout(function () { if (api.onmessage) api.onmessage({ data: d }); }, 0); } };
+  workerMain(scope, MinerCore(), function (fn) { return function () { setTimeout(fn, 0); }; }, 40);
+  api.postMessage = function (d) { setTimeout(function () { if (scope.onmessage) scope.onmessage({ data: d }); }, 0); };
+  api.terminate = function () { if (scope.onmessage) scope.onmessage({ data: { type: 'stop' } }); api.onmessage = null; };
+  return api;
+}
+function createWorker() {
+  if (!S.inlineFallback) {
+    try {
+      if (!S.workerUrl) S.workerUrl = URL.createObjectURL(new Blob([workerSource()], { type: 'text/javascript' }));
+      return new Worker(S.workerUrl);
+    } catch (e) { S.inlineFallback = true; }
+  }
+  return makeInlineWorker();
+}
+function switchToInline() {
+  // Worker diblokir oleh browser: jalankan satu loop di halaman.
+  S.inlineFallback = true;
+  S.workers.forEach(function (w) { try { w.terminate(); } catch (e) {} });
+  S.workers = []; S.workerJob = [];
+  var w = makeInlineWorker();
+  w.onmessage = function (e) { onWorkerMsg(0, e.data); };
+  S.workers.push(w);
+  sendJob(0);
+  $('netStatus').textContent = S.netNote + ' Browser ini tidak mengizinkan Web Worker, jadi penambang berjalan di satu thread halaman.';
+}
+
+function onWorkerMsg(i, m) {
+  if (!S.running) return;
+  if (m.type === 'progress') {
+    S.total += m.hashes; S.shares += m.shares;
+    S.recent.push([performance.now(), m.hashes]);
+    if (m.best > S.best) { S.best = m.best; S.bestHash = m.bestHash; S.bestNonce = m.bestNonce; }
+    if (i === 0) { S.lastNonce = m.nonce; S.tried = m.tried; }
+  } else if (m.type === 'exhausted') {
+    if (S.workerJob[i] === m.id) sendJob(i);
+  } else if (m.type === 'found') {
+    handleFound(i, m);
+  }
+}
+
+function handleFound(i, m) {
+  var job = S.jobs.get(m.id);
+  if (!job) { sendJob(i); return; }
+  var header = job.header.slice();
+  new DataView(header.buffer).setUint32(76, m.nonce, true);
+  var check = bytesToHex(core.sha256d(header).reverse());
+  if (check !== m.hash) { sendJob(i); return; }
+  if (S.mode !== 'live') { sendJob(i); return; }
+  var block = concat(header, varint(1), job.coinbase);
+  $('blockHex').value = bytesToHex(block);
+  $('found').hidden = false;
+  stop();
+  $('found').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function computeRate() {
+  var now = performance.now();
+  while (S.recent.length && now - S.recent[0][0] > 5000) S.recent.shift();
+  var span = Math.min(5000, now - S.startedAt);
+  if (span < 800) return S.rate;
+  var sum = 0;
+  for (var k = 0; k < S.recent.length; k++) sum += S.recent[k][1];
+  return sum / (span / 1000);
+}
+
+async function start() {
+  var btn = $('toggle');
+  btn.disabled = true;
+  if (!S.tpl) await loadNetwork();
+  var addr = parseAddress($('addr').value);
+  var live = !!(S.tpl && S.tpl.live && addr.ok);
+  S.activeTpl = S.tpl ? S.tpl : benchTemplate();
+  S.activeSpk = addr.ok ? addr.spk : new Uint8Array([0x6a]);
+  S.mode = live ? 'live' : 'bench';
+  var n = S.inlineFallback ? 1 : +$('threads').value;
+  S.workers = []; S.workerJob = []; S.jobs.clear(); S.lastJob = null;
+  S.running = true; S.startedAt = performance.now(); S.recent = []; S.rate = 0;
+  for (var i = 0; i < n; i++) {
+    var w = createWorker();
+    (function (idx, worker) {
+      worker.onmessage = function (e) { onWorkerMsg(idx, e.data); };
+      worker.onerror = function (ev) { if (ev && ev.preventDefault) ev.preventDefault(); if (S.running && !S.inlineFallback) switchToInline(); };
+    })(i, w);
+    S.workers.push(w);
+    if (S.inlineFallback) break;
+  }
+  S.workers.forEach(function (_, idx) { sendJob(idx); });
+  $('addr').disabled = true;
+  btn.disabled = false;
+  S.timer = setInterval(tick, 500);
+  if (!live && S.tpl && S.tpl.live && !addr.ok) $('netStatus').textContent = S.netNote + ' Isi alamat Bitcoin yang sah agar ini menjadi solo mining sungguhan. Sekarang berjalan sebagai uji kecepatan.';
+  renderAll();
+}
+
+function stop() {
+  if (S.running) S.minedMs += performance.now() - S.startedAt;
+  S.lastJob = currentJob();
+  S.running = false;
+  S.workers.forEach(function (w) { try { w.terminate(); } catch (e) {} });
+  S.workers = []; S.workerJob = [];
+  clearInterval(S.timer); S.timer = null;
+  S.rate = 0;
+  $('addr').disabled = false;
+  if (S.mode !== 'idle') S.mode = 'stopped';
+  $('netStatus').textContent = S.netNote;
+  renderAll();
+}
+
+function tick() {
+  S.rate = computeRate();
+  if (S.rate > 0) {
+    S.measured = S.rate;
+    if (!S.rateTouched) $('inRate').value = +(S.rate / 1e6).toFixed(3);
+  }
+  renderAll();
+}
+
+/* ===== Tampilan ===== */
+function zeroSpan(el, hex) {
+  el.textContent = '';
+  var m = /^0*/.exec(hex)[0].length;
+  var z = document.createElement('span'); z.className = 'z'; z.textContent = hex.slice(0, m);
+  el.appendChild(z);
+  el.appendChild(document.createTextNode(hex.slice(m)));
+}
+
+function currentJob() { return (S.workerJob[0] && S.jobs.get(S.workerJob[0])) || S.lastJob || null; }
+
+function renderAll() {
+  var tpl = S.activeTpl || S.tpl;
+  var bits = tpl ? tpl.bits : difficultyToBits(readDifficulty());
+  var D = bitsToDifficulty(bits);
+  var need = targetZeroBits(bits);
+
+  // Tombol dan status
+  var btn = $('toggle');
+  btn.textContent = S.running ? 'Berhenti' : (S.mode === 'idle' ? 'Mulai menambang' : 'Lanjutkan menambang');
+  btn.dataset.running = S.running ? '1' : '0';
+  var pill = $('modePill');
+  pill.dataset.run = S.running ? '1' : '0';
+  if (S.running) {
+    pill.dataset.state = S.mode;
+    pill.textContent = S.mode === 'live' ? 'Solo mining nyata' : 'Uji kecepatan';
+  } else {
+    pill.dataset.state = 'idle';
+    pill.textContent = S.mode === 'idle' ? 'Siap' : 'Berhenti';
+  }
+
+  // Angka live
+  var shown = S.running ? S.rate : S.measured;
+  $('sRate').textContent = fmtRate(shown);
+  $('sRateSub').textContent = S.running ? S.workers.length + ' thread aktif' : (S.measured ? 'pengukuran terakhir' : 'belum diukur');
+  $('sTotal').textContent = words(S.total);
+  var ms = S.minedMs + (S.running ? performance.now() - S.startedAt : 0);
+  $('sTime').textContent = fmtDuration(ms / 1000) + ' menambang';
+  $('sShares').textContent = nf(S.shares);
+  if (tpl) {
+    $('sHeight').textContent = '#' + nf(tpl.height);
+    $('sHeightSub').textContent = tpl.live ? 'data live mempool.space' : 'header contoh';
+  }
+
+  // Papan hash
+  zeroSpan($('hTarget'), bytesToHex(bitsToTargetBytes(bits)));
+  $('hTargetBits').textContent = '≈ ' + nf(need, 1) + ' bit';
+  if (S.bestHash) { zeroSpan($('hBest'), S.bestHash); $('hBestBits').textContent = S.best + ' bit'; }
+  var pct = Math.max(0, Math.min(100, (Math.max(S.best, 0) / need) * 100));
+  $('meterFill').style.width = pct + '%';
+  $('meterMark').style.left = (32 / need * 100) + '%';
+  $('needLbl').textContent = 'blok = ' + nf(need, 1) + ' bit';
+  $('meter').setAttribute('aria-label', 'Hash terbaik ' + Math.max(S.best, 0) + ' bit nol dari sekitar ' + nf(need, 0) + ' bit yang dibutuhkan');
+  var expHashes = D * 4294967296;
+  if (S.total > 0) {
+    $('meterCap').textContent = 'Anda sudah mencoba ' + words(S.total) + ' hash. Satu blok butuh rata-rata ' + words(expHashes) +
+      ' hash, atau ' + words(expHashes / S.total) + ' kali lipat dari yang sudah Anda lakukan. Skala bar ini dalam bit: setiap 1 bit tambahan berarti dua kali lebih banyak hash.';
+  } else {
+    $('meterCap').textContent = 'Satu blok butuh rata-rata ' + words(expHashes) + ' hash. Skala bar ini dalam bit: setiap 1 bit tambahan berarti dua kali lebih banyak hash.';
+  }
+
+  // Header blok
+  var job = currentJob();
+  var hdrTpl = job ? job.tpl : tpl;
+  if (hdrTpl) {
+    $('fVer').textContent = '0x' + ('0000000' + hdrTpl.version.toString(16)).slice(-8);
+    $('fPrev').textContent = hdrTpl.prevHash;
+    if (!hdrTpl.live) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = 'contoh'; $('fPrev').appendChild(t); }
+    $('fBits').textContent = '0x' + ('0000000' + hdrTpl.bits.toString(16)).slice(-8);
+    $('fReward').textContent = nf(subsidySats(hdrTpl.height) / 1e8, 8) + ' BTC (subsidi blok, tanpa biaya transaksi)';
+  }
+  if (job) {
+    $('fMerkle').textContent = job.merkle;
+    $('fTime').textContent = '';
+    $('fTime').appendChild(document.createTextNode(job.time + ' '));
+    var sm = document.createElement('small'); sm.textContent = new Date(job.time * 1000).toLocaleString('id-ID');
+    $('fTime').appendChild(sm);
+    $('fNonce').textContent = '0x' + ('0000000' + (S.lastNonce >>> 0).toString(16)).slice(-8) + ' ';
+    var tr = document.createElement('small');
+    tr.textContent = words(S.tried || 0) + ' dari 4,29 miliar nonce sudah dicoba di header ini (thread 1)';
+    $('fNonce').appendChild(tr);
+  } else {
+    $('fMerkle').textContent = 'dibuat saat mulai menambang';
+    $('fTime').textContent = 'saat mulai menambang';
+    $('fNonce').textContent = '–';
+  }
+
+  renderCalc(readDifficulty(), hdrTpl ? hdrTpl.height : 975000);
+}
+
+function renderCalc(D, height) {
+  var rateIn = parseFloat($('inRate').value);
+  var H = rateIn > 0 ? rateIn * 1e6 : EXAMPLE_RATE;
+  $('rateHint').textContent = S.measured && !S.rateTouched ? 'Diukur dari perangkat ini.' :
+    S.rateTouched ? 'Angka yang Anda isi sendiri.' : 'Contoh 5 MH/s. Tekan Mulai untuk memakai kecepatan perangkat Anda.';
+  var price = parseFloat($('inPrice').value) || 0, kurs = parseFloat($('inKurs').value) || 0;
+  var watt = parseFloat($('inWatt').value) || 0, tarif = parseFloat($('inTarif').value) || 0;
+  var expHashes = D * 4294967296;
+  var blocksPerDay = H * 86400 / expHashes;
+  var rewardBtc = subsidySats(height) / 1e8;
+  var satsDay = blocksPerDay * rewardBtc * 1e8;
+  var rpDay = blocksPerDay * rewardBtc * price * kurs;
+  var costDay = watt / 1000 * 24 * tarif;
+  var secs = expHashes / H, years = secs / 31557600;
+
+  $('rChance').textContent = '1 banding ' + words(1 / blocksPerDay);
+  $('rTime').textContent = fmtDuration(secs);
+  $('rTimeNote').textContent = years >= 13.8e9 ? 'Sekitar ' + words(years / 13.8e9) + ' kali umur alam semesta (13,8 miliar tahun).' :
+    years >= 4.5e8 ? 'Sekitar ' + nf(years / 4.54e9, 1) + ' kali umur Bumi (4,5 miliar tahun).' :
+    years > 5000 ? 'Lebih lama dari seluruh sejarah tertulis manusia.' : '';
+  $('rSats').textContent = fmtSats(satsDay);
+  $('rRp').textContent = '≈ ' + fmtRp(rpDay) + ' per hari, sebelum biaya pool. 1 BTC = 100 juta satoshi.';
+  $('rCost').textContent = fmtRp(costDay);
+  $('rCostNote').textContent = nf(watt, 1) + ' W selama 24 jam = ' + nf(watt * 24 / 1000, 2) + ' kWh.';
+
+  var v = $('verdict');
+  if (costDay > 0 && rpDay > 0) {
+    var yearsToCover = costDay / rpDay / 365.25;
+    v.textContent = 'Biaya listrik satu hari setara dengan hasil mining selama ' + (yearsToCover >= 1 ? words(yearsToCover) + ' tahun' : fmtDuration(yearsToCover * 365.25 * 86400)) +
+      '. Supaya impas, perangkat ini harus ' + words(costDay / rpDay) + ' kali lebih cepat.';
+  } else if (rpDay > 0) {
+    v.textContent = 'Hasil rata-rata ' + fmtRp(rpDay) + ' per hari, sebelum memperhitungkan listrik.';
+  } else {
+    v.textContent = 'Isi harga BTC dan kurs untuk melihat hasil dalam rupiah.';
+  }
+  $('basis').textContent = 'Dasar hitungan: hadiah ' + nf(rewardBtc, 3) + ' BTC per blok, kesulitan ' + words(D) + ', kecepatan ' + fmtRate(H) + '.';
+
+  renderCompare(D, H, rewardBtc, price, kurs);
+}
+
+function renderCompare(D, H, rewardBtc, price, kurs) {
+  var expHashes = D * 4294967296, net = expHashes / 600;
+  var rows = [
+    { name: S.measured ? 'Browser ini (terukur)' : 'Browser ini (contoh)', rate: H, you: true },
+    { name: 'GPU gaming kelas atas', rate: 1e10, approx: true },
+    { name: 'Mesin ASIC (mis. Antminer S21)', rate: 2e14, approx: true },
+    { name: 'Seluruh jaringan Bitcoin', rate: net, approx: true }
+  ];
+  var body = $('cmpBody');
+  body.textContent = '';
+  rows.forEach(function (r) {
+    var tr = document.createElement('tr');
+    if (r.you) tr.className = 'you';
+    var perDay = r.rate * 86400 / expHashes * rewardBtc;
+    var cells = [r.name, (r.approx ? '≈ ' : '') + fmtRate(r.rate), fmtDuration(expHashes / r.rate),
+      fmtSats(perDay * 1e8) + (price && kurs ? ' · ' + fmtRp(perDay * price * kurs) : '')];
+    cells.forEach(function (c, i) { var td = document.createElement('td'); td.textContent = c; if (i > 0) td.className = 'num'; tr.appendChild(td); });
+    body.appendChild(tr);
+  });
+}
+
+/* ===== Interaksi ===== */
+function validateAddress() {
+  var a = parseAddress($('addr').value), hint = $('addrHint');
+  if (a.empty) { hint.dataset.tone = ''; hint.textContent = 'Kalau Anda menemukan blok, hadiah blok masuk ke alamat ini. Kosongkan untuk uji kecepatan saja.'; }
+  else if (a.ok) { hint.dataset.tone = 'ok'; hint.textContent = 'Alamat ' + a.type + ' sah. Hadiah blok akan dibayarkan ke sini.'; }
+  else { hint.dataset.tone = 'bad'; hint.textContent = a.msg; }
+  return a;
+}
+
+function init() {
+  var st = selfTest(), el = $('selftest');
+  el.dataset.ok = st ? '1' : '0';
+  el.innerHTML = st ? '<b>Mesin hash lulus uji.</b><span>Blok genesis Bitcoin (3 Jan 2009) dihitung ulang dan hasilnya cocok: 000000000019d6…8ce26f</span>'
+                    : '<b>Mesin hash gagal uji.</b><span>Browser ini menghitung SHA-256 dengan hasil yang salah. Jangan dipakai menambang.</span>';
+  if (!st) $('toggle').disabled = true;
+
+  var cores = Math.max(1, Math.min(64, navigator.hardwareConcurrency || 2));
+  var th = $('threads');
+  th.max = cores;
+  var saved = parseInt(load('threads'), 10);
+  th.value = saved > 0 && saved <= cores ? saved : Math.max(1, Math.floor(cores / 2));
+  $('cores').textContent = cores;
+  $('threadsOut').textContent = th.value;
+  th.addEventListener('input', function () { $('threadsOut').textContent = th.value; });
+  th.addEventListener('change', function () {
+    store('threads', th.value);
+    if (S.running) { stop(); start(); }
+  });
+
+  var savedAddr = load('addr');
+  if (savedAddr) $('addr').value = savedAddr;
+  validateAddress();
+  $('addr').addEventListener('input', function () { store('addr', $('addr').value.trim()); validateAddress(); });
+
+  $('toggle').addEventListener('click', function () { if (S.running) stop(); else start(); });
+  ['inDiff', 'inPrice', 'inKurs', 'inWatt', 'inTarif'].forEach(function (id) { $(id).addEventListener('input', renderAll); });
+  $('inRate').addEventListener('input', function () { S.rateTouched = true; renderAll(); });
+
+  $('copyBlock').addEventListener('click', function () {
+    var ta = $('blockHex');
+    var done = function () { $('copyMsg').textContent = 'Tersalin.'; };
+    var fallback = function () { ta.focus(); ta.select(); $('copyMsg').textContent = 'Teks sudah dipilih. Salin dengan Ctrl+C atau tahan lalu Salin.'; };
+    try { navigator.clipboard.writeText(ta.value).then(done, fallback); } catch (e) { fallback(); }
+  });
+
+  renderAll();
+  loadNetwork();
+
+  // Cek blok baru setiap 30 detik. Jika ada, template diperbarui agar tidak menambang blok yang sudah basi.
+  setInterval(async function () {
+    if (!S.tpl || !S.tpl.live) return;
+    try {
+      var r = await fetch(API + '/blocks/tip/height', { cache: 'no-store' });
+      var h = parseInt(await r.text(), 10);
+      if (h + 1 > S.tpl.height) {
+        await loadNetwork();
+        if (S.running && S.tpl) { S.activeTpl = S.tpl; S.workers.forEach(function (_, i) { sendJob(i); }); }
+      }
+    } catch (e) {}
+  }, 30000);
+}
+
+init();
+</script>
+</body>
+</html>
